@@ -1,4 +1,4 @@
-pub use simple_rsx_macros::jsx;
+pub use simple_rsx_macros::rsx;
 use std::fmt::Display;
 
 pub enum NodeList {

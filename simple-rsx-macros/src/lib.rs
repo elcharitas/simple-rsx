@@ -13,23 +13,23 @@ use syn::{
 ///
 /// ```rust
 /// // Fragment
-/// jsx!(<>Hello World</>);
+/// rsx!(<>Hello World</>);
 ///
 /// // Self-closing tag
-/// jsx!(<div class="container" id="app" />);
+/// rsx!(<div class="container" id="app" />);
 ///
 /// // Tag with children
-/// jsx!(<div class="container">
+/// rsx!(<div class="container">
 ///     <h1>Title</h1>
 ///     <p>Paragraph text</p>
 /// </div>);
 ///
 /// // Expression
 /// let name = "World";
-/// jsx!(<div>Hello {name}</div>);
+/// rsx!(<div>Hello {name}</div>);
 /// ```
 #[proc_macro]
-pub fn jsx(input: TokenStream) -> TokenStream {
+pub fn rsx(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as JsxNode);
     let expanded = input.to_tokens();
     expanded.into()
