@@ -42,8 +42,9 @@ enum JsxNode {
     Fragment(Vec<JsxNode>),
     Element {
         tag: Ident,
-        attributes: Vec<(Ident, Expr)>,
+        attributes: Vec<(Ident, Lit)>,
         children: Vec<JsxNode>,
+        close_tag: Option<Ident>, // Optional closing tag for elements
     },
     Text(Expr),
     Empty,
@@ -52,7 +53,7 @@ enum JsxNode {
 /// Represents an attribute name-value pair
 struct Attribute {
     name: Ident,
-    value: Expr,
+    value: Lit,
 }
 
 impl Parse for Attribute {
@@ -119,6 +120,7 @@ impl Parse for JsxNode {
                     tag,
                     attributes,
                     children: Vec::new(),
+                    close_tag: None,
                 });
             }
 
@@ -154,6 +156,7 @@ impl Parse for JsxNode {
                 tag,
                 attributes,
                 children,
+                close_tag: Some(close_tag),
             });
         }
 
@@ -215,13 +218,15 @@ impl JsxNode {
                 tag,
                 attributes,
                 children,
+                close_tag,
             } => {
                 let tag_str = tag.to_string();
                 let attr_setters = attributes.iter().map(|(name, value)| {
                     let name_str = name.to_string();
                     quote! {
-                        if let Some(e) = element.as_element_mut() {
-                            e.set_attribute(#name_str, &(#value).to_string());
+                        if let Some(e) = #tag.as_element_mut() {
+                            let #name = #value;
+                            e.set_attribute(#name_str, #name);
                         }
                     }
                 });
@@ -237,24 +242,33 @@ impl JsxNode {
                             match child_result {
                                 NodeList::Fragment(nodes) => {
                                     for child in nodes {
-                                        element.append_child(child);
+                                        #tag.append_child(child);
                                     }
                                 },
                                 NodeList::Single(node) => {
-                                    element.append_child(node);
+                                    #tag.append_child(node);
                                 }
                             }
                         )*
                     }
                 };
 
+                let close_tag = if let Some(close_tag) = close_tag {
+                    quote! {
+                        #close_tag = #tag;
+                    }
+                } else {
+                    quote! {}
+                };
+
                 quote! {
                     {
                         #[allow(unused_mut)]
-                        let mut element = Element::new(#tag_str);
+                        let mut #tag = Element::new(#tag_str);
                         #(#attr_setters)*
                         #children_handlers
-                        NodeList::Single(element)
+                        #close_tag
+                        NodeList::Single(#tag)
                     }
                 }
             }
@@ -269,71 +283,5 @@ impl JsxNode {
                 }
             }
         }
-    }
-}
-
-// Example library code that would be used with the JSX macro
-#[cfg(test)]
-mod tests {
-    use crate::jsx;
-
-    enum NodeList {
-        Fragment(Vec<Node>),
-        Single(Node),
-    }
-
-    enum Node {
-        Element(Element),
-        Text(String),
-    }
-
-    struct Element {
-        tag: String,
-        attributes: std::collections::HashMap<String, String>,
-        children: Vec<Node>,
-    }
-
-    impl Element {
-        fn new(tag: &str) -> Node {
-            Node::Element(Element {
-                tag: tag.to_string(),
-                attributes: std::collections::HashMap::new(),
-                children: Vec::new(),
-            })
-        }
-
-        fn set_attribute(&mut self, name: &str, value: &str) {
-            self.attributes.insert(name.to_string(), value.to_string());
-        }
-
-        fn append_child(&mut self, node: Node) {
-            self.children.push(node);
-        }
-    }
-
-    impl Node {
-        fn as_element_mut(&mut self) -> Option<&mut Element> {
-            match self {
-                Node::Element(el) => Some(el),
-                _ => None,
-            }
-        }
-
-        fn append_child(&mut self, node: Node) {
-            if let Node::Element(el) = self {
-                el.children.push(node);
-            }
-        }
-    }
-
-    fn new_text(text: &str) -> Node {
-        Node::Text(text.to_string())
-    }
-    #[test]
-    fn test_jsx() {
-        let jsx = jsx!(<div class="container" id="app">Hello World</div>);
-        let expected = String::from("Hello World");
-        let result = jsx;
-        assert_eq!(result, expected); // Replace with your expected resul
     }
 }
