@@ -195,13 +195,11 @@ impl Parse for JsxNode {
                 match input.parse::<Expr>() {
                     Ok(expr) => Ok(JsxNode::Text(expr)),
                     Err(_) => {
-                        // If we reach here, likely we have multiple sibling nodes
-                        // Since we don't have a way to directly detect this, we'll treat
-                        // unrecognized patterns as an error
-                        Err(syn::Error::new(
-                            Span::call_site(),
-                            "Expected a JSX element, fragment, text, block, or expression",
-                        ))
+                        let expr = Expr::Lit(ExprLit {
+                            attrs: Vec::new(),
+                            lit: Lit::Str(LitStr::new(&input.to_string(), Span::call_site())),
+                        });
+                        Ok(JsxNode::Text(expr))
                     }
                 }
             }

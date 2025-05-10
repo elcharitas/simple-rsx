@@ -1,5 +1,3 @@
 [workspace]
 members = ["simple-rsx-macros", "simple-rsx", "simple-rsx-test"]
 resolver = "3"
-[workspace.package.metadata.docs.rs]
-open = false
