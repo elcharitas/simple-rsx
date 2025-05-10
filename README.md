@@ -14,12 +14,14 @@ A lightweight and intuitive JSX-like syntax implementation for Rust, enabling HT
 - [x] Tag matching validation
 - [x] Procedural macro implementation
 - [x] Basic HTML element rendering
-- [ ] Expression support in braces (`{expr}`)
+- [x] Expression support in braces (`{expr}`)
 - [ ] Props validation
+- [x] attribute value concatenation and interpolation
+- [x] Conditional attributes
 - [ ] Event handling
-- [ ] Conditional rendering
+- [x] Conditional rendering
 - [ ] Looping
-- [ ] List rendering
+- [x] List rendering
 - [ ] Custom components
 - [ ] State management
 - [ ] Lifecycle hooks
@@ -50,6 +52,14 @@ let nested = jsx!(
     </div>
 );
 
+// element with attributes and children
+let element_with_children = jsx!(
+    <div class="container" id="app">
+        <p>"Hello, world!"</p>
+        <p>"Another paragraph."</p>
+    </div>
+);
+
 // Fragment syntax
 let fragment = jsx!(
     <>
@@ -57,6 +67,45 @@ let fragment = jsx!(
         <p>"Content"</p>
     </>
 );
+
+// Expression support
+let count = 42;
+let expression = jsx!(<p>"Count: {count}"</p>);
+
+// Conditional rendering
+let show = true;
+let conditional = jsx!(
+    <div>
+        {if show {
+            <p>"This is shown."</p>
+        } else {
+            <p>"This is hidden."</p>
+        }}
+    </div>
+);
+
+// List rendering
+let items = vec!["Item 1", "Item 2", "Item 3"];
+let list = jsx!(
+    <ul>
+        {for item in items {
+            <li>{item}</li>
+        }}
+    </ul>
+);
+
+// Server-side rendering
+let nodes = jsx!(
+    <html>
+        <head>
+            <title>"My Page"</title>
+        </head>
+        <body>
+            <h1>"Welcome to my page!"</h1>
+        </body>
+    </html>
+);
+let html = nodes.to_string();
 ```
 
 ## Project Structure
