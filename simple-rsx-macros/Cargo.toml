@@ -2,6 +2,13 @@
 name = "simple-rsx-macros"
 version = "0.1.0"
 edition = "2024"
+description = "Procedural macros for simple-rsx, providing JSX-like syntax for Rust"
+authors = ["Jonathan Irhodia <jonathanirhodia@gmail.com>"]
+license = "MIT"
+repository = "https://github.com/elcharitas/simple-rsx"
+keywords = ["jsx", "macros", "proc-macro", "syntax", "html"]
+categories = ["development-tools::procedural-macro-helpers", "template-engine"]
+documentation = "https://docs.rs/simple-rsx-macros"
 
 [lib]
 proc-macro = true
