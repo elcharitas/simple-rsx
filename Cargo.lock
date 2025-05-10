@@ -22,14 +22,14 @@ dependencies = [
 
 [[package]]
 name = "simple-rsx"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "simple-rsx-macros",
 ]
 
 [[package]]
 name = "simple-rsx-macros"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "proc-macro2",
  "quote",
