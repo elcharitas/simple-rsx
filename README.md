@@ -43,17 +43,17 @@ simple-rsx = "0.1"
 use simple_rsx::*;
 
 // Self-closing tag with attributes
-let element = jsx!(<div class="container" id="app" />);
+let element = rsx!(<div class="container" id="app" />);
 
 // Nested elements with text content
-let nested = jsx!(
+let nested = rsx!(
     <div class="container" id="app">
         <p>"Hello, world!"</p>
     </div>
 );
 
 // element with attributes and children
-let element_with_children = jsx!(
+let element_with_children = rsx!(
     <div class="container" id="app">
         <p>"Hello, world!"</p>
         <p>"Another paragraph."</p>
@@ -61,7 +61,7 @@ let element_with_children = jsx!(
 );
 
 // Fragment syntax
-let fragment = jsx!(
+let fragment = rsx!(
     <>
         <h1>"Title"</h1>
         <p>"Content"</p>
@@ -70,32 +70,32 @@ let fragment = jsx!(
 
 // Expression support
 let count = 42;
-let expression = jsx!(<p>"Count: {count}"</p>);
+let expression = rsx!(<p>"Count: {count}"</p>);
 
 // Conditional rendering
 let show = true;
-let conditional = jsx!(
+let conditional = rsx!(
     <div>
         {if show {
-            jsx!(<p>"This is shown."</p>)
+            rsx!(<p>"This is shown."</p>)
         } else {
-            jsx!(<p>"This is hidden."</p>)
+            rsx!(<p>"This is hidden."</p>)
         }}
     </div>
 );
 
 // List rendering
 let items = vec!["Item 1", "Item 2", "Item 3"];
-let list = jsx!(
+let list = rsx!(
     <ul>
         {for item in items {
-            jsx!(<li>{item}</li>)
+            rsx!(<li>{item}</li>)
         }}
     </ul>
 );
 
 // Server-side rendering
-let nodes = jsx!(
+let nodes = rsx!(
     <html>
         <head>
             <title>"My Page"</title>
