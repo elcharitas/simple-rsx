@@ -2,9 +2,10 @@ use proc_macro::TokenStream;
 use proc_macro2::{Span, TokenStream as TokenStream2};
 use quote::quote;
 use syn::{
-    Expr, ExprLit, Ident, Lit, Result, Token,
+    Block, Expr, ExprLit, Ident, Lit, LitStr, Macro, Result, Token,
     parse::{Parse, ParseStream},
-    parse_macro_input,
+    parse_macro_input, parse_quote,
+    token::{Brace, Not},
 };
 
 /// A procedural macro that provides JSX-like syntax for creating HTML elements in Rust.
@@ -40,26 +41,49 @@ enum JsxNode {
     Fragment(Vec<JsxNode>),
     Element {
         tag: Ident,
-        attributes: Vec<(Ident, Lit)>,
+        attributes: Vec<(Ident, Block)>,
         children: Vec<JsxNode>,
         close_tag: Option<Ident>, // Optional closing tag for elements
     },
     Text(Expr),
+    Block(Block),
     Empty,
 }
 
 /// Represents an attribute name-value pair
-struct Attribute {
+struct NodeValue {
     name: Ident,
-    value: Lit,
+    value: Block,
 }
 
-impl Parse for Attribute {
+impl Parse for NodeValue {
     fn parse(input: ParseStream) -> Result<Self> {
         let name = input.parse()?;
         input.parse::<Token![=]>()?;
+        if input.peek(LitStr) {
+            let parsed: LitStr = input.parse()?;
+            let value = Block {
+                brace_token: Brace::default(),
+                stmts: vec![syn::Stmt::Expr(
+                    syn::Expr::Macro(syn::ExprMacro {
+                        attrs: Vec::new(),
+                        mac: Macro {
+                            path: parse_quote!(format),
+                            bang_token: Not::default(),
+                            delimiter: syn::MacroDelimiter::Paren(syn::token::Paren::default()),
+                            tokens: {
+                                let string_lit = syn::Lit::Str(parsed);
+                                quote::quote!(#string_lit)
+                            },
+                        },
+                    }),
+                    None,
+                )],
+            };
+            return Ok(NodeValue { name, value });
+        }
         let value = input.parse()?;
-        Ok(Attribute { name, value })
+        Ok(NodeValue { name, value })
     }
 }
 
@@ -78,7 +102,6 @@ impl Parse for JsxNode {
             if input.peek(Token![>]) {
                 input.parse::<Token![>]>()?;
 
-                // Parse children until we find </> closing tag
                 let mut children = Vec::new();
                 while !input.is_empty()
                     && !(input.peek(Token![<]) && input.peek2(Token![/]) && input.peek3(Token![>]))
@@ -86,12 +109,10 @@ impl Parse for JsxNode {
                     if let Ok(child) = input.parse::<JsxNode>() {
                         children.push(child);
                     } else {
-                        // Skip a token if we can't parse a node
                         let _ = input.parse::<proc_macro2::TokenTree>();
                     }
                 }
 
-                // Consume </> closing tag
                 input.parse::<Token![<]>()?;
                 input.parse::<Token![/]>()?;
                 input.parse::<Token![>]>()?;
@@ -105,7 +126,7 @@ impl Parse for JsxNode {
             // Parse attributes
             let mut attributes = Vec::new();
             while !input.peek(Token![>]) && !input.peek(Token![/]) {
-                let attr: Attribute = input.parse()?;
+                let attr: NodeValue = input.parse()?;
                 attributes.push((attr.name, attr.value));
             }
 
@@ -167,26 +188,22 @@ impl Parse for JsxNode {
             });
             return Ok(JsxNode::Text(expr));
         }
-
-        // Handle expressions in braces: {expr}
-        // if input.peek(Token!['{']) {
-        //     let content;
-        //     syn::braced!(content in input);
-        //     let expr: Expr = content.parse()?;
-        //     return Ok(JsxNode::Text(expr));
-        // }
-
-        // Try to parse as an expression
-        match input.parse::<Expr>() {
-            Ok(expr) => Ok(JsxNode::Text(expr)),
+        match input.parse::<Block>() {
+            Ok(block) => Ok(JsxNode::Block(block)),
             Err(_) => {
-                // If we reach here, likely we have multiple sibling nodes
-                // Since we don't have a way to directly detect this, we'll treat
-                // unrecognized patterns as an error
-                Err(syn::Error::new(
-                    Span::call_site(),
-                    "Expected a JSX element, fragment, text, or expression",
-                ))
+                // Try to parse as an expression
+                match input.parse::<Expr>() {
+                    Ok(expr) => Ok(JsxNode::Text(expr)),
+                    Err(_) => {
+                        // If we reach here, likely we have multiple sibling nodes
+                        // Since we don't have a way to directly detect this, we'll treat
+                        // unrecognized patterns as an error
+                        Err(syn::Error::new(
+                            Span::call_site(),
+                            "Expected a JSX element, fragment, text, block, or expression",
+                        ))
+                    }
+                }
             }
         }
     }
@@ -278,6 +295,11 @@ impl JsxNode {
             JsxNode::Empty => {
                 quote! {
                     simple_rsx::NodeList::Fragment(Vec::new())
+                }
+            }
+            JsxNode::Block(block) => {
+                quote! {
+                    simple_rsx::NodeList::Fragment(vec![simple_rsx::TextNode::new(&format!("{}", #block))])
                 }
             }
         }

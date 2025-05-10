@@ -1,5 +1,5 @@
 pub use simple_rsx_macros::rsx;
-use std::fmt::Display;
+use std::{collections::HashMap, fmt::Display};
 
 pub enum NodeList {
     Fragment(Vec<Node>),
@@ -51,11 +51,11 @@ impl Display for Node {
     }
 }
 
-pub trait AttributeValue {
+pub trait NodeValue {
     fn value(&self) -> String;
 }
 
-impl<T: ToString> AttributeValue for T {
+impl<T: ToString> NodeValue for T {
     fn value(&self) -> String {
         self.to_string()
     }
@@ -63,7 +63,7 @@ impl<T: ToString> AttributeValue for T {
 
 pub struct Element {
     tag: String,
-    attributes: std::collections::HashMap<String, String>,
+    attributes: HashMap<String, String>,
     children: Vec<Node>,
 }
 
@@ -71,12 +71,12 @@ impl Element {
     pub fn new(tag: &str) -> Node {
         Node::Element(Element {
             tag: tag.to_string(),
-            attributes: std::collections::HashMap::new(),
+            attributes: HashMap::new(),
             children: Vec::new(),
         })
     }
 
-    pub fn set_attribute(&mut self, name: &str, value: impl AttributeValue) {
+    pub fn set_attribute(&mut self, name: &str, value: impl NodeValue) {
         self.attributes.insert(name.to_string(), value.value());
     }
 
