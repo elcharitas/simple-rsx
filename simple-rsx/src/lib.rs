@@ -1,8 +1,7 @@
-use std::{fmt::Display, str::FromStr};
+pub use simple_rsx_macros::jsx;
+use std::fmt::Display;
 
-use simple_rsx::jsx;
-
-enum NodeList {
+pub enum NodeList {
     Fragment(Vec<Node>),
     Single(Node),
 }
@@ -24,7 +23,7 @@ impl Display for NodeList {
     }
 }
 
-enum Node {
+pub enum Node {
     Element(Element),
     Text(String),
 }
@@ -62,14 +61,14 @@ impl<T: ToString> AttributeValue for T {
     }
 }
 
-struct Element {
+pub struct Element {
     tag: String,
     attributes: std::collections::HashMap<String, String>,
     children: Vec<Node>,
 }
 
 impl Element {
-    fn new(tag: &str) -> Node {
+    pub fn new(tag: &str) -> Node {
         Node::Element(Element {
             tag: tag.to_string(),
             attributes: std::collections::HashMap::new(),
@@ -77,51 +76,36 @@ impl Element {
         })
     }
 
-    fn set_attribute(&mut self, name: &str, value: impl AttributeValue) {
+    pub fn set_attribute(&mut self, name: &str, value: impl AttributeValue) {
         self.attributes.insert(name.to_string(), value.value());
     }
 
-    fn append_child(&mut self, node: Node) {
+    pub fn append_child(&mut self, node: Node) {
         self.children.push(node);
     }
 }
 
 impl Node {
-    fn as_element_mut(&mut self) -> Option<&mut Element> {
+    pub fn as_element_mut(&mut self) -> Option<&mut Element> {
         match self {
             Node::Element(el) => Some(el),
             _ => None,
         }
     }
 
-    fn append_child(&mut self, node: Node) {
+    pub fn append_child(&mut self, node: Node) {
         if let Node::Element(el) = self {
             el.children.push(node);
         }
     }
 }
 
-struct TextNode {
+pub struct TextNode {
     text: String,
 }
+
 impl TextNode {
-    fn new(text: &str) -> Node {
+    pub fn new(text: &str) -> Node {
         Node::Text(text.to_string())
     }
-}
-
-#[test]
-fn test_jsx() {
-    let jsx = jsx!(<div class="container" id="app" />);
-    let expected = String::from("<div class=\"container\" id=\"app\"></div>");
-    let result = jsx.to_string();
-    assert_eq!(result, expected); // Replace with your expected result
-}
-
-#[test]
-fn test_jsx_with_children() {
-    let jsx = jsx!(<div class="container" id=3><p>"Hello, world!"</p></div>);
-    let expected = String::from("<div class=\"container\" id=\"app\"><p>Hello, world!</p></div>");
-    let result = jsx.to_string();
-    assert_eq!(result, expected); // Replace with your expected result
 }

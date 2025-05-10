@@ -1,12 +1,10 @@
 use proc_macro::TokenStream;
 use proc_macro2::{Span, TokenStream as TokenStream2};
-use quote::{ToTokens, quote, quote_spanned};
+use quote::quote;
 use syn::{
-    Expr, ExprLit, Ident, Lit, LitStr, Result, Token,
+    Expr, ExprLit, Ident, Lit, Result, Token,
     parse::{Parse, ParseStream},
-    parse_macro_input, parse_quote,
-    punctuated::Punctuated,
-    token::Comma,
+    parse_macro_input,
 };
 
 /// A procedural macro that provides JSX-like syntax for creating HTML elements in Rust.
@@ -206,11 +204,11 @@ impl JsxNode {
                         #(
                             let result = #children_tokens;
                             match result {
-                                NodeList::Fragment(mut child_nodes) => nodes.append(&mut child_nodes),
-                                NodeList::Single(node) => nodes.push(node),
+                                simple_rsx::NodeList::Fragment(mut child_nodes) => nodes.append(&mut child_nodes),
+                                simple_rsx::NodeList::Single(node) => nodes.push(node),
                             }
                         )*
-                        NodeList::Fragment(nodes)
+                        simple_rsx::NodeList::Fragment(nodes)
                     }
                 }
             }
@@ -240,12 +238,12 @@ impl JsxNode {
                         #(
                             let child_result = #children_tokens;
                             match child_result {
-                                NodeList::Fragment(nodes) => {
+                                simple_rsx::NodeList::Fragment(nodes) => {
                                     for child in nodes {
                                         #tag.append_child(child);
                                     }
                                 },
-                                NodeList::Single(node) => {
+                                simple_rsx::NodeList::Single(node) => {
                                     #tag.append_child(node);
                                 }
                             }
@@ -264,22 +262,22 @@ impl JsxNode {
                 quote! {
                     {
                         #[allow(unused_mut)]
-                        let mut #tag = Element::new(#tag_str);
+                        let mut #tag = simple_rsx::Element::new(#tag_str);
                         #(#attr_setters)*
                         #children_handlers
                         #close_tag
-                        NodeList::Single(#tag)
+                        simple_rsx::NodeList::Single(#tag)
                     }
                 }
             }
             JsxNode::Text(expr) => {
                 quote! {
-                    NodeList::Single(TextNode::new(&(#expr).to_string()))
+                    simple_rsx::NodeList::Single(simple_rsx::TextNode::new(&(#expr).to_string()))
                 }
             }
             JsxNode::Empty => {
                 quote! {
-                    NodeList::Fragment(Vec::new())
+                    simple_rsx::NodeList::Fragment(Vec::new())
                 }
             }
         }

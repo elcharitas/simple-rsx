@@ -1,0 +1,7 @@
+[package]
+name = "simple-rsx"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+simple-rsx-macros = { path = "../simple-rsx-macros" }

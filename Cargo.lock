@@ -24,9 +24,23 @@ dependencies = [
 name = "simple-rsx"
 version = "0.1.0"
 dependencies = [
+ "simple-rsx-macros",
+]
+
+[[package]]
+name = "simple-rsx-macros"
+version = "0.1.0"
+dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "simple-rsx-test"
+version = "0.1.0"
+dependencies = [
+ "simple-rsx",
 ]
 
 [[package]]
