@@ -77,9 +77,9 @@ let show = true;
 let conditional = jsx!(
     <div>
         {if show {
-            <p>"This is shown."</p>
+            jsx!(<p>"This is shown."</p>)
         } else {
-            <p>"This is hidden."</p>
+            jsx!(<p>"This is hidden."</p>)
         }}
     </div>
 );
@@ -89,7 +89,7 @@ let items = vec!["Item 1", "Item 2", "Item 3"];
 let list = jsx!(
     <ul>
         {for item in items {
-            <li>{item}</li>
+            jsx!(<li>{item}</li>)
         }}
     </ul>
 );
