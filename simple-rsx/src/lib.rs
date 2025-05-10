@@ -100,9 +100,7 @@ impl Node {
     }
 }
 
-pub struct TextNode {
-    text: String,
-}
+pub struct TextNode;
 
 impl TextNode {
     pub fn new(text: &str) -> Node {
