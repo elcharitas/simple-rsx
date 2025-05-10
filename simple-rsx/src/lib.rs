@@ -6,6 +6,12 @@ pub enum NodeList {
     Single(Node),
 }
 
+impl From<String> for NodeList {
+    fn from(value: String) -> Self {
+        NodeList::Single(Node::Text(value.to_string()))
+    }
+}
+
 impl From<Node> for NodeList {
     fn from(node: Node) -> Self {
         NodeList::Single(node)

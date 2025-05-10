@@ -50,16 +50,12 @@ enum JsxNode {
     Empty,
 }
 
-/// Represents an attribute name-value pair
-struct NodeValue {
-    name: Ident,
+struct NodeBlock {
     value: Block,
 }
 
-impl Parse for NodeValue {
+impl Parse for NodeBlock {
     fn parse(input: ParseStream) -> Result<Self> {
-        let name = input.parse()?;
-        input.parse::<Token![=]>()?;
         if input.peek(LitStr) {
             let parsed: LitStr = input.parse()?;
             let value = Block {
@@ -80,9 +76,82 @@ impl Parse for NodeValue {
                     None,
                 )],
             };
-            return Ok(NodeValue { name, value });
+            return Ok(NodeBlock { value });
         }
-        let value = input.parse()?;
+        let is_block = input.to_string().trim().starts_with('{');
+
+        if is_block {
+            let value = input.parse()?;
+            Ok(NodeBlock { value })
+        } else {
+            let mut str = String::new();
+            let mut in_string = false;
+
+            loop {
+                if input.lookahead1().peek(Token![<]) && !in_string {
+                    // Found a non-literal '<', stop here without consuming it
+                    break;
+                }
+
+                match input.parse::<proc_macro2::TokenTree>() {
+                    Ok(token) => {
+                        match &token {
+                            proc_macro2::TokenTree::Literal(lit) => {
+                                let lit_str = lit.to_string();
+                                in_string = lit_str.starts_with('"') || lit_str.starts_with('\'');
+                            }
+                            _ => in_string = false,
+                        }
+
+                        let mut value = token.to_string();
+
+                        if value.starts_with('{') && value.ends_with('}') {
+                            value = value.replace("{ ", "{");
+                            value = value.replace(" }", "}");
+                        }
+
+                        // Add token to our accumulated string
+                        str.push_str(&value);
+                    }
+                    Err(_) => break, // End of input
+                }
+            }
+
+            let lit = LitStr::new(&str, Span::call_site());
+            let value = Block {
+                brace_token: Brace::default(),
+                stmts: vec![syn::Stmt::Expr(
+                    syn::Expr::Macro(syn::ExprMacro {
+                        attrs: Vec::new(),
+                        mac: Macro {
+                            path: parse_quote!(format),
+                            bang_token: Not::default(),
+                            delimiter: syn::MacroDelimiter::Paren(syn::token::Paren::default()),
+                            tokens: {
+                                let string_lit = syn::Lit::Str(lit);
+                                quote::quote!(#string_lit)
+                            },
+                        },
+                    }),
+                    None,
+                )],
+            };
+            Ok(NodeBlock { value })
+        }
+    }
+}
+
+/// Represents an attribute name-value pair
+struct NodeValue {
+    name: Ident,
+    value: Block,
+}
+
+impl Parse for NodeValue {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let name = input.parse()?;
+        input.parse::<Token![=]>()?;
+        let NodeBlock { value } = input.parse()?;
         Ok(NodeValue { name, value })
     }
 }
@@ -190,19 +259,13 @@ impl Parse for JsxNode {
         }
         match input.parse::<Block>() {
             Ok(block) => Ok(JsxNode::Block(block)),
-            Err(_) => {
-                // Try to parse as an expression
-                match input.parse::<Expr>() {
-                    Ok(expr) => Ok(JsxNode::Text(expr)),
-                    Err(_) => {
-                        let expr = Expr::Lit(ExprLit {
-                            attrs: Vec::new(),
-                            lit: Lit::Str(LitStr::new(&input.to_string(), Span::call_site())),
-                        });
-                        Ok(JsxNode::Text(expr))
-                    }
-                }
-            }
+            Err(_) => match input.parse::<NodeBlock>() {
+                Ok(block) => Ok(JsxNode::Block(block.value)),
+                Err(_) => Err(syn::Error::new(
+                    Span::call_site(),
+                    "Invalid input for JsxNode",
+                )),
+            },
         }
     }
 }
