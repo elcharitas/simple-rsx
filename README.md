@@ -32,7 +32,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-simple-rsx = "0.1.0"
+simple-rsx = "0.1"
 ```
 
 ## Usage

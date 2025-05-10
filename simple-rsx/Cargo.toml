@@ -1,6 +1,6 @@
 [package]
 name = "simple-rsx"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 description = "A simple JSX-like syntax implementation for Rust"
 authors = ["Jonathan Irhodia <jonathanirhodia@gmail.com>"]
