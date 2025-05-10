@@ -299,7 +299,7 @@ impl JsxNode {
             }
             JsxNode::Block(block) => {
                 quote! {
-                    simple_rsx::NodeList::Fragment(vec![simple_rsx::TextNode::new(&format!("{}", #block))])
+                    simple_rsx::NodeList::from(#block)
                 }
             }
         }

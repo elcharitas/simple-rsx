@@ -6,6 +6,18 @@ pub enum NodeList {
     Single(Node),
 }
 
+impl From<Node> for NodeList {
+    fn from(node: Node) -> Self {
+        NodeList::Single(node)
+    }
+}
+
+impl From<Vec<Node>> for NodeList {
+    fn from(nodes: Vec<Node>) -> Self {
+        NodeList::Fragment(nodes)
+    }
+}
+
 impl Display for NodeList {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
