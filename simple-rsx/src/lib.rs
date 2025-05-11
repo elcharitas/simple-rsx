@@ -2,6 +2,56 @@ use indexmap::IndexMap;
 pub use simple_rsx_macros::rsx;
 use std::fmt::Display;
 
+/// A trait for attributes
+pub trait Attribute {
+    fn value(&self) -> String;
+}
+
+impl<T: ToString> Attribute for T {
+    fn value(&self) -> String {
+        self.to_string()
+    }
+}
+
+pub struct Element {
+    tag: String,
+    attributes: IndexMap<String, String>,
+    children: Vec<Node>,
+}
+
+impl Element {
+    pub fn new(tag: &str) -> Node {
+        Node::Element(Element {
+            tag: tag.to_string(),
+            attributes: IndexMap::new(),
+            children: Vec::new(),
+        })
+    }
+
+    pub fn set_attribute(&mut self, name: &str, value: impl Attribute) {
+        self.attributes.insert(name.to_string(), value.value());
+    }
+
+    pub fn append_child(&mut self, node: Node) {
+        self.children.push(node);
+    }
+}
+
+impl Node {
+    pub fn as_element_mut(&mut self) -> Option<&mut Element> {
+        match self {
+            Node::Element(el) => Some(el),
+            _ => None,
+        }
+    }
+
+    pub fn append_child(&mut self, node: Node) {
+        if let Node::Element(el) = self {
+            el.children.push(node);
+        }
+    }
+}
+
 pub enum Node {
     Element(Element),
     Text(String),
@@ -10,7 +60,7 @@ pub enum Node {
 
 impl From<String> for Node {
     fn from(value: String) -> Self {
-        Node::Text(value.to_string())
+        Node::Text(value)
     }
 }
 
@@ -104,62 +154,5 @@ impl Display for Node {
                 Ok(())
             }
         }
-    }
-}
-
-pub trait NodeValue {
-    fn value(&self) -> String;
-}
-
-impl<T: ToString> NodeValue for T {
-    fn value(&self) -> String {
-        self.to_string()
-    }
-}
-
-pub struct Element {
-    tag: String,
-    attributes: IndexMap<String, String>,
-    children: Vec<Node>,
-}
-
-impl Element {
-    pub fn new(tag: &str) -> Node {
-        Node::Element(Element {
-            tag: tag.to_string(),
-            attributes: IndexMap::new(),
-            children: Vec::new(),
-        })
-    }
-
-    pub fn set_attribute(&mut self, name: &str, value: impl NodeValue) {
-        self.attributes.insert(name.to_string(), value.value());
-    }
-
-    pub fn append_child(&mut self, node: Node) {
-        self.children.push(node);
-    }
-}
-
-impl Node {
-    pub fn as_element_mut(&mut self) -> Option<&mut Element> {
-        match self {
-            Node::Element(el) => Some(el),
-            _ => None,
-        }
-    }
-
-    pub fn append_child(&mut self, node: Node) {
-        if let Node::Element(el) = self {
-            el.children.push(node);
-        }
-    }
-}
-
-pub struct TextNode;
-
-impl TextNode {
-    pub fn new(text: &str) -> Node {
-        Node::Text(text.to_string())
     }
 }

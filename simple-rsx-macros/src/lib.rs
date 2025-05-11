@@ -350,7 +350,7 @@ impl JsxNode {
             }
             JsxNode::Text(expr) => {
                 quote! {
-                    simple_rsx::TextNode::new(&(#expr).to_string())
+                    simple_rsx::Node::Text(#expr.to_string())
                 }
             }
             JsxNode::Empty => {

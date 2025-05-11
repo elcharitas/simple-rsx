@@ -22,7 +22,6 @@ A lightweight and intuitive JSX-like syntax implementation for Rust, enabling HT
 - [x] Expression support in braces (`{expr}`)
 - [x] attribute value concatenation and interpolation
 - [x] Conditional attributes
-- [ ] Event handling
 - [x] Conditional rendering
 - [x] Looping
 - [x] List rendering
@@ -30,6 +29,7 @@ A lightweight and intuitive JSX-like syntax implementation for Rust, enabling HT
 - [ ] Props validation
 - [ ] State management
 - [ ] Lifecycle hooks
+- [ ] Event handling
 - [x] Server-side rendering
 
 ## Installation
