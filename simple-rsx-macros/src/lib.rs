@@ -13,6 +13,7 @@ use syn::{
 /// # Examples
 ///
 /// ```rust
+/// use simple_rsx::rsx;
 /// // Fragment
 /// rsx!(<>Hello World</>);
 ///
@@ -179,7 +180,6 @@ impl Parse for JsxNode {
                 input.parse::<Token![!]>()?;
                 input.parse::<Token![-]>()?;
                 input.parse::<Token![-]>()?;
-                input.parse::<Token![>]>()?;
 
                 // TODO: show comments in the output
                 while !input.is_empty()

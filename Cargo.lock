@@ -88,7 +88,7 @@ checksum = "2b15c43186be67a4fd63bee50d0303afffcef381492ebe2c5d87f324e1b8815c"
 
 [[package]]
 name = "simple-rsx"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "indexmap",
  "simple-rsx-macros",
@@ -96,11 +96,12 @@ dependencies = [
 
 [[package]]
 name = "simple-rsx-macros"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "proc-macro2",
  "quote",
  "regex",
+ "simple-rsx",
  "syn",
 ]
 
