@@ -1,6 +1,6 @@
 [package]
 name = "simple-rsx"
-version = "0.1.3"
+version = "0.1.4"
 edition = "2024"
 description = "A simple JSX-like syntax implementation for Rust"
 authors = ["Jonathan Irhodia <jonathanirhodia@gmail.com>"]
@@ -11,4 +11,4 @@ categories = ["template-engine", "web-programming"]
 documentation = "https://docs.rs/simple-rsx"
 
 [dependencies]
-simple-rsx-macros = { path = "../simple-rsx-macros", version = "0.1.3" }
+simple-rsx-macros = { path = "../simple-rsx-macros", version = "0.1.4" }

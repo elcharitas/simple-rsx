@@ -43,6 +43,8 @@ simple-rsx = "0.1"
 
 ## Why Simple RSX?
 
+I started this project while attempting to transit my [portfolio](https://elcharitas.wtf) from Next.js to Rust. I tried using dioxus, yew, and hypertext, but I found them to be too complex and verbose for my needs. I wanted a simple and intuitive way to write HTML-like templates in Rust, while still leveraging the full power of Rust's type system.
+
 Simple RSX aims to provide a straightforward and intuitive way to write HTML-like templates in Rust, while still leveraging the full power of Rust's type system. By using Rust's syntax and features, Simple RSX enables you to write expressive and type-safe code while still maintaining the simplicity and readability of HTML.
 
 ## Usage
