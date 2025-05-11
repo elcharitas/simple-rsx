@@ -50,7 +50,7 @@ fn main() {
     println!("result: {}", rsx);
 
     // Component rendering, using a function
-    fn some_component() -> NodeList {
+    fn some_component() -> Node {
         rsx!(<div>Some component</div>)
     }
     let rsx = rsx!(
@@ -104,13 +104,10 @@ fn main() {
     println!("result: {}", rsx);
 
     // looping, ergonomic using map
-    let mut count = 0;
+    let count = 0;
     let rsx = rsx!(
         <div>
-            {(0..5).map(|_| {
-                count += 1;
-                rsx!(<p>Count: {count}</p>)
-            })}
+            {(0..5).map(|_| count.into())}
         </div>
     );
     println!("result: {}", rsx);

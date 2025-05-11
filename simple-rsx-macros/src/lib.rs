@@ -288,15 +288,7 @@ impl JsxNode {
 
                 quote! {
                     {
-                        let mut nodes = Vec::new();
-                        #(
-                            let result = #children_tokens;
-                            match result {
-                                simple_rsx::NodeList::Fragment(mut child_nodes) => nodes.append(&mut child_nodes),
-                                simple_rsx::NodeList::Single(node) => nodes.push(node),
-                            }
-                        )*
-                        simple_rsx::NodeList::Fragment(nodes)
+                        simple_rsx::Node::Fragment(vec![#(#children_tokens)*])
                     }
                 }
             }
@@ -326,13 +318,13 @@ impl JsxNode {
                         #(
                             let child_result = #children_tokens;
                             match child_result {
-                                simple_rsx::NodeList::Fragment(nodes) => {
+                                simple_rsx::Node::Fragment(nodes) => {
                                     for child in nodes {
                                         #tag.append_child(child);
                                     }
                                 },
-                                simple_rsx::NodeList::Single(node) => {
-                                    #tag.append_child(node);
+                                _ => {
+                                    #tag.append_child(child_result);
                                 }
                             }
                         )*
@@ -354,23 +346,23 @@ impl JsxNode {
                         #(#attr_setters)*
                         #children_handlers
                         #close_tag
-                        simple_rsx::NodeList::Single(#tag)
+                        #tag
                     }
                 }
             }
             JsxNode::Text(expr) => {
                 quote! {
-                    simple_rsx::NodeList::Single(simple_rsx::TextNode::new(&(#expr).to_string()))
+                    simple_rsx::TextNode::new(&(#expr).to_string())
                 }
             }
             JsxNode::Empty => {
                 quote! {
-                    simple_rsx::NodeList::Fragment(Vec::new())
+                    simple_rsx::Node::Fragment(Vec::new())
                 }
             }
             JsxNode::Block(block) => {
                 quote! {
-                    simple_rsx::NodeList::from(#block)
+                    simple_rsx::Node::from(#block)
                 }
             }
         }

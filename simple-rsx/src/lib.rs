@@ -1,105 +1,80 @@
 pub use simple_rsx_macros::rsx;
 use std::{collections::HashMap, fmt::Display};
 
-pub enum NodeList {
-    Fragment(Vec<Node>),
-    Single(Node),
-}
-
-impl From<String> for NodeList {
-    fn from(value: String) -> Self {
-        NodeList::Single(Node::Text(value.to_string()))
-    }
-}
-
-impl From<&str> for NodeList {
-    fn from(value: &str) -> Self {
-        NodeList::Single(Node::Text(value.to_string()))
-    }
-}
-
-impl From<&&str> for NodeList {
-    fn from(value: &&str) -> Self {
-        NodeList::Single(Node::Text(value.to_string()))
-    }
-}
-
-impl From<i32> for NodeList {
-    fn from(value: i32) -> Self {
-        NodeList::Single(Node::Text(value.to_string()))
-    }
-}
-impl From<f32> for NodeList {
-    fn from(value: f32) -> Self {
-        NodeList::Single(Node::Text(value.to_string()))
-    }
-}
-impl From<bool> for NodeList {
-    fn from(value: bool) -> Self {
-        NodeList::Single(Node::Text(value.to_string()))
-    }
-}
-
-impl From<Node> for NodeList {
-    fn from(node: Node) -> Self {
-        NodeList::Single(node)
-    }
-}
-
-impl From<Vec<Node>> for NodeList {
-    fn from(nodes: Vec<Node>) -> Self {
-        NodeList::Fragment(nodes)
-    }
-}
-
-impl From<Vec<NodeList>> for NodeList {
-    fn from(nodes: Vec<NodeList>) -> Self {
-        let mut result = Vec::new();
-        for node in nodes {
-            match node {
-                NodeList::Fragment(nodes) => {
-                    result.extend(nodes);
-                }
-                NodeList::Single(node) => {
-                    result.push(node);
-                }
-            }
-        }
-        NodeList::Fragment(result)
-    }
-}
-
-impl<I, F> From<std::iter::Map<I, F>> for NodeList
-where
-    I: Iterator,
-    F: FnMut(I::Item) -> NodeList,
-{
-    fn from(iter: std::iter::Map<I, F>) -> Self {
-        let nodes: Vec<NodeList> = iter.collect();
-        NodeList::from(nodes)
-    }
-}
-
-impl Display for NodeList {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            NodeList::Fragment(nodes) => {
-                for node in nodes {
-                    write!(f, "{}", node)?;
-                }
-                Ok(())
-            }
-            NodeList::Single(node) => {
-                write!(f, "{}", node)?;
-                Ok(())
-            }
-        }
-    }
-}
-
 pub enum Node {
     Element(Element),
     Text(String),
+    Fragment(Vec<Node>),
+}
+
+impl From<String> for Node {
+    fn from(value: String) -> Self {
+        Node::Text(value.to_string())
+    }
+}
+
+impl From<&str> for Node {
+    fn from(value: &str) -> Self {
+        Node::Text(value.to_string())
+    }
+}
+
+impl From<&&str> for Node {
+    fn from(value: &&str) -> Self {
+        Node::Text(value.to_string())
+    }
+}
+
+impl<T: ToString> From<Vec<T>> for Node {
+    fn from(value: Vec<T>) -> Self {
+        Node::Fragment(
+            value
+                .into_iter()
+                .map(|t| Node::Text(t.to_string()))
+                .collect(),
+        )
+    }
+}
+
+impl From<i32> for Node {
+    fn from(value: i32) -> Self {
+        Node::Text(value.to_string())
+    }
+}
+
+impl FromIterator<i32> for Node {
+    fn from_iter<T: IntoIterator<Item = i32>>(iter: T) -> Self {
+        let mut result = Vec::new();
+        for i in iter {
+            result.push(Node::Text(i.to_string()));
+        }
+        Node::Fragment(result)
+    }
+}
+
+impl From<f32> for Node {
+    fn from(value: f32) -> Self {
+        Node::Text(value.to_string())
+    }
+}
+
+impl From<bool> for Node {
+    fn from(value: bool) -> Self {
+        Node::Text(value.to_string())
+    }
+}
+
+impl<I, F, R> From<std::iter::Map<I, F>> for Node
+where
+    I: Iterator,
+    F: FnMut(I::Item) -> R,
+    R: Into<Node>,
+    Vec<Node>: FromIterator<R>,
+{
+    fn from(iter: std::iter::Map<I, F>) -> Self {
+        let nodes: Vec<Node> = iter.collect();
+        Node::from(nodes)
+    }
 }
 
 impl Display for Node {
@@ -119,6 +94,12 @@ impl Display for Node {
             }
             Node::Text(text) => {
                 write!(f, "{}", text)?;
+                Ok(())
+            }
+            Node::Fragment(nodes) => {
+                for node in nodes {
+                    write!(f, "{}", node)?;
+                }
                 Ok(())
             }
         }
