@@ -331,13 +331,11 @@ impl JsxNode {
                     }
                 };
 
-                let close_tag = if let Some(close_tag) = close_tag {
-                    quote! {
+                let close_tag = close_tag.as_ref().and_then(|close_tag| {
+                    Some(quote! {
                         #close_tag = #tag;
-                    }
-                } else {
-                    quote! {}
-                };
+                    })
+                });
 
                 quote! {
                     {
