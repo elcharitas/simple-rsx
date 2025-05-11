@@ -58,74 +58,76 @@ impl Parse for NodeBlock {
     fn parse(input: ParseStream) -> Result<Self> {
         if input.peek(LitStr) {
             let parsed: LitStr = input.parse()?;
-            let value = Block {
-                brace_token: Brace::default(),
-                stmts: vec![syn::Stmt::Expr(
-                    syn::Expr::Macro(syn::ExprMacro {
-                        attrs: Vec::new(),
-                        mac: Macro {
-                            path: parse_quote!(format),
-                            bang_token: Not::default(),
-                            delimiter: syn::MacroDelimiter::Paren(syn::token::Paren::default()),
-                            tokens: {
-                                let string_lit = syn::Lit::Str(parsed);
-                                quote::quote!(#string_lit)
+            return Ok(NodeBlock {
+                value: Block {
+                    brace_token: Brace::default(),
+                    stmts: vec![syn::Stmt::Expr(
+                        syn::Expr::Macro(syn::ExprMacro {
+                            attrs: Vec::new(),
+                            mac: Macro {
+                                path: parse_quote!(format),
+                                bang_token: Not::default(),
+                                delimiter: syn::MacroDelimiter::Paren(syn::token::Paren::default()),
+                                tokens: quote::quote!(#parsed),
                             },
-                        },
-                    }),
-                    None,
-                )],
-            };
-            return Ok(NodeBlock { value });
+                        }),
+                        None,
+                    )],
+                },
+            });
         }
+
         let is_block = input.to_string().trim().starts_with('{');
 
         if is_block {
             let value = input.parse()?;
-            Ok(NodeBlock { value })
-        } else {
-            let mut str = String::new();
-            let mut in_string = false;
-            let mut last_end = 0;
+            return Ok(NodeBlock { value });
+        }
 
-            loop {
-                if input.lookahead1().peek(Token![<]) && !in_string {
-                    // Found a non-literal '<', stop here without consuming it
-                    break;
-                }
+        let mut str = String::new();
+        let mut in_string = false;
+        let mut last_end = 0;
 
-                match input.parse::<proc_macro2::TokenTree>() {
-                    Ok(token) => {
-                        match &token {
-                            proc_macro2::TokenTree::Literal(lit) => {
-                                let lit_str = lit.to_string();
-                                in_string = lit_str.starts_with('"') || lit_str.starts_with('\'');
-                            }
-                            _ => in_string = false,
-                        }
-
-                        let span_info = format!("{:?}", token.span());
-                        let (start, end) = parse_range(&span_info).unwrap_or((0, 0));
-
-                        let mut value = token.to_string();
-
-                        if value.starts_with('{') && value.ends_with('}') {
-                            value = value.replace("{ ", "{");
-                            value = value.replace(" }", "}");
-                        }
-
-                        if start > last_end {
-                            str.push(' ');
-                            last_end = end;
-                        }
-                        str.push_str(&value);
-                    }
-                    Err(_) => break, // End of input
-                }
+        while !input.is_empty() {
+            if input.lookahead1().peek(Token![<]) && !in_string {
+                // Found a non-literal '<', stop here without consuming it
+                break;
             }
 
-            let lit = LitStr::new(&str, Span::call_site());
-            let value = Block {
+            match input.parse::<proc_macro2::TokenTree>() {
+                Ok(token) => {
+                    match &token {
+                        proc_macro2::TokenTree::Literal(lit) => {
+                            let lit_str = lit.to_string();
+                            in_string = lit_str.starts_with('"') || lit_str.starts_with('\'');
+                        }
+                        _ => in_string = false,
+                    }
+
+                    let span_info = format!("{:?}", token.span());
+                    let (start, end) = parse_range(&span_info).unwrap_or((0, 0));
+
+                    let mut value = token.to_string();
+
+                    if value.starts_with('{') && value.ends_with('}') {
+                        value = value.replace("{ ", "{");
+                        value = value.replace(" }", "}");
+                    }
+
+                    if start > last_end {
+                        str.push(' ');
+                        last_end = end;
+                    }
+                    str.push_str(&value);
+                }
+                Err(_) => break, // End of input
+            }
+        }
+
+        let lit = LitStr::new(&str.trim(), Span::call_site());
+
+        Ok(NodeBlock {
+            value: Block {
                 brace_token: Brace::default(),
                 stmts: vec![syn::Stmt::Expr(
                     syn::Expr::Macro(syn::ExprMacro {
@@ -134,17 +136,13 @@ impl Parse for NodeBlock {
                             path: parse_quote!(format),
                             bang_token: Not::default(),
                             delimiter: syn::MacroDelimiter::Paren(syn::token::Paren::default()),
-                            tokens: {
-                                let string_lit = syn::Lit::Str(lit);
-                                quote::quote!(#string_lit)
-                            },
+                            tokens: quote::quote!(#lit),
                         },
                     }),
                     None,
                 )],
-            };
-            Ok(NodeBlock { value })
-        }
+            },
+        })
     }
 }
 
@@ -165,7 +163,6 @@ impl Parse for NodeValue {
 
 impl Parse for JsxNode {
     fn parse(input: ParseStream) -> Result<Self> {
-        // Empty
         if input.is_empty() {
             return Ok(JsxNode::Empty);
         }
@@ -178,14 +175,15 @@ impl Parse for JsxNode {
             if input.peek(Token![>]) {
                 input.parse::<Token![>]>()?;
 
-                let mut children = Vec::new();
+                let mut children = Vec::with_capacity(4); // Pre-allocate with reasonable capacity
                 while !input.is_empty()
                     && !(input.peek(Token![<]) && input.peek2(Token![/]) && input.peek3(Token![>]))
                 {
-                    if let Ok(child) = input.parse::<JsxNode>() {
-                        children.push(child);
-                    } else {
-                        let _ = input.parse::<proc_macro2::TokenTree>();
+                    match input.parse::<JsxNode>() {
+                        Ok(child) => children.push(child),
+                        Err(_) => {
+                            input.parse::<proc_macro2::TokenTree>()?;
+                        }
                     }
                 }
 
@@ -199,11 +197,12 @@ impl Parse for JsxNode {
             // Element: <tag ...>...</tag> or <tag ... />
             let tag = input.parse::<Ident>()?;
 
-            // Parse attributes
-            let mut attributes = Vec::new();
+            let mut attributes = Vec::with_capacity(4);
             while !input.peek(Token![>]) && !input.peek(Token![/]) {
-                let attr: NodeValue = input.parse()?;
-                attributes.push((attr.name, attr.value));
+                match input.parse::<NodeValue>() {
+                    Ok(attr) => attributes.push((attr.name, attr.value)),
+                    Err(e) => return Err(e),
+                }
             }
 
             // Self-closing tag: <tag ... />
@@ -222,11 +221,12 @@ impl Parse for JsxNode {
             // Opening tag ends: <tag ...>
             input.parse::<Token![>]>()?;
 
-            // Parse children
-            let mut children = Vec::new();
+            let mut children = Vec::with_capacity(4);
             while !input.is_empty() && !(input.peek(Token![<]) && input.peek2(Token![/])) {
-                let child = input.parse::<JsxNode>()?;
-                children.push(child);
+                match input.parse::<JsxNode>() {
+                    Ok(child) => children.push(child),
+                    Err(e) => return Err(e),
+                }
             }
 
             // Closing tag: </tag>
