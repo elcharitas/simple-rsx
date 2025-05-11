@@ -93,6 +93,21 @@ impl<T: ToString> From<Vec<T>> for Node {
     }
 }
 
+impl<T: ToString> From<Option<T>> for Node {
+    fn from(value: Option<T>) -> Self {
+        match value {
+            Some(t) => Node::Text(t.to_string()),
+            None => Node::Text("".to_string()),
+        }
+    }
+}
+
+impl From<&Vec<String>> for Node {
+    fn from(value: &Vec<String>) -> Self {
+        Node::Fragment(value.iter().map(|s| Node::Text(s.to_string())).collect())
+    }
+}
+
 impl From<i32> for Node {
     fn from(value: i32) -> Self {
         Node::Text(value.to_string())
@@ -101,6 +116,12 @@ impl From<i32> for Node {
 
 impl From<u32> for Node {
     fn from(value: u32) -> Self {
+        Node::Text(value.to_string())
+    }
+}
+
+impl From<u64> for Node {
+    fn from(value: u64) -> Self {
         Node::Text(value.to_string())
     }
 }
