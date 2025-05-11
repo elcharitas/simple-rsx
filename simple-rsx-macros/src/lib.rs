@@ -86,6 +86,7 @@ impl Parse for NodeBlock {
         } else {
             let mut str = String::new();
             let mut in_string = false;
+            let mut last_end = 0;
 
             loop {
                 if input.lookahead1().peek(Token![<]) && !in_string {
@@ -103,6 +104,9 @@ impl Parse for NodeBlock {
                             _ => in_string = false,
                         }
 
+                        let span_info = format!("{:?}", token.span());
+                        let (start, end) = parse_range(&span_info).unwrap_or((0, 0));
+
                         let mut value = token.to_string();
 
                         if value.starts_with('{') && value.ends_with('}') {
@@ -110,7 +114,10 @@ impl Parse for NodeBlock {
                             value = value.replace(" }", "}");
                         }
 
-                        // Add token to our accumulated string
+                        if start > last_end {
+                            str.push(' ');
+                            last_end = end;
+                        }
                         str.push_str(&value);
                     }
                     Err(_) => break, // End of input
@@ -368,4 +375,14 @@ impl JsxNode {
             }
         }
     }
+}
+
+fn parse_range(input: &str) -> Option<(usize, usize)> {
+    use regex::Regex;
+    let re = Regex::new(r"(\d+)\.\.(\d+)").ok()?;
+    let captures = re.captures(input)?;
+    let start = captures.get(1)?.as_str().parse::<usize>().ok()?;
+    let end = captures.get(2)?.as_str().parse::<usize>().ok()?;
+
+    Some((start, end))
 }
