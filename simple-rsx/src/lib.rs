@@ -1,5 +1,6 @@
+use indexmap::IndexMap;
 pub use simple_rsx_macros::rsx;
-use std::{collections::HashMap, fmt::Display};
+use std::fmt::Display;
 
 pub enum Node {
     Element(Element),
@@ -118,7 +119,7 @@ impl<T: ToString> NodeValue for T {
 
 pub struct Element {
     tag: String,
-    attributes: HashMap<String, String>,
+    attributes: IndexMap<String, String>,
     children: Vec<Node>,
 }
 
@@ -126,7 +127,7 @@ impl Element {
     pub fn new(tag: &str) -> Node {
         Node::Element(Element {
             tag: tag.to_string(),
-            attributes: HashMap::new(),
+            attributes: IndexMap::new(),
             children: Vec::new(),
         })
     }

@@ -11,4 +11,5 @@ categories = ["template-engine", "web-programming"]
 documentation = "https://docs.rs/simple-rsx"
 
 [dependencies]
+indexmap = "2.9"
 simple-rsx-macros = { path = "../simple-rsx-macros", version = "0.1.4" }
