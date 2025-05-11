@@ -15,18 +15,17 @@ A lightweight and intuitive JSX-like syntax implementation for Rust, enabling HT
 - [x] Procedural macro implementation
 - [x] Basic HTML element rendering
 - [x] Expression support in braces (`{expr}`)
-- [ ] Props validation
 - [x] attribute value concatenation and interpolation
 - [x] Conditional attributes
 - [ ] Event handling
 - [x] Conditional rendering
-- [ ] Looping
+- [x] Looping
 - [x] List rendering
-- [ ] Custom components
+- [ ] Custom components (partial support through functions)
+- [ ] Props validation
 - [ ] State management
 - [ ] Lifecycle hooks
 - [x] Server-side rendering
-- [ ] Server-side rendering with hydration
 
 ## Installation
 
@@ -36,6 +35,10 @@ Add this to your `Cargo.toml`:
 [dependencies]
 simple-rsx = "0.1"
 ```
+
+## Why Simple RSX?
+
+Simple RSX aims to provide a straightforward and intuitive way to write HTML-like templates in Rust, while still leveraging the full power of Rust's type system. By using Rust's syntax and features, Simple RSX enables you to write expressive and type-safe code while still maintaining the simplicity and readability of HTML.
 
 ## Usage
 
@@ -48,38 +51,38 @@ let element = rsx!(<div class="container" id="app" />);
 // Nested elements with text content
 let nested = rsx!(
     <div class="container" id="app">
-        <p>"Hello, world!"</p>
+        <p>Hello, world!</p>
     </div>
 );
 
 // element with attributes and children
 let element_with_children = rsx!(
     <div class="container" id="app">
-        <p>"Hello, world!"</p>
-        <p>"Another paragraph."</p>
+        <p>Hello, world!</p>
+        <p>Another paragraph.</p>
     </div>
 );
 
 // Fragment syntax
 let fragment = rsx!(
     <>
-        <h1>"Title"</h1>
-        <p>"Content"</p>
+        <h1>Title</h1>
+        <p>Content</p>
     </>
 );
 
 // Expression support
 let count = 42;
-let expression = rsx!(<p>"Count: {count}"</p>);
+let expression = rsx!(<p>Count: {count}</p>);
 
 // Conditional rendering
 let show = true;
 let conditional = rsx!(
     <div>
         {if show {
-            rsx!(<p>"This is shown."</p>)
+            rsx!(<p>This is shown.</p>)
         } else {
-            rsx!(<p>"This is hidden."</p>)
+            rsx!(<p>This is hidden.</p>)
         }}
     </div>
 );
@@ -88,9 +91,7 @@ let conditional = rsx!(
 let items = vec!["Item 1", "Item 2", "Item 3"];
 let list = rsx!(
     <ul>
-        {for item in items {
-            rsx!(<li>{item}</li>)
-        }}
+        {items.iter().map(|item| rsx!(<li>{item}</li>))}
     </ul>
 );
 
@@ -98,10 +99,10 @@ let list = rsx!(
 let nodes = rsx!(
     <html>
         <head>
-            <title>"My Page"</title>
+            <title>My Page</title>
         </head>
         <body>
-            <h1>"Welcome to my page!"</h1>
+            <h1>Welcome to my page!</h1>
         </body>
     </html>
 );

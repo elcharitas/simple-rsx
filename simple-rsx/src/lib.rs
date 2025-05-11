@@ -12,6 +12,34 @@ impl From<String> for NodeList {
     }
 }
 
+impl From<&str> for NodeList {
+    fn from(value: &str) -> Self {
+        NodeList::Single(Node::Text(value.to_string()))
+    }
+}
+
+impl From<&&str> for NodeList {
+    fn from(value: &&str) -> Self {
+        NodeList::Single(Node::Text(value.to_string()))
+    }
+}
+
+impl From<i32> for NodeList {
+    fn from(value: i32) -> Self {
+        NodeList::Single(Node::Text(value.to_string()))
+    }
+}
+impl From<f32> for NodeList {
+    fn from(value: f32) -> Self {
+        NodeList::Single(Node::Text(value.to_string()))
+    }
+}
+impl From<bool> for NodeList {
+    fn from(value: bool) -> Self {
+        NodeList::Single(Node::Text(value.to_string()))
+    }
+}
+
 impl From<Node> for NodeList {
     fn from(node: Node) -> Self {
         NodeList::Single(node)
@@ -21,6 +49,34 @@ impl From<Node> for NodeList {
 impl From<Vec<Node>> for NodeList {
     fn from(nodes: Vec<Node>) -> Self {
         NodeList::Fragment(nodes)
+    }
+}
+
+impl From<Vec<NodeList>> for NodeList {
+    fn from(nodes: Vec<NodeList>) -> Self {
+        let mut result = Vec::new();
+        for node in nodes {
+            match node {
+                NodeList::Fragment(nodes) => {
+                    result.extend(nodes);
+                }
+                NodeList::Single(node) => {
+                    result.push(node);
+                }
+            }
+        }
+        NodeList::Fragment(result)
+    }
+}
+
+impl<I, F> From<std::iter::Map<I, F>> for NodeList
+where
+    I: Iterator,
+    F: FnMut(I::Item) -> NodeList,
+{
+    fn from(iter: std::iter::Map<I, F>) -> Self {
+        let nodes: Vec<NodeList> = iter.collect();
+        NodeList::from(nodes)
     }
 }
 

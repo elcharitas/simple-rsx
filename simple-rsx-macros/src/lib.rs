@@ -261,10 +261,13 @@ impl Parse for JsxNode {
             Ok(block) => Ok(JsxNode::Block(block)),
             Err(_) => match input.parse::<NodeBlock>() {
                 Ok(block) => Ok(JsxNode::Block(block.value)),
-                Err(_) => Err(syn::Error::new(
-                    Span::call_site(),
-                    "Invalid input for JsxNode",
-                )),
+                Err(_) => match input.parse::<Expr>() {
+                    Ok(expr) => Ok(JsxNode::Text(expr)),
+                    Err(_) => Err(syn::Error::new(
+                        Span::call_site(),
+                        "Invalid JSX node, expected text or expression",
+                    )),
+                },
             },
         }
     }
@@ -298,7 +301,7 @@ impl JsxNode {
             } => {
                 let tag_str = tag.to_string();
                 let attr_setters = attributes.iter().map(|(name, value)| {
-                    let name_str = name.to_string();
+                    let name_str = name.to_string().replace("r#", "");
                     quote! {
                         if let Some(e) = #tag.as_element_mut() {
                             let #name = #value;

@@ -1,3 +1,3 @@
 [workspace]
-members = ["simple-rsx-macros", "simple-rsx", "simple-rsx-test"]
+members = ["simple-rsx-macros", "simple-rsx", "tests"]
 resolver = "3"
