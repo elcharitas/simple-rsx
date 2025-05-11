@@ -23,6 +23,13 @@ mod tests {
     }
 
     #[test]
+    fn test_rsx_comment() {
+        use simple_rsx::*;
+        let rsx = rsx!(<!-- "This is a comment" -->);
+        assert_eq!(rsx.to_string(), "<!-- This is a comment -->")
+    }
+
+    #[test]
     fn test_div_rsx() {
         use simple_rsx::*;
         let rsx = rsx!(<div class="container" id="app" boo />);

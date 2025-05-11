@@ -174,6 +174,26 @@ impl Parse for JsxNode {
         if input.peek(Token![<]) {
             input.parse::<Token![<]>()?;
 
+            // Comments: <!-- ... -->
+            if input.peek(Token![!]) && input.peek2(Token![-]) && input.peek3(Token![-]) {
+                input.parse::<Token![!]>()?;
+                input.parse::<Token![-]>()?;
+                input.parse::<Token![-]>()?;
+                input.parse::<Token![>]>()?;
+
+                // TODO: show comments in the output
+                while !input.is_empty()
+                    && !(input.peek(Token![-]) && input.peek2(Token![-]) && input.peek3(Token![>]))
+                {
+                    input.parse::<proc_macro2::TokenTree>()?;
+                }
+                input.parse::<Token![-]>()?;
+                input.parse::<Token![-]>()?;
+                input.parse::<Token![>]>()?;
+
+                return Ok(JsxNode::Empty);
+            }
+
             // Fragment: <>...</>
             if input.peek(Token![>]) {
                 input.parse::<Token![>]>()?;
