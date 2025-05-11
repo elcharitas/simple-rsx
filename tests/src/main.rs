@@ -114,6 +114,7 @@ fn main() {
 }
 
 #[cfg(test)]
+#[allow(unused_braces)]
 mod tests {
     #[test]
     fn test_basic_rsx() {
@@ -168,7 +169,7 @@ mod tests {
         let rsx = rsx!(<input r#type="text" placeholder="Enter name" required="true" />);
         assert_eq!(
             rsx.to_string(),
-            "<input type=\"text\" placeholder=\"Enter name\" required=\"true\">"
+            "<input placeholder=\"Enter name\" required=\"true\" type=\"text\"></input>"
         )
     }
 
@@ -203,5 +204,35 @@ mod tests {
             </div>
         );
         assert_eq!(rsx.to_string(), "<div><p>Show me</p></div>")
+    }
+
+    #[test]
+    fn test_rsx_looping() {
+        use simple_rsx::*;
+        let items = vec!["Item 1", "Item 2", "Item 3"];
+        let list = rsx!(
+            <ul>
+                {items.iter().map(|item| rsx!(<li>{item}</li>))}
+            </ul>
+        );
+        assert_eq!(
+            list.to_string(),
+            "<ul><li>Item 1</li><li>Item 2</li><li>Item 3</li></ul>"
+        )
+    }
+
+    #[test]
+    fn test_rsx_looping_with_index() {
+        use simple_rsx::*;
+        let items = vec!["Item 1", "Item 2", "Item 3"];
+        let list = rsx!(
+            <ul>
+                {items.iter().enumerate().map(|(index, item)| rsx!(<li key={index}>{item}</li>))}
+            </ul>
+        );
+        assert_eq!(
+            list.to_string(),
+            "<ul><li key=\"0\">Item 1</li><li key=\"1\">Item 2</li><li key=\"2\">Item 3</li></ul>"
+        )
     }
 }
