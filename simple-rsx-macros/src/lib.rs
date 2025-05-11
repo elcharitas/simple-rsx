@@ -41,7 +41,7 @@ enum JsxNode {
     Fragment(Vec<JsxNode>),
     Element {
         tag: Ident,
-        attributes: Vec<(Ident, Block)>,
+        attributes: Vec<(Ident, Option<Block>)>,
         children: Vec<JsxNode>,
         close_tag: Option<Ident>, // Optional closing tag for elements
     },
@@ -51,7 +51,7 @@ enum JsxNode {
 }
 
 struct NodeBlock {
-    value: Block,
+    value: Option<Block>,
 }
 
 impl Parse for NodeBlock {
@@ -59,7 +59,7 @@ impl Parse for NodeBlock {
         if input.peek(LitStr) {
             let parsed: LitStr = input.parse()?;
             return Ok(NodeBlock {
-                value: Block {
+                value: Some(Block {
                     brace_token: Brace::default(),
                     stmts: vec![syn::Stmt::Expr(
                         syn::Expr::Macro(syn::ExprMacro {
@@ -73,15 +73,15 @@ impl Parse for NodeBlock {
                         }),
                         None,
                     )],
-                },
+                }),
             });
         }
 
         let is_block = input.to_string().trim().starts_with('{');
 
         if is_block {
-            let value = input.parse()?;
-            return Ok(NodeBlock { value });
+            let value: Block = input.parse()?;
+            return Ok(NodeBlock { value: Some(value) });
         }
 
         let mut str = String::new();
@@ -127,7 +127,7 @@ impl Parse for NodeBlock {
         let lit = LitStr::new(&str.trim(), Span::call_site());
 
         Ok(NodeBlock {
-            value: Block {
+            value: Some(Block {
                 brace_token: Brace::default(),
                 stmts: vec![syn::Stmt::Expr(
                     syn::Expr::Macro(syn::ExprMacro {
@@ -141,7 +141,7 @@ impl Parse for NodeBlock {
                     }),
                     None,
                 )],
-            },
+            }),
         })
     }
 }
@@ -149,12 +149,15 @@ impl Parse for NodeBlock {
 /// Represents an attribute name-value pair
 struct NodeValue {
     name: Ident,
-    value: Block,
+    value: Option<Block>,
 }
 
 impl Parse for NodeValue {
     fn parse(input: ParseStream) -> Result<Self> {
         let name = input.parse()?;
+        if !input.peek(Token![=]) {
+            return Ok(NodeValue { name, value: None });
+        }
         input.parse::<Token![=]>()?;
         let NodeBlock { value } = input.parse()?;
         Ok(NodeValue { name, value })
@@ -267,7 +270,10 @@ impl Parse for JsxNode {
         match input.parse::<Block>() {
             Ok(block) => Ok(JsxNode::Block(block)),
             Err(_) => match input.parse::<NodeBlock>() {
-                Ok(block) => Ok(JsxNode::Block(block.value)),
+                Ok(block) => match block.value {
+                    Some(value) => Ok(JsxNode::Block(value)),
+                    _ => Ok(JsxNode::Empty),
+                },
                 Err(_) => match input.parse::<Expr>() {
                     Ok(expr) => Ok(JsxNode::Text(expr)),
                     Err(_) => Err(syn::Error::new(
@@ -301,6 +307,14 @@ impl JsxNode {
                 let tag_str = tag.to_string();
                 let attr_setters = attributes.iter().map(|(name, value)| {
                     let name_str = name.to_string().replace("r#", "");
+                    if value.is_none() {
+                        return quote! {
+                            if let Some(e) = #tag.as_element_mut() {
+                                let #name = true;
+                                e.set_attribute(#name_str, #name);
+                            }
+                        };
+                    }
                     quote! {
                         if let Some(e) = #tag.as_element_mut() {
                             let #name = #value;

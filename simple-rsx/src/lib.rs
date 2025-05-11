@@ -64,6 +64,12 @@ impl From<String> for Node {
     }
 }
 
+impl From<&String> for Node {
+    fn from(value: &String) -> Self {
+        Node::Text(value.to_string())
+    }
+}
+
 impl From<&str> for Node {
     fn from(value: &str) -> Self {
         Node::Text(value.to_string())
@@ -90,6 +96,32 @@ impl<T: ToString> From<Vec<T>> for Node {
 impl From<i32> for Node {
     fn from(value: i32) -> Self {
         Node::Text(value.to_string())
+    }
+}
+
+impl From<u32> for Node {
+    fn from(value: u32) -> Self {
+        Node::Text(value.to_string())
+    }
+}
+
+impl FromIterator<u32> for Node {
+    fn from_iter<T: IntoIterator<Item = u32>>(iter: T) -> Self {
+        let mut result = Vec::new();
+        for i in iter {
+            result.push(Node::Text(i.to_string()));
+        }
+        Node::Fragment(result)
+    }
+}
+
+impl FromIterator<u64> for Node {
+    fn from_iter<T: IntoIterator<Item = u64>>(iter: T) -> Self {
+        let mut result = Vec::new();
+        for i in iter {
+            result.push(Node::Text(i.to_string()));
+        }
+        Node::Fragment(result)
     }
 }
 

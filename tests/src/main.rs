@@ -25,7 +25,7 @@ mod tests {
     #[test]
     fn test_div_rsx() {
         use simple_rsx::*;
-        let rsx = rsx!(<div class="container" id="app" />);
+        let rsx = rsx!(<div class="container" id="app" boo />);
         assert_eq!(
             rsx.to_string(),
             "<div class=\"container\" id=\"app\"></div>"
