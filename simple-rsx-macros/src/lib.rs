@@ -272,7 +272,7 @@ impl Parse for JsxNode {
                     Ok(expr) => Ok(JsxNode::Text(expr)),
                     Err(_) => Err(syn::Error::new(
                         Span::call_site(),
-                        "Invalid JSX node, expected text or expression",
+                        "Invalid JSX node, expected a valid rsx block, an expression or plain text",
                     )),
                 },
             },
