@@ -2,6 +2,11 @@
 
 A lightweight and intuitive JSX-like syntax implementation for Rust, enabling HTML-like templating with the full power of Rust's type system.
 
+[![Crates.io](https://img.shields.io/crates/v/simple-rsx.svg)](https://crates.io/crates/simple-rsx)
+[![Documentation](https://docs.rs/simple-rsx/badge.svg)](https://docs.rs/simple-rsx)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Coverage Status](https://coveralls.io/repos/github/elcharitas/simple-rsx/badge.svg?branch=main)](https://coveralls.io/github/elcharitas/simple-rsx?branch=main)
+
 ## Features
 
 - [x] JSX-like syntax support in Rust
@@ -117,6 +122,11 @@ let html = nodes.to_string();
 ## Development Status
 
 This project is currently in active development. While basic JSX syntax is supported, many advanced features are still in progress. Contributions are welcome!
+
+## Alternatives
+
+- [Yew](https://crates.io/crates/yew)
+- [Hypertext](https://crates.io/crates/hypertext)
 
 ## License
 
