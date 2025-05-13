@@ -432,7 +432,7 @@ impl JsxNode {
 
                 quote! {
                     {
-                        #[allow(unused_mut, non_snake_case)]
+                        #[allow(unused_mut)]
                         let mut #tag = simple_rsx::Element::new(#tag_str);
                         #(#attr_setters)*
                         #children_handlers
