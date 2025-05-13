@@ -13,6 +13,7 @@ impl<T: ToString> Attribute for T {
     }
 }
 
+#[derive(Clone)]
 pub struct Element {
     tag: String,
     attributes: IndexMap<String, String>,
@@ -52,6 +53,7 @@ impl Node {
     }
 }
 
+#[derive(Clone)]
 pub enum Node {
     Element(Element),
     Text(String),

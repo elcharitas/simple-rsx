@@ -47,6 +47,11 @@ enum JsxNode {
         children: Vec<JsxNode>,
         close_tag: Option<Ident>, // Optional closing tag for elements
     },
+    Component {
+        name: Ident,
+        props: Vec<(Ident, Option<Block>)>,
+        children: Vec<JsxNode>,
+    },
     Text(Expr),
     Block(Block),
     Empty,
@@ -244,10 +249,20 @@ impl Parse for JsxNode {
                 }
             }
 
-            // Self-closing tag: <tag ... />
+            let is_component = tag.to_string().chars().next().unwrap_or('_').is_uppercase();
+
+            // Self-closing tag: <tag ... /> or <Component... />
             if input.peek(Token![/]) {
                 input.parse::<Token![/]>()?;
                 input.parse::<Token![>]>()?;
+
+                if is_component {
+                    return Ok(JsxNode::Component {
+                        name: tag,
+                        props: attributes,
+                        children: Vec::new(),
+                    });
+                }
 
                 return Ok(JsxNode::Element {
                     tag,
@@ -285,6 +300,14 @@ impl Parse for JsxNode {
             }
 
             input.parse::<Token![>]>()?;
+
+            if is_component {
+                return Ok(JsxNode::Component {
+                    name: tag,
+                    props: attributes,
+                    children,
+                });
+            }
 
             return Ok(JsxNode::Element {
                 tag,
@@ -325,6 +348,42 @@ impl Parse for JsxNode {
 impl JsxNode {
     fn to_tokens(&self) -> TokenStream2 {
         match self {
+            JsxNode::Component {
+                name,
+                props,
+                children,
+            } => {
+                let props_tokens = props.iter().map(|(name, value)| {
+                    let name_str = name.to_string().replace("r#", "");
+                    if value.is_none() {
+                        quote! {
+                            #name_str: true,
+                        }
+                    } else {
+                        quote! {
+                            #name_str: #value,
+                        }
+                    }
+                });
+
+                let children_tokens = if !children.is_empty() {
+                    let child_tokens = children.iter().map(|child| child.to_tokens());
+                    quote! {
+                        children: vec![#(#child_tokens),*],
+                    }
+                } else {
+                    quote! {
+                        children: vec![],
+                    }
+                };
+
+                quote! {
+                    #name {
+                        #(#props_tokens)*
+                        #children_tokens
+                    }.render()
+                }
+            }
             JsxNode::Fragment(children) => {
                 let children_tokens = children.iter().map(|child| child.to_tokens());
 

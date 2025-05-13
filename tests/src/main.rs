@@ -164,4 +164,31 @@ mod tests {
         );
         assert_eq!(rsx.to_string(), "<div><div>Some component</div></div>")
     }
+
+    #[test]
+    fn test_component_rendering_with_props() {
+        use simple_rsx::*;
+
+        struct Component {
+            children: Vec<Node>,
+        }
+
+        impl Component {
+            fn render(&self) -> Node {
+                rsx!(<div>{self.children.clone()}</div>)
+            }
+        }
+
+        let rsx = rsx!(
+            <div>
+                <Component>
+                    <p>Some component</p>
+                </Component>
+            </div>
+        );
+        assert_eq!(
+            rsx.to_string(),
+            "<div><div><p>Some component</p></div></div>"
+        )
+    }
 }
