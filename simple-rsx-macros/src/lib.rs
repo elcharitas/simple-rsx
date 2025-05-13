@@ -1,6 +1,7 @@
 use proc_macro::TokenStream;
 use proc_macro2::{Span, TokenStream as TokenStream2};
 use quote::quote;
+use syn::spanned::Spanned;
 use syn::{
     Block, Expr, ExprLit, Ident, Lit, LitStr, Macro, Result, Token,
     parse::{Parse, ParseStream},
@@ -49,6 +50,7 @@ enum JsxNode {
     Text(Expr),
     Block(Block),
     Empty,
+    Comment(String), // HTML comments
 }
 
 struct NodeBlock {
@@ -181,17 +183,31 @@ impl Parse for JsxNode {
                 input.parse::<Token![-]>()?;
                 input.parse::<Token![-]>()?;
 
-                // TODO: show comments in the output
+                let mut comment = String::new();
+                let mut last_end = 0;
                 while !input.is_empty()
                     && !(input.peek(Token![-]) && input.peek2(Token![-]) && input.peek3(Token![>]))
                 {
-                    input.parse::<proc_macro2::TokenTree>()?;
+                    let token = input.parse::<proc_macro2::TokenTree>()?;
+                    let span_info = format!("{:?}", token.span());
+                    let (start, end) = parse_range(&span_info).unwrap_or((0, 0));
+                    if start > last_end {
+                        comment.push(' ');
+                        last_end = end;
+                    }
+                    comment.push_str(&token.to_string());
                 }
-                input.parse::<Token![-]>()?;
+
+                let token = input.parse::<Token![-]>()?;
+                let span_info = format!("{:?}", token.span());
+                let (start, _) = parse_range(&span_info).unwrap_or((0, 0));
+                if start > last_end {
+                    comment.push(' ');
+                }
                 input.parse::<Token![-]>()?;
                 input.parse::<Token![>]>()?;
 
-                return Ok(JsxNode::Empty);
+                return Ok(JsxNode::Comment(comment.to_string()));
             }
 
             // Fragment: <>...</>
@@ -390,6 +406,11 @@ impl JsxNode {
             JsxNode::Empty => {
                 quote! {
                     simple_rsx::Node::Fragment(Vec::new())
+                }
+            }
+            JsxNode::Comment(text) => {
+                quote! {
+                    simple_rsx::Node::Comment(#text.to_string())
                 }
             }
             JsxNode::Block(block) => {

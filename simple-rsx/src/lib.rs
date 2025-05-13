@@ -56,6 +56,7 @@ pub enum Node {
     Element(Element),
     Text(String),
     Fragment(Vec<Node>),
+    Comment(String),
 }
 
 impl From<String> for Node {
@@ -204,6 +205,10 @@ impl Display for Node {
                 for node in nodes {
                     write!(f, "{}", node)?;
                 }
+                Ok(())
+            }
+            Node::Comment(comment) => {
+                write!(f, "<!--{}-->", comment)?;
                 Ok(())
             }
         }
