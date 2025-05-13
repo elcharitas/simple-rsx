@@ -25,8 +25,8 @@ mod tests {
     #[test]
     fn test_rsx_comment() {
         use simple_rsx::*;
-        let rsx = rsx!(<!-- "This is a comment" -->);
-        assert_eq!(rsx.to_string(), "") // TODO: emit comments in the future, <!-- This is a comment -->
+        let rsx = rsx!(<!-- This is a comment -->);
+        assert_eq!(rsx.to_string(), "<!-- This is a comment -->")
     }
 
     #[test]
