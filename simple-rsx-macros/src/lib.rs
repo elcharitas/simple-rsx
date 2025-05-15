@@ -3,11 +3,12 @@ use proc_macro2::{Span, TokenStream as TokenStream2};
 use quote::quote;
 use syn::spanned::Spanned;
 use syn::{
-    Block, Expr, ExprLit, Ident, Lit, LitStr, Macro, Result, Token,
+    Block, Expr, ExprLit, Ident, ItemFn, Lit, LitStr, Macro, Result, Token,
     parse::{Parse, ParseStream},
     parse_macro_input, parse_quote,
     token::{Brace, Not},
 };
+use syn::{FnArg, PatType, Signature};
 
 /// A procedural macro that provides JSX-like syntax for creating HTML elements in Rust.
 ///
@@ -33,18 +34,77 @@ use syn::{
 /// ```
 #[proc_macro]
 pub fn rsx(input: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(input as JsxNode);
+    let input = parse_macro_input!(input as RsxNode);
     let expanded = input.to_tokens();
     expanded.into()
 }
 
+/// A procedural macro that transforms a rust function into a component.
+///
+/// # Examples
+///
+/// ```rust
+/// use simple_rsx::*;
+///
+/// #[component]
+/// fn HelloWorld() -> Node {
+///     rsx!(<div>Hello World</div>)
+/// }
+/// ```
+#[proc_macro_attribute]
+pub fn component(_attr: TokenStream, input: TokenStream) -> TokenStream {
+    let ItemFn {
+        vis,
+        attrs,
+        sig,
+        block,
+    } = parse_macro_input!(input as ItemFn);
+    let Signature {
+        ident,
+        asyncness,
+        constness,
+        unsafety,
+        inputs,
+        output,
+        fn_token,
+        ..
+    } = sig;
+
+    if asyncness.is_some() || constness.is_some() || unsafety.is_some() {
+        panic!("async, const, and unsafe functions are not supported");
+    }
+
+    if inputs.len() > 1 {
+        panic!("Components can only take a single prop as input");
+    }
+
+    let prop_type = inputs
+        .iter()
+        .find_map(|input| match input {
+            FnArg::Typed(PatType { ty, .. }) => Some(quote! {type Props = #ty;}),
+            _ => panic!("Only typed inputs are supported"),
+        })
+        .unwrap_or_else(|| quote! {type Props = ();});
+
+    let expanded = quote! {
+        #vis #(#attrs)* struct #ident;
+
+        impl simple_rsx::Component for #ident {
+            #prop_type
+            #fn_token render(&mut self, #inputs) #output #block
+        }
+    };
+
+    expanded.into()
+}
+
 /// Represents the different types of JSX nodes
-enum JsxNode {
-    Fragment(Vec<JsxNode>),
+enum RsxNode {
+    Fragment(Vec<RsxNode>),
     Component {
         name: Ident,
         props: Vec<(Ident, Option<Block>)>,
-        children: Vec<JsxNode>,
+        children: Vec<RsxNode>,
         close_tag: Option<Ident>,
     },
     Text(Expr),
@@ -167,10 +227,10 @@ impl Parse for NodeValue {
     }
 }
 
-impl Parse for JsxNode {
+impl Parse for RsxNode {
     fn parse(input: ParseStream) -> Result<Self> {
         if input.is_empty() {
-            return Ok(JsxNode::Empty);
+            return Ok(RsxNode::Empty);
         }
 
         // Look ahead to see if we start with a '<'
@@ -207,7 +267,7 @@ impl Parse for JsxNode {
                 input.parse::<Token![-]>()?;
                 input.parse::<Token![>]>()?;
 
-                return Ok(JsxNode::Comment(comment.to_string()));
+                return Ok(RsxNode::Comment(comment.to_string()));
             }
 
             // Fragment: <>...</>
@@ -218,7 +278,7 @@ impl Parse for JsxNode {
                 while !input.is_empty()
                     && !(input.peek(Token![<]) && input.peek2(Token![/]) && input.peek3(Token![>]))
                 {
-                    match input.parse::<JsxNode>() {
+                    match input.parse::<RsxNode>() {
                         Ok(child) => children.push(child),
                         Err(_) => {
                             input.parse::<proc_macro2::TokenTree>()?;
@@ -230,7 +290,7 @@ impl Parse for JsxNode {
                 input.parse::<Token![/]>()?;
                 input.parse::<Token![>]>()?;
 
-                return Ok(JsxNode::Fragment(children));
+                return Ok(RsxNode::Fragment(children));
             }
 
             // Element: <tag ...>...</tag> or <tag ... />
@@ -249,7 +309,7 @@ impl Parse for JsxNode {
                 input.parse::<Token![/]>()?;
                 input.parse::<Token![>]>()?;
 
-                return Ok(JsxNode::Component {
+                return Ok(RsxNode::Component {
                     name: tag.clone(),
                     props: attributes,
                     children: Vec::new(),
@@ -262,7 +322,7 @@ impl Parse for JsxNode {
 
             let mut children = Vec::with_capacity(4);
             while !input.is_empty() && !(input.peek(Token![<]) && input.peek2(Token![/])) {
-                match input.parse::<JsxNode>() {
+                match input.parse::<RsxNode>() {
                     Ok(child) => children.push(child),
                     Err(e) => return Err(e),
                 }
@@ -286,7 +346,7 @@ impl Parse for JsxNode {
 
             input.parse::<Token![>]>()?;
 
-            return Ok(JsxNode::Component {
+            return Ok(RsxNode::Component {
                 name: tag,
                 props: attributes,
                 children,
@@ -301,17 +361,17 @@ impl Parse for JsxNode {
                 attrs: Vec::new(),
                 lit,
             });
-            return Ok(JsxNode::Text(expr));
+            return Ok(RsxNode::Text(expr));
         }
         match input.parse::<Block>() {
-            Ok(block) => Ok(JsxNode::Block(block)),
+            Ok(block) => Ok(RsxNode::Block(block)),
             Err(_) => match input.parse::<NodeBlock>() {
                 Ok(block) => match block.value {
-                    Some(value) => Ok(JsxNode::Block(value)),
-                    _ => Ok(JsxNode::Empty),
+                    Some(value) => Ok(RsxNode::Block(value)),
+                    _ => Ok(RsxNode::Empty),
                 },
                 Err(_) => match input.parse::<Expr>() {
-                    Ok(expr) => Ok(JsxNode::Text(expr)),
+                    Ok(expr) => Ok(RsxNode::Text(expr)),
                     Err(_) => Err(syn::Error::new(
                         Span::call_site(),
                         "Invalid JSX node, expected a valid rsx block, an expression or plain text",
@@ -322,10 +382,10 @@ impl Parse for JsxNode {
     }
 }
 
-impl JsxNode {
+impl RsxNode {
     fn to_tokens(&self) -> TokenStream2 {
         match self {
-            JsxNode::Component {
+            RsxNode::Component {
                 name,
                 props,
                 children,
@@ -373,7 +433,7 @@ impl JsxNode {
                     }
                 }
             }
-            JsxNode::Fragment(children) => {
+            RsxNode::Fragment(children) => {
                 let children_tokens = children.iter().map(|child| child.to_tokens());
 
                 quote! {
@@ -382,22 +442,22 @@ impl JsxNode {
                     }
                 }
             }
-            JsxNode::Text(expr) => {
+            RsxNode::Text(expr) => {
                 quote! {
                     simple_rsx::Node::Text(#expr.to_string())
                 }
             }
-            JsxNode::Empty => {
+            RsxNode::Empty => {
                 quote! {
                     simple_rsx::Node::Fragment(Vec::new())
                 }
             }
-            JsxNode::Comment(text) => {
+            RsxNode::Comment(text) => {
                 quote! {
                     simple_rsx::Node::Comment(#text.to_string())
                 }
             }
-            JsxNode::Block(block) => {
+            RsxNode::Block(block) => {
                 quote! {
                     simple_rsx::Node::from(#block)
                 }

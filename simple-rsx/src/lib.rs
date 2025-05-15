@@ -33,28 +33,25 @@
 //! ```rust
 //! use simple_rsx::*;
 //!
-//! struct Button;
 //! #[derive(Default)]
 //! struct ButtonProps {
 //!     text: String,
 //!     children: Vec<Node>,
 //! }
 //!
-//! impl Component for Button {
-//!     type Props = ButtonProps;
-//!     fn render(&mut self, props: Self::Props) -> Node {
-//!         rsx!(
-//!             <button class="btn">
-//!                 {props.text}
-//!                 {props.children}
-//!             </button>
-//!         )
-//!     }
+//! #[component]
+//! fn Button(props: ButtonProps) -> Node {
+//!     rsx!(
+//!         <button class="btn">
+//!             {props.text}
+//!             {props.children}
+//!         </button>
+//!     )
 //! }
 //! ```
 
 use indexmap::IndexMap;
-pub use simple_rsx_macros::rsx;
+pub use simple_rsx_macros::{component, rsx};
 use std::fmt::Display;
 
 /// A trait for converting values into HTML attribute strings.

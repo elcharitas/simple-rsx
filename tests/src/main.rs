@@ -196,4 +196,33 @@ mod tests {
             "<div><div><p>Some component</p></div></div>"
         )
     }
+
+    #[test]
+    fn test_fn_component_rendering_with_props() {
+        use simple_rsx::*;
+
+        #[derive(Default)]
+        struct Props {
+            message: String,
+            children: Vec<Node>,
+        }
+
+        #[component]
+        fn MyComponent(props: Props) -> Node {
+            println!("{}", props.message);
+            rsx!(<div>{props.children}</div>)
+        }
+
+        let rsx = rsx!(
+            <div>
+                <MyComponent message="Hello from mars">
+                    <p>Some component</p>
+                </MyComponent>
+            </div>
+        );
+        assert_eq!(
+            rsx.to_string(),
+            "<div><div><p>Some component</p></div></div>"
+        )
+    }
 }
