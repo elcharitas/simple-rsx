@@ -1,4 +1,4 @@
-  <img src="./icon.svg" width="128" height="128" alt="Simple RSX Logo">
+  <img src="https://github.com/elcharitas/simple-rsx/raw/main/icon.svg" width="128" height="128" alt="Simple RSX Logo">
 
 # simple RSX </>
 
