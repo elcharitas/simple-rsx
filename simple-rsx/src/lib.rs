@@ -329,7 +329,12 @@ impl<T: ToString> From<Option<T>> for Node {
 
 impl From<&Vec<String>> for Node {
     fn from(value: &Vec<String>) -> Self {
-        Node::Fragment(value.iter().map(|s| Node::Text(s.to_string())).collect())
+        Node::Fragment(
+            value
+                .iter()
+                .map(|item| Node::Text(item.to_string()))
+                .collect(),
+        )
     }
 }
 
@@ -354,8 +359,8 @@ impl From<u64> for Node {
 impl FromIterator<u32> for Node {
     fn from_iter<T: IntoIterator<Item = u32>>(iter: T) -> Self {
         let mut result = Vec::new();
-        for i in iter {
-            result.push(Node::Text(i.to_string()));
+        for item in iter {
+            result.push(Node::Text(item.to_string()));
         }
         Node::Fragment(result)
     }
@@ -364,8 +369,8 @@ impl FromIterator<u32> for Node {
 impl FromIterator<u64> for Node {
     fn from_iter<T: IntoIterator<Item = u64>>(iter: T) -> Self {
         let mut result = Vec::new();
-        for i in iter {
-            result.push(Node::Text(i.to_string()));
+        for item in iter {
+            result.push(Node::Text(item.to_string()));
         }
         Node::Fragment(result)
     }
@@ -374,8 +379,8 @@ impl FromIterator<u64> for Node {
 impl FromIterator<i32> for Node {
     fn from_iter<T: IntoIterator<Item = i32>>(iter: T) -> Self {
         let mut result = Vec::new();
-        for i in iter {
-            result.push(Node::Text(i.to_string()));
+        for item in iter {
+            result.push(Node::Text(item.to_string()));
         }
         Node::Fragment(result)
     }
@@ -1328,6 +1333,36 @@ derive_elements! {
         /// The xmlns attribute defines the XML namespace (required for standalone SVG)
         /// Example: xmlns="http://www.w3.org/2000/svg"
         xmlns: String,
+        /// The fill attribute specifies the fill color
+        /// Example: fill="#3498db" (blue fill)
+        fill: String,
+        /// The stroke attribute specifies the outline color
+        /// Example: stroke="#e74c3c" (red outline)
+        stroke: String,
+        /// The stroke-width attribute specifies the width of the outline
+        /// Example: stroke-width="3" (3 units thick)
+        stroke_width: String,
+        /// The stroke-linecap attribute specifies line end style
+        /// Example: stroke-linecap="round" (rounded ends)
+        stroke_linecap: String,
+        /// The stroke-linejoin attribute specifies how line joins are rendered
+        /// Example: stroke-linejoin="miter" (pointed corners)
+        stroke_linejoin: String,
+        /// The stroke-miterlimit attribute limits the length of miters
+        /// Example: stroke-miterlimit="4" (limits pointy corners)
+        stroke_miterlimit: String,
+        /// The stroke-dasharray attribute creates dashed lines
+        /// Example: stroke-dasharray="5,5" (5 units on, 5 units off)
+        stroke_dasharray: String,
+        /// The stroke-dashoffset attribute adjusts dash pattern start
+        /// Example: stroke-dashoffset="10" (starts 10 units into pattern)
+        stroke_dashoffset: String,
+        /// The stroke-opacity attribute sets stroke transparency
+        /// Example: stroke-opacity="0.5" (50% transparent)
+        stroke_opacity: String,
+        /// The fill-opacity attribute sets fill transparency
+        /// Example: fill-opacity="0.7" (70% opaque)
+        fill_opacity: String,
     }
 
     /// HTML `<path>` element - Defines a path in SVG graphics
@@ -1682,5 +1717,422 @@ derive_elements! {
         /// The y attribute specifies the y-coordinate of the mask
         /// Example: y="0" (starts at top edge)
         y: String,
+    }
+    /// HTML `<article>` element - Defines an independent, self-contained content
+    ///
+    /// Example:
+    ///
+    /// ```<article><h1>Article Title</h1><p>Article content goes here...</p></article>```
+    article {
+    }
+
+    /// HTML `<aside>` element - Defines content aside from the page content
+    ///
+    /// Example:
+    ///
+    /// ```<aside><p>Sidebar content goes here...</p></aside>```
+    aside {
+    }
+
+    /// HTML `<details>` element - Defines additional details that the user can view or hide
+    ///
+    /// Example:
+    ///
+    /// ```<details><summary>Click to view details</summary><p>Details content goes here...</p></details>```
+    details {
+    }
+
+    /// HTML `<figcaption>` element - Defines a caption for a `<figure>` element
+    ///
+    /// Example:
+    ///
+    /// ```<figure><img src="image.jpg" alt="Image description" /><figcaption>Caption goes here...</figcaption></figure>```
+    figcaption {
+    }
+
+    /// HTML `<figure>` element - Specifies self-contained content, like illustrations, diagrams, photos, code listings, etc.
+    ///
+    /// Example:
+    ///
+    /// ```<figure><img src="image.jpg" alt="Image description" /><figcaption>Caption goes here...</figcaption></figure>```
+    figure {
+    }
+
+    /// HTML `<footer>` element - Defines a footer for a document or section
+    ///
+    /// Example:
+    ///
+    /// ```<footer><p>Footer content goes here...</p></footer>```
+    footer {
+    }
+
+    /// HTML `<header>` element - Defines a container for introductory content or a set of navigational links
+    ///
+    /// Example:
+    ///
+    /// ```<header><h1>Header content goes here...</h1></header>```
+    header {
+    }
+
+    /// HTML `<main>` element - Specifies the main content of a document
+    ///
+    /// Example:
+    ///
+    /// ```<main><p>Main content goes here...</p></main>```
+    main {
+    }
+
+    /// HTML `<mark>` element - Defines marked/highlighted text
+    ///
+    /// Example:
+    ///
+    /// ```<p>Some <mark>marked</mark> text.</p>```
+    mark {
+    }
+
+    /// HTML `<nav>` element - Defines navigation links
+    ///
+    /// Example:
+    ///
+    /// ```<nav><a href="#home">Home</a> <a href="#about">About</a> <a href="#contact">Contact</a></nav>```
+    nav {
+    }
+
+    /// HTML `<section>` element - Defines a section in a document
+    ///
+    /// Example:
+    ///
+    /// ```<section><h2>Section Title</h2><p>Section content goes here...</p></section>```
+    section {
+    }
+
+    /// HTML `<summary>` element - Defines a visible heading for a `<details>` element
+    ///
+    /// Example:
+    ///
+    /// ```<details><summary>Click to view details</summary><p>Details content goes here...</p></details>```
+    summary {
+    }
+
+    /// HTML `<time>` element - Defines a date/time
+    ///
+    /// Example:
+    ///
+    /// ```<p>Published on <time datetime="2023-08-01">August 1, 2023</time></p>```
+    time {
+        /// The datetime attribute specifies the date/time
+        /// Example: datetime="2023-08-01" (August 1, 2023)
+        datetime: String,
+        /// The pubdate attribute specifies that the content is published
+        /// Example: pubdate="pubdate" (content is published)
+        pubdate: String,
+    }
+
+    /// HTML `<wbr>` element - Inserts a line break opportunity
+    ///
+    /// Example:
+    ///
+    /// ```<p>Here is a long word:<wbr>supercalifragilisticexpialidocious</p>```
+    wbr {
+    }
+
+    /// HTML `<address>` element - Defines contact information for the author/owner of a document
+    ///
+    /// Example:
+    ///
+    /// ```<address>Contact us at <a href="mailto:="mail="mailto:EMAIL"EMAILample.com</a></address>```
+    address {
+    }
+
+    /// HTML `<bdi>` element - Defines a term/name within a description list
+    ///
+    /// Example:
+    ///
+    /// ```<dl><dt><bdi>Name</bdi></dt><dd>John Doe</dd></dl>```
+    bdi {
+    }
+
+    /// HTML `<bdo>` element - Overrides the current text direction
+    ///
+    /// Example:
+    ///
+    /// ```<p><bdo dir="rtl">This text is written from right to left</bdo></p>```
+    bdo {
+    }
+
+    /// HTML `<cite>` element - Defines the title of a work
+    ///
+    /// Example:
+    ///
+    /// ```<p>To learn more about <cite>HTML</cite>, visit <a href="```<p>To learn more about <cite>HTML</cite>, visit <a href="URL_ADDRESS.w3.org/TR/html52/">W3C</a>.</p>```
+    cite {
+    }
+
+    /// HTML `<dfn>` element - Defines a definition
+    ///
+    /// Example:
+    ///
+    /// ```<p>The <dfn>HTML</dfn> element is used to define a section in a document.</p>```
+    dfn {
+    }
+
+    /// HTML `<em>` element - Defines emphasized text
+    ///
+    /// Example:
+    ///
+    /// ```<p>He is <em>very</em> angry.</p>```
+    em {
+    }
+
+    /// HTML `<i>` element - Defines a part of text in an alternate voice or mood
+    ///
+    /// Example:
+    ///
+    /// ```<p><i>This text is in italics.</i></p>```
+    i {
+    }
+
+    /// HTML `<kbd>` element - Defines keyboard input
+    ///
+    /// Example:
+    ///
+    /// ```<p>Press <kbd>Ctrl</kbd> + <kbd>C</kbd> to copy.</p>```
+    kbd {
+    }
+
+    /// HTML `<meter>` element - Defines a scalar measurement within a known range (a gauge)
+    ///
+    /// Example:
+    ///
+    /// ```<meter value="75" min="0" max="100"></meter>```
+    meter {
+        /// The value attribute specifies the current value
+        /// Example: value="75" (current value is 75)
+        value: String,
+        /// The min attribute specifies the minimum value
+        /// Example: min="0" (minimum value is 0)
+        min: String,
+        /// The max attribute specifies the maximum value
+        /// Example: max="100" (maximum value is 100)
+        max: String,
+        /// The low attribute specifies the low value
+        /// Example: low="33" (low value is 33)
+        low: String,
+        /// The high attribute specifies the high value
+        /// Example: high="66" (high value is 66)
+        high: String,
+        /// The optimum attribute specifies the optimum value
+        /// Example: optimum="50" (optimum value is 50)
+        optimum: String,
+    }
+
+    /// HTML `<output>` element - Defines the result of a calculation
+    ///
+    /// Example:
+    ///
+    /// ```<form><input type="number" id="num1" /><input type="number" id="num2" /><button onclick="calculate()">Calculate</button><output id="result"></output></form>```
+    output {
+    }
+
+    /// HTML `<progress>` element - Defines the progress of a task
+    ///
+    /// Example:
+    ///
+    /// ```<progress value="75" max="100"></progress>```
+    progress {
+        /// The value attribute specifies the current value
+        /// Example: value="75" (current value is 75)
+        value: String,
+        /// The max attribute specifies the maximum value
+        /// Example: max="100" (maximum value is 100)
+        max: String,
+    }
+
+    /// HTML `<q>` element - Defines a short inline quotation
+    ///
+    /// Example:
+    ///
+    /// ```<p><q>We are the so-called "Vikings" from the north.</q></p>```
+    q {
+    }
+
+    /// HTML `<rp>` element - Defines a parenthesis for browsers that do not support `<ruby>`
+    ///
+    /// Example:
+    ///
+    /// ```<ruby><rb>漢</rb><rp>(</rp><rt>han</rt><rp>)</rp></ruby>```
+    rp {
+    }
+
+    /// HTML `<rt>` element - Defines a ruby text
+    ///
+    /// Example:
+    ///
+    /// ```<ruby><rb>漢</rb><rt>han</rt></ruby>```
+    rt {
+    }
+
+    /// HTML `<ruby>` element - Defines a ruby annotation (for East Asian typography)
+    ///
+    /// Example:
+    ///
+    /// ```<ruby><rb>漢</rb><rt>han</rt></ruby>```
+    ruby {
+    }
+
+    /// HTML `<s>` element - Defines strikethrough text
+    ///
+    /// Example:
+    ///
+    /// ```<p>Price: <s>$100</s> $50</p>```
+    s {
+    }
+
+    /// HTML `<samp>` element - Defines sample output from a computer program
+    ///
+    /// Example:
+    ///
+    /// ```<samp>Hello, World!</samp>```
+    samp {
+    }
+
+    /// HTML `<small>` element - Defines smaller text
+    ///
+    /// Example:
+    ///
+    /// ```<p><small>This is some smaller text.</small></p>```
+    small {
+    }
+
+    /// HTML `<strong>` element - Defines important text
+    ///
+    /// Example:
+    ///
+    /// ```<p><strong>This is important!</strong></p>```
+    strong {
+    }
+
+    /// HTML `<sub>` element - Defines subscript text
+    ///
+    /// Example:
+    ///
+    /// ```<p>H<sub>2</sub>O</p>```
+    sub {
+    }
+
+    /// HTML `<sup>` element - Defines superscript text
+    ///
+    /// Example:
+    ///
+    /// ```<p>X<sup>2</sup></p>```
+    sup {
+    }
+
+    /// HTML `<var>` element - Defines a variable
+    ///
+    /// Example:
+    ///
+    /// ```<p>The area is <var>x</var> times <var>y</var>.</p>```
+    var {
+    }
+
+    /// HTML `<template>` element - Defines a container for content that is not to be rendered when a page is loaded
+    ///
+    /// Example:
+    ///
+    /// ```<template><p>This content will not be rendered.</p></template>```
+    template {
+    }
+
+    /// HTML `<u>` element - Defines text that should be rendered as underlined
+    ///
+    /// Example:
+    ///
+    /// ```<p><u>This text is underlined.</u></p>```
+    u {
+    }
+
+    /// HTML `<noscript>` element - Defines content that is displayed to users with disabled scripts
+    ///
+    /// Example:
+    ///
+    /// ```<noscript><p>JavaScript is disabled.</p></noscript>```
+    noscript {
+    }
+
+    /// HTML `<legend>` element - Defines a caption for a `<fieldset>` element
+    ///
+    /// Example:
+    ///
+    /// ```<fieldset><legend>Personal Information</legend><input type="text" name="name" /><input type="email" name="email" /></fieldset>```
+    legend {
+    }
+
+    /// HTML `<optgroup>` element - Defines a group of related `<option>` elements in a `<select>` element
+    ///
+    /// Example:
+    ///
+    /// ```<select><optgroup label="Fruits"><option value="apple">Apple</option><option value="banana">Banana</option></optgroup><optgroup label="Vegetables"><option value="carrot">Carrot</option><option value="potato">Potato</option></optgroup></select>```
+    optgroup {
+        /// The label attribute specifies a label for the group
+        /// Example: label="Fruits" (label for the group is "Fruits")
+        label: String,
+    }
+
+    /// HTML `<dialog>` element - Defines a dialog box or other interactive component
+    ///
+    /// Example:
+    ///
+    /// ```<dialog><p>Dialog content goes here...</p><button onclick="closeDialog()">Close</button></dialog>```
+    dialog {
+        /// The open attribute specifies whether the dialog is open or closed
+        /// Example: open="open" (dialog is open)
+        open: String,
+    }
+
+    /// HTML `<blockquote>` element - Defines a section that is quoted from another source
+    ///
+    /// Example:
+    ///
+    /// ```<blockquote><p>This is a quote.</p><footer>- John Doe</footer></blockquote>```
+    blockquote {
+    }
+
+    /// HTML `<dd>` element - Defines a description/value pair within a `<dl>` element
+    ///
+    /// Example:
+    ///
+    /// ```<dl><dt>Coffee</dt><dd>Black hot drink</dd><dt>Milk</dt><dd>White cold drink</dd></dl>```
+    dd {
+    }
+
+    /// HTML `<dl>` element - Defines a description list
+    ///
+    /// Example:
+    ///
+    /// ```<dl><dt>Coffee</dt><dd>Black hot drink</dd><dt>Milk</dt><dd>White cold drink</dd></dl>```
+    dl {
+    }
+
+    /// HTML `<dt>` element - Defines a term/name in a description list
+    ///
+    /// Example:
+    ///
+    /// ```<dl><dt>Coffee</dt><dd>Black hot drink</dd><dt>Milk</dt><dd>White cold drink</dd></dl>```
+    dt {
+    }
+
+    /// HTML `<base>` element - Specifies the base URL/target for all relative URLs in a document
+    ///
+    /// Example:
+    ///
+    /// ```<base href="```<base href="URL_ADDRESS.example.com/" target="_blank">```
+    base {
+        /// The href attribute specifies the base URL
+        /// ```<base href="URL_ADDR```<base href="URL_ADDRESS.example.com/" target="_blank">```
+        href: String,
+        /// The target attribute specifies the target for all relative URLs
+        /// ```<base href="URL_ADDRESS.example.com/" target="_blank">```
+        target: String,
     }
 }
