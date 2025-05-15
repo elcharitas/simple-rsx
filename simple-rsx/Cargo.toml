@@ -12,4 +12,5 @@ documentation = "https://docs.rs/simple-rsx"
 
 [dependencies]
 indexmap = "2.9"
+paste = "1.0"
 simple-rsx-macros = { path = "../simple-rsx-macros", version = "0.1.5" }

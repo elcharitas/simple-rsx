@@ -35,7 +35,7 @@ mod tests {
         let rsx = rsx!(<div class="container" id="app" />);
         assert_eq!(
             rsx.to_string(),
-            "<div class=\"container\" id=\"app\"></div>"
+            "<div id=\"app\" class=\"container\"></div>"
         )
     }
 
@@ -65,10 +65,10 @@ mod tests {
     #[test]
     fn test_div_children_rsx_with_text_and_attribute() {
         use simple_rsx::*;
-        let rsx = rsx!(<input r#type="text" placeholder="Enter name" required="true" />);
+        let rsx = rsx!(<input r#type="text" placeholder="Enter name" required />);
         assert_eq!(
             rsx.to_string(),
-            "<input type=\"text\" placeholder=\"Enter name\" required=\"true\"></input>"
+            "<input type=\"text\" placeholder=\"Enter name\" required=\"true\" disabled=\"false\" readonly=\"false\"></input>"
         )
     }
 
@@ -126,12 +126,12 @@ mod tests {
         let items = vec!["Item 1", "Item 2", "Item 3"];
         let list = rsx!(
             <ul>
-                {items.iter().enumerate().map(|(index, item)| rsx!(<li key={index}>{item}</li>))}
+                {items.iter().enumerate().map(|(index, item)| rsx!(<li key={index.to_string()}>{item}</li>))}
             </ul>
         );
         assert_eq!(
             list.to_string(),
-            "<ul><li key=\"0\">Item 1</li><li key=\"1\">Item 2</li><li key=\"2\">Item 3</li></ul>"
+            "<ul><li>Item 1</li><li>Item 2</li><li>Item 3</li></ul>"
         )
     }
 
@@ -169,21 +169,26 @@ mod tests {
     fn test_component_rendering_with_props() {
         use simple_rsx::*;
 
-        struct Component {
+        struct MyComponent;
+        #[derive(Default)]
+        struct Props {
+            message: String,
             children: Vec<Node>,
         }
 
-        impl Component {
-            fn render(&self) -> Node {
-                rsx!(<div>{self.children.clone()}</div>)
+        impl Component for MyComponent {
+            type Props = Props;
+            fn render(&mut self, props: Self::Props) -> Node {
+                println!("{}", props.message);
+                rsx!(<div>{props.children}</div>)
             }
         }
 
         let rsx = rsx!(
             <div>
-                <Component>
+                <MyComponent message="">
                     <p>Some component</p>
-                </Component>
+                </MyComponent>
             </div>
         );
         assert_eq!(

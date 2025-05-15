@@ -41,16 +41,11 @@ pub fn rsx(input: TokenStream) -> TokenStream {
 /// Represents the different types of JSX nodes
 enum JsxNode {
     Fragment(Vec<JsxNode>),
-    Element {
-        tag: Ident,
-        attributes: Vec<(Ident, Option<Block>)>,
-        children: Vec<JsxNode>,
-        close_tag: Option<Ident>, // Optional closing tag for elements
-    },
     Component {
         name: Ident,
         props: Vec<(Ident, Option<Block>)>,
         children: Vec<JsxNode>,
+        close_tag: Option<Ident>,
     },
     Text(Expr),
     Block(Block),
@@ -249,24 +244,14 @@ impl Parse for JsxNode {
                 }
             }
 
-            let is_component = tag.to_string().chars().next().unwrap_or('_').is_uppercase();
-
             // Self-closing tag: <tag ... /> or <Component... />
             if input.peek(Token![/]) {
                 input.parse::<Token![/]>()?;
                 input.parse::<Token![>]>()?;
 
-                if is_component {
-                    return Ok(JsxNode::Component {
-                        name: tag,
-                        props: attributes,
-                        children: Vec::new(),
-                    });
-                }
-
-                return Ok(JsxNode::Element {
-                    tag,
-                    attributes,
+                return Ok(JsxNode::Component {
+                    name: tag.clone(),
+                    props: attributes,
                     children: Vec::new(),
                     close_tag: None,
                 });
@@ -301,17 +286,9 @@ impl Parse for JsxNode {
 
             input.parse::<Token![>]>()?;
 
-            if is_component {
-                return Ok(JsxNode::Component {
-                    name: tag,
-                    props: attributes,
-                    children,
-                });
-            }
-
-            return Ok(JsxNode::Element {
-                tag,
-                attributes,
+            return Ok(JsxNode::Component {
+                name: tag,
+                props: attributes,
                 children,
                 close_tag: Some(close_tag),
             });
@@ -352,36 +329,48 @@ impl JsxNode {
                 name,
                 props,
                 children,
+                close_tag,
             } => {
                 let props_tokens = props.iter().map(|(name, value)| {
-                    let name_str = name.to_string().replace("r#", "");
                     if value.is_none() {
                         quote! {
-                            #name_str: true,
+                            #name: true,
                         }
                     } else {
                         quote! {
-                            #name_str: #value,
+                            #name: #value.into(),
                         }
                     }
                 });
 
                 let children_tokens = if !children.is_empty() {
                     let child_tokens = children.iter().map(|child| child.to_tokens());
-                    quote! {
+                    Some(quote! {
                         children: vec![#(#child_tokens),*],
-                    }
+                    })
                 } else {
-                    quote! {
-                        children: vec![],
-                    }
+                    None
                 };
 
+                let close_tag = close_tag.as_ref().and_then(|close_tag| {
+                    Some(quote! {
+                        let #close_tag = #name;
+                    })
+                });
+
                 quote! {
-                    #name {
-                        #(#props_tokens)*
-                        #children_tokens
-                    }.render()
+                    {
+                        type Props = <#name as simple_rsx::Component>::Props;
+                        #close_tag
+                        simple_rsx::Component::render(
+                            &mut #name,
+                            Props {
+                                #(#props_tokens)*
+                                #children_tokens
+                                ..Default::default()
+                            },
+                        )
+                    }
                 }
             }
             JsxNode::Fragment(children) => {
@@ -390,70 +379,6 @@ impl JsxNode {
                 quote! {
                     {
                         simple_rsx::Node::Fragment(vec![#(#children_tokens)*])
-                    }
-                }
-            }
-            JsxNode::Element {
-                tag,
-                attributes,
-                children,
-                close_tag,
-            } => {
-                let tag_str = tag.to_string();
-                let attr_setters = attributes.iter().map(|(name, value)| {
-                    let name_str = name.to_string().replace("r#", "");
-                    if value.is_none() {
-                        return quote! {
-                            if let Some(e) = #tag.as_element_mut() {
-                                let #name = true;
-                                e.set_attribute(#name_str, #name);
-                            }
-                        };
-                    }
-                    quote! {
-                        if let Some(e) = #tag.as_element_mut() {
-                            let #name = #value;
-                            e.set_attribute(#name_str, #name);
-                        }
-                    }
-                });
-
-                let children_handlers = if children.is_empty() {
-                    quote! {}
-                } else {
-                    let children_tokens = children.iter().map(|child| child.to_tokens());
-
-                    quote! {
-                        #(
-                            let child_result = #children_tokens;
-                            match child_result {
-                                simple_rsx::Node::Fragment(nodes) => {
-                                    for child in nodes {
-                                        #tag.append_child(child);
-                                    }
-                                },
-                                _ => {
-                                    #tag.append_child(child_result);
-                                }
-                            }
-                        )*
-                    }
-                };
-
-                let close_tag = close_tag.as_ref().and_then(|close_tag| {
-                    Some(quote! {
-                        #close_tag = #tag;
-                    })
-                });
-
-                quote! {
-                    {
-                        #[allow(unused_mut)]
-                        let mut #tag = simple_rsx::Element::new(#tag_str);
-                        #(#attr_setters)*
-                        #children_handlers
-                        #close_tag
-                        #tag
                     }
                 }
             }
