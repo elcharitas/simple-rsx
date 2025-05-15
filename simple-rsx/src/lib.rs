@@ -466,23 +466,35 @@ macro_rules! derive_elements {
 }
 
 derive_elements! {
-    /// HTML <div> element - Container element for grouping and styling content
-    /// Example: <div class="container">Content goes here</div>
+    /// HTML `<div>` element - Container element for grouping and styling content
+    ///
+    /// Example:
+    ///
+    /// ```<div class="container">Content goes here</div>```
     div {
     }
 
-    /// HTML <p> element - Represents a paragraph of text
-    /// Example: <p>This is a paragraph of text.</p>
+    /// HTML `<p>` element - Represents a paragraph of text
+    ///
+    /// Example:
+    ///
+    /// ```<p>This is a paragraph of text.</p>```
     p {
     }
 
-    /// HTML <span> element - Inline container for targeting text with styles
-    /// Example: <span class="highlight">Highlighted text</span>
+    /// HTML `<span>` element - Inline container for targeting text with styles
+    ///
+    /// Example:
+    ///
+    /// ```<span class="highlight">Highlighted text</span>```
     span {
     }
 
-    /// HTML <a> element - Creates a hyperlink to other web pages or resources
-    /// Example: <a href="https://example.com" target="_blank">Visit Example</a>
+    /// HTML `<a>` element - Creates a hyperlink to other web pages or resources
+    ///
+    /// Example:
+    ///
+    /// ```<a href="https://example.com" target="_blank">Visit Example</a>```
     a {
         /// The href attribute specifies the URL of the page the link goes to
         /// Example: href="https://example.com"
@@ -514,37 +526,58 @@ derive_elements! {
     }
 
     /// HTML <h1> element - First level heading (most important)
-    /// Example: <h1>Main Page Title</h1>
+    ///
+    /// Example:
+    ///
+    /// ```<h1>Main Page Title</h1>```
     h1 {
     }
 
     /// HTML <h2> element - Second level heading
-    /// Example: <h2>Section Heading</h2>
+    ///
+    /// Example:
+    ///
+    /// ```<h2>Section Heading</h2>```
     h2 {
     }
 
     /// HTML <h3> element - Third level heading
-    /// Example: <h3>Subsection Heading</h3>
+    ///
+    /// Example:
+    ///
+    /// ```<h3>Subsection Heading</h3>```
     h3 {
     }
 
     /// HTML <h4> element - Fourth level heading
-    /// Example: <h4>Sub-subsection Heading</h4>
+    ///
+    /// Example:
+    ///
+    /// ```<h4>Sub-subsection Heading</h4>```
     h4 {
     }
 
     /// HTML <h5> element - Fifth level heading
-    /// Example: <h5>Minor Heading</h5>
+    ///
+    /// Example:
+    ///
+    /// ```<h5>Minor Heading</h5>```
     h5 {
     }
 
     /// HTML <h6> element - Sixth level heading (least important)
-    /// Example: <h6>Fine Detail Heading</h6>
+    ///
+    /// Example:
+    ///
+    /// ```<h6>Fine Detail Heading</h6>```
     h6 {
     }
 
-    /// HTML <img> element - Embeds an image into the document
-    /// Example: <img src="image.jpg" alt="Description of image">
+    /// HTML `<img>` element - Embeds an image into the document
+    ///
+    /// Example:
+    ///
+    /// ```<img src="image.jpg" alt="Description of image">```
     img {
         /// The src attribute specifies the URL/path to the image
         /// Example: src="images/logo.png"
@@ -557,33 +590,48 @@ derive_elements! {
         loading: String,
     }
 
-    /// HTML <br> element - Produces a line break in text
-    /// Example: Line one<br>Line two
+    /// HTML `<br>` element - Produces a line break in text
+    ///
+    /// Example:
+    ///
+    /// ```<br>```
     br {}
 
-    /// HTML <hr> element - Creates a horizontal rule (divider)
-    /// Example: <hr>
+    /// HTML `<hr>` element - Creates a horizontal rule (divider)
+    ///
+    /// Example:
+    ///
+    /// ```<hr>```
     hr {
     }
 
-    /// HTML <ul> element - Unordered list with bullet points
-    /// Example: <ul><li>Item 1</li><li>Item 2</li></ul>
+    /// HTML `<ul>` element - Unordered list with bullet points
+    ///
+    /// Example:
+    ///
+    /// ```<ul><li>Item 1</li><li>Item 2</li></ul>```
     ul {
         /// The type attribute specifies the bullet style (disc, circle, square)
         /// Example: type="square"
         r#type: String,
     }
 
-    /// HTML <li> element - List item within ordered or unordered lists
-    /// Example: <li>List item content</li>
+    /// HTML `<li>` element - List item within ordered or unordered lists
+    ///
+    /// Example:
+    ///
+    /// ```<li>List item content</li>```
     li {
         /// The value attribute specifies the start value of the list item (for ol)
         /// Example: value="3" (starts this item at number 3)
         value: Option<i32>,
     }
 
-    /// HTML <ol> element - Ordered (numbered) list
-    /// Example: <ol start="5" type="A"><li>Item E</li><li>Item F</li></ol>
+    /// HTML `<ol>` element - Ordered (numbered) list
+    ///
+    /// Example:
+    ///
+    /// ```<ol start="5" type="A"><li>Item E</li><li>Item F</li></ol>```
     ol {
         /// The type attribute specifies the numbering type (1, A, a, I, i)
         /// Example: type="A" (uses capital letters)
@@ -596,8 +644,11 @@ derive_elements! {
         reversed: bool,
     }
 
-    /// HTML <table> element - Creates a data table with rows and columns
-    /// Example: <table border="1"><tr><th>Header</th></tr><tr><td>Data</td></tr></table>
+    /// HTML `<table>` element - Creates a data table with rows and columns
+    ///
+    /// Example:
+    ///
+    /// ```<table border="1"><tr><th>Header</th></tr><tr><td>Data</td></tr></table>```
     table {
         /// The border attribute specifies the width of the border around the table
         /// Example: border="1" (1 pixel border)
@@ -610,13 +661,19 @@ derive_elements! {
         cellspacing: i32,
     }
 
-    /// HTML <tr> element - Table row container
-    /// Example: <tr><td>Cell 1</td><td>Cell 2</td></tr>
+    /// HTML `<tr>` element - Table row container
+    ///
+    /// Example:
+    ///
+    /// ```<tr><td>Cell 1</td><td>Cell 2</td></tr>```
     tr {
     }
 
-    /// HTML <td> element - Table data cell
-    /// Example: <td colspan="2">This cell spans two columns</td>
+    /// HTML `<td>` element - Table data cell
+    ///
+    /// Example:
+    ///
+    /// ```<td colspan="2">This cell spans two columns</td>```
     td {
         /// The colspan attribute specifies how many columns a cell should span
         /// Example: colspan="3" (cell spans 3 columns)
@@ -632,8 +689,11 @@ derive_elements! {
         scope: String,
     }
 
-    /// HTML <th> element - Table header cell
-    /// Example: <th scope="col">Column Header</th>
+    /// HTML `<th>` element - Table header cell
+    ///
+    /// Example:
+    ///
+    /// ```<th scope="col">Column Header</th>```
     th {
         /// The colspan attribute specifies how many columns a cell should span
         /// Example: colspan="3" (header spans 3 columns)
@@ -649,89 +709,125 @@ derive_elements! {
         scope: String,
     }
 
-    /// HTML <tbody> element - Groups body content in a table
-    /// Example: <table><tbody><tr><td>Data</td></tr></tbody></table>
+    /// HTML `<tbody>` element - Groups body content in a table
+    ///
+    /// Example:
+    ///
+    /// ```<table><tbody><tr><td>Data</td></tr></tbody></table>```
     tbody {
     }
 
-    /// HTML <thead> element - Groups header content in a table
-    /// Example: <table><thead><tr><th>Header</th></tr></thead><tbody>...</tbody></table>
+    /// HTML `<thead>` element - Groups header content in a table
+    ///
+    /// Example:
+    ///
+    /// ```<table><thead><tr><th>Header</th></tr></thead><tbody>...</tbody></table>```
     thead {
     }
 
-    /// HTML <tfoot> element - Groups footer content in a table
-    /// Example: <table><thead>...</thead><tbody>...</tbody><tfoot><tr><td>Summary</td></tr></tfoot></table>
+    /// HTML `<tfoot>` element - Groups footer content in a table
+    ///
+    /// Example:
+    ///
+    /// ```<table><thead>...</thead><tbody>...</tbody><tfoot><tr><td>Summary</td></tr></tfoot></table>```
     tfoot {
     }
 
-    /// HTML <form> element - Container for interactive inputs to collect user data
-    /// Example: <form action="/submit" method="post"><input type="text"><button type="submit">Submit</button></form>
+    /// HTML `<form>` element - Container for interactive inputs to collect user data
+    ///
+    /// Example:
+    ///
+    /// ```<form action="/submit" method="post"><input type="text"><button type="submit">Submit</button></form>```
     form {
         /// The action attribute specifies where to send form data when submitted
+        /// 
         /// Example: action="/process-form.php"
         action: String,
         /// The method attribute specifies HTTP method for sending data (GET/POST)
+        /// 
         /// Example: method="post" (sends data in request body)
         method: String,
         /// The target attribute specifies where to display the response
+        /// 
         /// Example: target="_blank" (opens response in new tab)
         target: String,
         /// The enctype attribute specifies how form data should be encoded
+        /// 
         /// Example: enctype="multipart/form-data" (needed for file uploads)
         enctype: String,
         /// The novalidate attribute disables browser's built-in form validation
+        /// 
         /// Example: novalidate (skips validation)
         novalidate: bool,
         /// The autocomplete attribute controls browser autofill behavior
+        /// 
         /// Example: autocomplete="off" (disables autofill)
         autocomplete: String,
         /// The accept attribute specifies file types the server accepts (for file inputs)
+        /// 
         /// Example: accept=".jpg,.png" (accepts only those image formats)
         accept: String,
         /// Example: name="contact-form"
         name: String,
     }
 
-    /// HTML <input> element - Creates interactive controls for forms
-    /// Example: <input type="text" placeholder="Enter your name" required>
+    /// HTML `<input>` element - Creates interactive controls for forms
+    ///
+    /// Example:
+    ///
+    /// ```<input type="text" placeholder="Enter your name" required>```
     input {
         /// The type attribute specifies the input type (text, password, email, etc.)
+        /// 
         /// Example: type="email" (validates as email address)
         r#type: String,
         /// The placeholder attribute shows hint text when field is empty
+        /// 
         /// Example: placeholder="Enter your email"
         placeholder: String,
         /// The required attribute makes the field mandatory
+        /// 
         /// Example: required (field must be filled)
         required: bool,
         /// The value attribute specifies the default/current value
+        /// 
         /// Example: value="Default text"
         value: String,
         /// The name attribute specifies the name of the input (for form submission)
+        /// 
         /// Example: name="email"
         name: String,
         /// The disabled attribute disables the input
+        /// 
         /// Example: disabled (user cannot interact with input)
         disabled: bool,
         /// The readonly attribute makes the input read-only
+        /// 
         /// Example: readonly (user cannot modify but can focus/select)
         readonly: bool,
         /// The min attribute specifies minimum value for number/date inputs
+        /// 
         /// Example: min="1" (number input minimum value)
         min: String,
         /// The max attribute specifies maximum value for number/date inputs
+        /// 
         /// Example: max="100" (number input maximum value)
         max: String,
         /// The pattern attribute specifies a regex pattern for validation
+        /// 
         /// Example: pattern="[0-9]{3}" (requires exactly 3 digits)
         pattern: String,
         /// The autocomplete attribute controls browser autofill for this field
+        /// 
         /// Example: autocomplete="current-password"
         autocomplete: String,
     }
 
-    /// HTML <textarea> element - Multi-line text input control
-    /// Example: <textarea rows="4" cols="50" placeholder="Your message here"></textarea>
+    /// HTML `<textarea>` element - Multi-line text input control
+    ///
+    /// Example:
+    ///
+    /// ```<textarea rows="4" cols="50" placeholder="Your message here"></textarea>```
     textarea {
         /// The placeholder attribute shows hint text when field is empty
         /// Example: placeholder="Enter your comments"
@@ -762,8 +858,11 @@ derive_elements! {
         maxlength: i32,
     }
 
-    /// HTML <button> element - Clickable button control
-    /// Example: <button type="submit">Click Me</button>
+    /// HTML `<button>` element - Clickable button control
+    ///
+    /// Example:
+    ///
+    /// ```<button type="submit">Click Me</button>```
     button {
         /// The type attribute specifies button function (submit, reset, button)
         /// Example: type="submit" (submits the form)
@@ -785,8 +884,11 @@ derive_elements! {
         formmethod: String,
     }
 
-    /// HTML <select> element - Dropdown selection list
-    /// Example: <select><option value="1">Option 1</option><option value="2">Option 2</option></select>
+    /// HTML `<select>` element - Dropdown selection list
+    ///
+    /// Example:
+    ///
+    /// ```<select><option value="1">Option 1</option><option value="2">Option 2</option></select>```
     select {
         /// The multiple attribute allows selecting multiple options
         /// Example: multiple (user can select multiple items)
@@ -808,8 +910,11 @@ derive_elements! {
         required: bool,
     }
 
-    /// HTML <option> element - Defines option in a select dropdown
-    /// Example: <option value="blue" selected>Blue</option>
+    /// HTML `<option>` element - Defines option in a select dropdown
+    ///
+    /// Example:
+    ///
+    /// ```<option value="blue" selected>Blue</option>```
     option {
         /// The value attribute specifies the value to be sent to server
         /// Example: value="NY" (value sent when this option is selected)
@@ -822,16 +927,22 @@ derive_elements! {
         disabled: bool,
     }
 
-    /// HTML <label> element - Caption for a form control
-    /// Example: <label for="username">Username:</label><input id="username">
+    /// HTML `<label>` element - Caption for a form control
+    ///
+    /// Example:
+    ///
+    /// ```<label for="username">Username:</label><input id="username">```
     label {
         /// The for attribute connects the label to a form control by ID
         /// Example: for="email" (associates with input having id="email")
         r#for: String,
     }
 
-    /// HTML <iframe> element - Embeds another document within the current HTML document
-    /// Example: <iframe src="https://example.com" title="Example Site"></iframe>
+    /// HTML `<iframe>` element - Embeds another document within the current HTML document
+    ///
+    /// Example:
+    ///
+    /// ```<iframe src="https://example.com" title="Example Site"></iframe>```
     iframe {
         /// The src attribute specifies the URL of the embedded document
         /// Example: src="https://maps.google.com"
@@ -850,8 +961,11 @@ derive_elements! {
         sandbox: String,
     }
 
-    /// HTML <video> element - Embeds video content in the document
-    /// Example: <video src="movie.mp4" controls width="500">Video not supported</video>
+    /// HTML `<video>` element - Embeds video content in the document
+    ///
+    /// Example:
+    ///
+    /// ```<video src="movie.mp4" controls width="500">Video not supported</video>```
     video {
         /// The src attribute specifies URL/path of the video
         /// Example: src="videos/intro.mp4"
@@ -879,8 +993,11 @@ derive_elements! {
         playsinline: bool,
     }
 
-    /// HTML <audio> element - Embeds sound content in the document
-    /// Example: <audio src="song.mp3" controls>Audio not supported</audio>
+    /// HTML `<audio>` element - Embeds sound content in the document
+    ///
+    /// Example:
+    ///
+    /// ```<audio src="song.mp3" controls>Audio not supported</audio>```
     audio {
         /// The src attribute specifies URL/path of the audio file
         /// Example: src="audio/background-music.mp3"
@@ -902,8 +1019,11 @@ derive_elements! {
         preload: String,
     }
 
-    /// HTML <source> element - Defines media resources for video/audio elements
-    /// Example: <video><source src="movie.mp4" type="video/mp4"><source src="movie.webm" type="video/webm"></video>
+    /// HTML `<source>` element - Defines media resources for video/audio elements
+    ///
+    /// Example:
+    ///
+    /// ```<video><source src="movie.mp4" type="video/mp4"><source src="movie.webm" type="video/webm"></video>```
     source {
         /// The src attribute specifies URL/path of the media resource
         /// Example: src="audio/song.ogg"
@@ -916,13 +1036,19 @@ derive_elements! {
         media: String,
     }
 
-    /// HTML <canvas> element - Container for graphics rendered with JavaScript
-    /// Example: <canvas id="myCanvas" width="200" height="100">Your browser does not support canvas</canvas>
+    /// HTML `<canvas>` element - Container for graphics rendered with JavaScript
+    ///
+    /// Example:
+    ///
+    /// ```<canvas id="myCanvas" width="200" height="100">Your browser does not support canvas</canvas>```
     canvas {
     }
 
-    /// HTML <svg> element - Container for SVG graphics
-    /// Example: <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="red" /></svg>
+    /// HTML `<svg>` element - Container for SVG graphics
+    ///
+    /// Example:
+    ///
+    /// ```<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="red" /></svg>```
     svg {
         /// The viewBox attribute defines coordinate system and aspect ratio
         /// Example: viewBox="0 0 800 600" (x, y, width, height)
@@ -935,8 +1061,11 @@ derive_elements! {
         xmlns: String,
     }
 
-    /// HTML <path> element - Defines a path in SVG graphics
-    /// Example: <path d="M10 10 H 90 V 90 H 10 Z" fill="transparent" stroke="black" />
+    /// HTML `<path>` element - Defines a path in SVG graphics
+    ///
+    /// Example:
+    ///
+    /// ```<path d="M10 10 H 90 V 90 H 10 Z" fill="transparent" stroke="black" />```
     path {
         /// The d attribute defines the path to be drawn
         /// Example: d="M20,20 L80,20 L80,80 L20,80 Z" (square path)
@@ -973,8 +1102,11 @@ derive_elements! {
         fill_opacity: String,
     }
 
-    /// HTML <rect> element - Draws a rectangle in SVG
-    /// Example: <rect x="10" y="10" width="100" height="50" fill="blue" />
+    /// HTML `<rect>` element - Draws a rectangle in SVG
+    ///
+    /// Example:
+    ///
+    /// ```<rect x="10" y="10" width="100" height="50" fill="blue" />```
     rect {
         /// The x attribute specifies the x-coordinate of the rectangle
         /// Example: x="25" (25 units from the left)
@@ -999,8 +1131,11 @@ derive_elements! {
         stroke_width: String,
     }
 
-    /// HTML <circle> element - Draws a circle in SVG
-    /// Example: <circle cx="50" cy="50" r="40" fill="red" />
+    /// HTML `<circle>` element - Draws a circle in SVG
+    ///
+    /// Example:
+    ///
+    /// ```<circle cx="50" cy="50" r="40" fill="red" />```
     circle {
         /// The cx attribute specifies the x-coordinate of the center
         /// Example: cx="100" (center x at 100 units)
@@ -1022,8 +1157,11 @@ derive_elements! {
         stroke_width: String,
     }
 
-    /// HTML <ellipse> element - Draws an ellipse in SVG
-    /// Example: <ellipse cx="100" cy="50" rx="100" ry="50" fill="yellow" />
+    /// HTML `<ellipse>` element - Draws an ellipse in SVG
+    ///
+    /// Example:
+    ///
+    /// ```<ellipse cx="100" cy="50" rx="100" ry="50" fill="yellow" />```
     ellipse {
         /// The cx attribute specifies the x-coordinate of the center
         /// Example: cx="150" (center x at 150 units)
@@ -1048,8 +1186,11 @@ derive_elements! {
         stroke_width: String,
     }
 
-    /// HTML <line> element - Draws a line in SVG
-    /// Example: <line x1="0" y1="0" x2="100" y2="100" stroke="black" />
+    /// HTML `<line>` element - Draws a line in SVG
+    ///
+    /// Example:
+    ///
+    /// ```<line x1="0" y1="0" x2="100" y2="100" stroke="black" />```
     line {
         /// The x1 attribute specifies the x-coordinate of the start point
         /// Example: x1="10" (starts 10 units from left)
@@ -1077,8 +1218,11 @@ derive_elements! {
         stroke_dasharray: String,
     }
 
-    /// HTML <polyline> element - Draws connected straight lines in SVG
-    /// Example: <polyline points="20,20 40,25 60,40 80,120 120,140 200,180" stroke="orange" fill="none" />
+    /// HTML `<polyline>` element - Draws connected straight lines in SVG
+    ///
+    /// Example:
+    ///
+    /// ```<polyline points="20,20 40,25 60,40 80,120 120,140 200,180" stroke="orange" fill="none" />```
     polyline {
         /// The points attribute specifies coordinates for each point
         /// Example: points="0,0 50,50 100,25" (series of x,y pairs)
@@ -1097,8 +1241,11 @@ derive_elements! {
         stroke_linejoin: String,
     }
 
-    /// HTML <polygon> element - Draws a closed shape with straight lines in SVG
-    /// Example: <polygon points="200,10 250,190 160,210" fill="green" />
+    /// HTML `<polygon>` element - Draws a closed shape with straight lines in SVG
+    ///
+    /// Example:
+    ///
+    /// ```<polygon points="200,10 250,190 160,210" fill="green" />```
     polygon {
         /// The points attribute specifies coordinates for each point
         /// Example: points="50,50 150,50 100,150" (triangle coordinates)
@@ -1117,8 +1264,11 @@ derive_elements! {
         fill_rule: String,
     }
 
-    /// HTML <g> element - Groups SVG elements together
-    /// Example: <g transform="rotate(45 50 50)"><rect x="20" y="20" width="60" height="60" /></g>
+    /// HTML `<g>` element - Groups SVG elements together
+    ///
+    /// Example:
+    ///
+    /// ```<g transform="rotate(45 50 50)"><rect x="20" y="20" width="60" height="60" /></g>```
     g {
         /// The transform attribute applies transformations to the group
         /// Example: transform="translate(100,50) scale(2)" (moves and scales)
@@ -1131,8 +1281,11 @@ derive_elements! {
         stroke: String,
     }
 
-    /// HTML <use> element - Reuses an SVG element defined elsewhere
-    /// Example: <use href="#myCircle" x="10" y="10" fill="blue" />
+    /// HTML `<use>` element - Reuses an SVG element defined elsewhere
+    ///
+    /// Example:
+    ///
+    /// ```<use href="#myCircle" x="10" y="10" fill="blue" />```
     r#use {
         /// The href attribute specifies which element to reuse
         /// Example: href="#icon-star" (references element with id="icon-star")
@@ -1146,7 +1299,10 @@ derive_elements! {
     }
 
     /// HTML <foreignObject> element - Includes non-SVG elements inside SVG
-    /// Example: <foreignObject x="20" y="20" width="160" height="160"><div>HTML content inside SVG</div></foreignObject>
+    ///
+    /// Example:
+    ///
+    /// ```<foreignObject x="20" y="20" width="160" height="160"><div>HTML content inside SVG</div></foreignObject>```
     foreignObject {
         /// The x attribute specifies the x-coordinate of the foreign object
         /// Example: x="25" (25 units from left)
@@ -1156,13 +1312,19 @@ derive_elements! {
         y: String,
     }
 
-    /// HTML <defs> element - Container for reusable SVG elements
-    /// Example: <defs><circle id="myCircle" cx="5" cy="5" r="4" /></defs>
+    /// HTML `<defs>` element - Container for reusable SVG elements
+    ///
+    /// Example:
+    ///
+    /// ```<defs><circle id="myCircle" cx="5" cy="5" r="4" /></defs>```
     defs {
     }
 
     /// HTML <linearGradient> element - Defines a linear gradient for SVG fills
-    /// Example: <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" style="stop-color:rgb(255,255,0)" /></linearGradient>
+    ///
+    /// Example:
+    ///
+    /// ```<linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" style="stop-color:rgb(255,255,0)" /></linearGradient>```
     linearGradient {
         /// The x1 attribute defines the start point of the gradient (x-coordinate)
         /// Example: x1="0%" (starts at left edge)
@@ -1184,8 +1346,11 @@ derive_elements! {
         spreadMethod: String,
     }
 
-    /// HTML <stop> element - Defines color transitions in gradients
-    /// Example: <stop offset="0%" style="stop-color:rgb(255,0,0);stop-opacity:1" />
+    /// HTML `<stop>` element - Defines color transitions in gradients
+    ///
+    /// Example:
+    ///
+    /// ```<stop offset="0%" style="stop-color:rgb(255,0,0);stop-opacity:1" />```
     stop {
         /// The offset attribute defines where along the gradient this color appears
         /// Example: offset="50%" (color positioned halfway through gradient)
@@ -1199,7 +1364,10 @@ derive_elements! {
     }
 
     /// HTML <radialGradient> element - Defines a radial gradient for SVG fills
-    /// Example: <radialGradient id="grad2" cx="50%" cy="50%" r="50%"><stop offset="0%" style="stop-color:red" /></radialGradient>
+    ///
+    /// Example:
+    ///
+    /// ```<radialGradient id="grad2" cx="50%" cy="50%" r="50%"><stop offset="0%" style="stop-color:red" /></radialGradient>```
     radialGradient {
         /// The cx attribute defines the x-coordinate of the center point
         /// Example: cx="50%" (center of the area horizontally)
@@ -1227,8 +1395,11 @@ derive_elements! {
         spreadMethod: String,
     }
 
-    /// HTML <mask> element - Defines an area where SVG elements are partially or fully hidden
-    /// Example: <mask id="myMask"><rect width="100%" height="100%" fill="white" opacity="0.5" /></mask>
+    /// HTML `<mask>` element - Defines an area where SVG elements are partially or fully hidden
+    ///
+    /// Example:
+    ///
+    /// ```<mask id="myMask"><rect width="100%" height="100%" fill="white" opacity="0.5" /></mask>```
     mask {
         /// The maskUnits attribute specifies the coordinate system for mask positioning
         /// Example: maskUnits="userSpaceOnUse" (absolute coordinates)
