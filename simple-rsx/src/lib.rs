@@ -97,7 +97,7 @@ impl<T: ToString> OptionAttribute for Option<T> {
     fn value(&self) -> String {
         match self {
             Some(t) => t.to_string(),
-            None => "".to_string(),
+            None => String::new(),
         }
     }
 }
@@ -561,8 +561,13 @@ macro_rules! derive_elements {
                         let mut attributes = IndexMap::new();
                         $(
                             if !self.$attr_name.value().is_empty() {
-                                let key = stringify!($attr_name).to_string().replace("_", "-").replace("r#", "");
-                                attributes.insert(key, self.$attr_name.value());
+                                let mut key = stringify!($attr_name);
+                                if let Some(last_char) = key.chars().last() {
+                                    if last_char == '_' {
+                                        key = &key[..key.len() - 1];
+                                    }
+                                }
+                                attributes.insert(key.replace('_', "-"), self.$attr_name.value());
                             }
                         )*
                         if !self.id.value().is_empty() {
@@ -662,6 +667,74 @@ macro_rules! derive_elements {
 }
 
 derive_elements! {
+    /// HTML `<html>` element - Root element of an HTML document
+    html {
+    }
+    /// HTML `<body>` element - Represents the content of an HTML document
+    ///
+    /// Example:
+    ///
+    /// ```<body>Content goes here</body>```
+    body {
+    }
+    /// HTML `<head>` element - Contains metadata about the document
+    ///
+    /// Example:
+    ///
+    /// ```<head><title>Document Title</title></head>```
+    head {
+    }
+    /// HTML `<title>` element - Defines the title of the document
+    ///
+    /// Example:
+    ///
+    /// ```<title>Document Title</title>```
+    title {
+    }
+    /// HTML `<meta` element - Provides metadata about the document
+    ///
+    /// Example:
+    ///
+    /// ```<meta charset="UTF-8">```
+    meta {
+        /// The character encoding of the document
+        charset: Option<String>,
+        /// The HTTP response status code
+        http_equiv: Option<String>,
+        /// The content of the document
+        content: Option<String>,
+        /// The name of the metadata
+        name: String,
+        /// The property of the metadata
+        property: Option<String>,
+    }
+    /// HTML `<style>` element - Defines style information for a document
+    ///
+    /// Example:
+    ///
+    /// ```<style>body { background-color: #f0f0f0; }</style>```
+    style {
+    }
+    /// HTML `<script>` element - Embeds executable code or data
+    ///
+    /// Example:
+    ///
+    /// ```<script src="script.js"></script>```
+    script {
+    }
+    /// HTML `<link>` element - Specifies relationships between the current document and an external resource
+    ///
+    /// Example:
+    ///
+    /// ```<link rel="stylesheet" href="style.css">```
+    link {
+        /// The relationship between the current document and the linked resource
+        rel: String,
+        /// The URL of the linked resource
+        href: String,
+        /// The type of the linked resource
+        type_: String,
+    }
     /// HTML `<div>` element - Container element for grouping and styling content
     ///
     /// Example:
@@ -709,7 +782,7 @@ derive_elements! {
         hreflang: String,
         /// The type attribute specifies the media type of the linked document
         /// Example: type="text/html"
-        r#type: String,
+        type_: String,
         /// The media attribute specifies what media/device the linked document is optimized for
         /// Example: media="print" (for print stylesheets)
         media: String,
@@ -809,7 +882,7 @@ derive_elements! {
     ul {
         /// The type attribute specifies the bullet style (disc, circle, square)
         /// Example: type="square"
-        r#type: String,
+        type_: String,
     }
 
     /// HTML `<li>` element - List item within ordered or unordered lists
@@ -831,7 +904,7 @@ derive_elements! {
     ol {
         /// The type attribute specifies the numbering type (1, A, a, I, i)
         /// Example: type="A" (uses capital letters)
-        r#type: String,
+        type_: String,
         /// The start attribute specifies the start value of the list
         /// Example: start="5" (starts counting from 5)
         start: i32,
@@ -976,7 +1049,7 @@ derive_elements! {
         /// The type attribute specifies the input type (text, password, email, etc.)
         ///
         /// Example: type="email" (validates as email address)
-        r#type: String,
+        type_: String,
         /// The placeholder attribute shows hint text when field is empty
         ///
         /// Example: placeholder="Enter your email"
@@ -1062,7 +1135,7 @@ derive_elements! {
     button {
         /// The type attribute specifies button function (submit, reset, button)
         /// Example: type="submit" (submits the form)
-        r#type: String,
+        type_: String,
         /// The value attribute specifies the value associated with the button
         /// Example: value="btn1" (for form processing)
         value: String,
@@ -1131,7 +1204,7 @@ derive_elements! {
     label {
         /// The for attribute connects the label to a form control by ID
         /// Example: for="email" (associates with input having id="email")
-        r#for: String,
+        for_: String,
     }
 
     /// HTML `<iframe>` element - Embeds another document within the current HTML document
@@ -1226,7 +1299,7 @@ derive_elements! {
         src: String,
         /// The type attribute specifies the MIME type of the resource
         /// Example: type="video/webm" (defines file format)
-        r#type: String,
+        type_: String,
         /// The media attribute specifies for which media the resource is intended
         /// Example: media="(min-width: 600px)" (responsive resources)
         media: String,
@@ -1481,7 +1554,7 @@ derive_elements! {
     ///
     /// Example:
     ///
-    /// ```<use href="#myCircle" x="10" y="10" fill="blue" />```
+    /// ```<r#use href="#myCircle" x="10" y="10" fill="blue" />```
     r#use {
         /// The href attribute specifies which element to reuse
         /// Example: href="#icon-star" (references element with id="icon-star")

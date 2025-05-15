@@ -65,7 +65,7 @@ mod tests {
     #[test]
     fn test_div_children_rsx_with_text_and_attribute() {
         use simple_rsx::*;
-        let rsx = rsx!(<input r#type="text" placeholder="Enter name" required />);
+        let rsx = rsx!(<input type_="text" placeholder="Enter name" required />);
         assert_eq!(
             rsx.to_string(),
             "<input type=\"text\" placeholder=\"Enter name\" required=\"true\" disabled=\"false\" readonly=\"false\"></input>"
