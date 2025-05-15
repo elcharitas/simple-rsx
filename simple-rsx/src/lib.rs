@@ -67,7 +67,7 @@ use std::fmt::Display;
 /// ```rust
 /// use simple_rsx::*;
 ///
-/// let element = rsx!(<div id="my-id" count={42} hidden={true} />);
+/// let element = rsx!(<div id="my-id" hidden={true} />);
 /// ```
 pub trait Attribute {
     fn value(&self) -> String;

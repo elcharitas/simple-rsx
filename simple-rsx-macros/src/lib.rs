@@ -14,7 +14,7 @@ use syn::{
 /// # Examples
 ///
 /// ```rust
-/// use simple_rsx::rsx;
+/// use simple_rsx::*;
 /// // Fragment
 /// rsx!(<>Hello World</>);
 ///
