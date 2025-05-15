@@ -427,7 +427,12 @@ impl Display for Node {
                 Ok(())
             }
             Node::Text(text) => {
-                write!(f, "{}", text)?;
+                write!(
+                    f,
+                    "{}",
+                    sanitize_html::sanitize_str(&sanitize_html::rules::predefined::DEFAULT, &text)
+                        .unwrap_or_default()
+                )?;
                 Ok(())
             }
             Node::Fragment(nodes) => {
