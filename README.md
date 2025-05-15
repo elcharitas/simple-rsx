@@ -1,4 +1,6 @@
-# Simple RSX
+  <img src="./icon.svg" width="128" height="128" alt="Simple RSX Logo">
+
+# simple RSX </>
 
 A lightweight and intuitive JSX-like syntax implementation for Rust, enabling HTML-like templating with the full power of Rust's type system.
 
@@ -25,7 +27,7 @@ A lightweight and intuitive JSX-like syntax implementation for Rust, enabling HT
 - [x] Conditional rendering
 - [x] Looping
 - [x] List rendering
-- [x] Custom components (partial support through functions)
+- [x] Custom components
 - [x] Props validation
 - [ ] State management
 - [ ] Lifecycle hooks
