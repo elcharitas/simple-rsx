@@ -1,6 +1,6 @@
 [package]
 name = "simple-rsx-macros"
-version = "0.1.5"
+version = "0.1.6"
 edition = "2024"
 description = "Procedural macros for simple-rsx, providing JSX-like syntax for Rust"
 authors = ["Jonathan Irhodia <jonathanirhodia@gmail.com>"]
@@ -20,4 +20,4 @@ regex = "1.11"
 syn = { version = "2.0", features = ["full", "extra-traits"] }
 
 [dev-dependencies]
-simple-rsx = { path = "../simple-rsx", version = "0.1.5" }
+simple-rsx = { path = "../simple-rsx", version = "0.1.6" }
