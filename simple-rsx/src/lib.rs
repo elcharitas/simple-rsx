@@ -1,12 +1,91 @@
+//! Simple RSX - A lightweight JSX-like library for Rust
+//!
+//! This crate provides a simple way to write HTML-like components in Rust using JSX-style syntax.
+//! It's perfect for building user interfaces or generating HTML content with a familiar, component-based approach.
+//!
+//! # Quick Start
+//!
+//! ```rust
+//! use simple_rsx::*;
+//!
+//! // Create a simple component
+//! let greeting = rsx!(
+//!     <div class="greeting">
+//!         <h1>Hello, World!</h1>
+//!         <p>Welcome to Simple RSX</p>
+//!     </div>
+//! );
+//!
+//! // Convert to HTML string
+//! println!("{}", greeting); // Outputs the HTML
+//! ```
+//!
+//! # Features
+//!
+//! - JSX-like syntax with the `rsx!` macro
+//! - Component-based architecture
+//! - Type-safe attributes and children
+//! - Easy conversion to HTML strings
+//! - Support for custom components
+//!
+//! # Custom Components
+//!
+//! ```rust
+//! use simple_rsx::*;
+//!
+//! struct Button;
+//! #[derive(Default)]
+//! struct ButtonProps {
+//!     text: String,
+//!     children: Vec<Node>,
+//! }
+//!
+//! impl Component for Button {
+//!     type Props = ButtonProps;
+//!     fn render(&mut self, props: Self::Props) -> Node {
+//!         rsx!(
+//!             <button class="btn">
+//!                 {props.text}
+//!                 {props.children}
+//!             </button>
+//!         )
+//!     }
+//! }
+//! ```
+
 use indexmap::IndexMap;
 pub use simple_rsx_macros::rsx;
 use std::fmt::Display;
 
-/// A trait for attributes
+/// A trait for converting values into HTML attribute strings.
+///
+/// This trait is automatically implemented for any type that implements `ToString`,
+/// making it easy to use various types as attribute values.
+///
+/// # Example
+///
+/// ```rust
+/// use simple_rsx::*;
+///
+/// let element = rsx!(<div id="my-id" count={42} hidden={true} />);
+/// ```
 pub trait Attribute {
     fn value(&self) -> String;
 }
 
+/// A trait for handling optional attribute values.
+///
+/// This trait is automatically implemented for `Option<T>` where T implements `ToString`.
+/// It allows for graceful handling of optional attributes, rendering them as empty strings when None.
+///
+/// # Example
+///
+/// ```rust
+/// use simple_rsx::*;
+///
+/// let maybe_title = Some("Hello".to_string());
+/// let element = rsx!(<div title={maybe_title} />);
+/// ```
 pub trait OptionAttribute {
     fn value(&self) -> String;
 }
@@ -26,6 +105,23 @@ impl<T: ToString> OptionAttribute for Option<T> {
     }
 }
 
+/// Represents an HTML element with its tag name, attributes, and children.
+///
+/// Elements are the building blocks of the RSX tree structure. Each element
+/// can have attributes (like class, id, etc.) and can contain other elements
+/// or text nodes as children.
+///
+/// You typically won't create Elements directly, but rather use the `rsx!` macro:
+///
+/// ```rust
+/// use simple_rsx::*;
+///
+/// let element = rsx!(
+///     <div class="container">
+///         <p>Hello world!</p>
+///     </div>
+/// );
+/// ```
 #[derive(Clone)]
 pub struct Element {
     tag: String,
@@ -34,6 +130,16 @@ pub struct Element {
 }
 
 impl Element {
+    /// Creates a new Element node with the specified tag name.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use simple_rsx::*;
+    ///
+    /// let element = Element::new("div");
+    /// assert!(matches!(element, Node::Element(_)));
+    /// ```
     pub fn new(tag: &str) -> Node {
         Node::Element(Element {
             tag: tag.to_string(),
@@ -42,16 +148,41 @@ impl Element {
         })
     }
 
+    /// Sets an attribute on the element.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use simple_rsx::*;
+    ///
+    /// let mut node = Element::new("div");
+    /// let mut element = node.as_element_mut().unwrap();
+    /// element.set_attribute("class", "container");
+    /// ```
     pub fn set_attribute(&mut self, name: &str, value: impl Attribute) {
         self.attributes.insert(name.to_string(), value.value());
     }
 
+    /// Adds a child node to this element.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use simple_rsx::*;
+    ///
+    /// let mut parent_node = Element::new("div");
+    /// let mut parent = parent_node.as_element_mut().unwrap();
+    /// parent.append_child(Element::new("p"));
+    /// ```
     pub fn append_child(&mut self, node: Node) {
         self.children.push(node);
     }
 }
 
 impl Node {
+    /// Attempts to get a mutable reference to the underlying Element if this node is an Element.
+    ///
+    /// Returns None if the node is not an Element (e.g., if it's Text or Fragment).
     pub fn as_element_mut(&mut self) -> Option<&mut Element> {
         match self {
             Node::Element(el) => Some(el),
@@ -59,6 +190,9 @@ impl Node {
         }
     }
 
+    /// Adds a child node if this node is an Element.
+    ///
+    /// This method has no effect if the node is not an Element.
     pub fn append_child(&mut self, node: Node) {
         if let Node::Element(el) = self {
             el.children.push(node);
@@ -66,12 +200,56 @@ impl Node {
     }
 }
 
+/// A trait for creating reusable components.
+///
+/// Components are the heart of RSX's reusability model. They allow you to create
+/// custom elements with their own logic and state.
+///
+/// # Example
+///
+/// ```rust
+/// use simple_rsx::*;
+///
+/// struct Card;
+/// #[derive(Default)]
+/// struct CardProps {
+///     title: String,
+///     children: Vec<Node>,
+/// }
+///
+/// impl Component for Card {
+///     type Props = CardProps;
+///     fn render(&mut self, props: Self::Props) -> Node {
+///         rsx!(
+///             <div class="card">
+///                 <h2>{props.title}</h2>
+///                 <div class="card-content">{props.children}</div>
+///             </div>
+///         )
+///     }
+/// }
+/// ```
 pub trait Component {
+    /// The type of props this component accepts
     type Props;
+
+    /// Renders the component with the given props
     fn render(&mut self, props: Self::Props) -> Node;
 }
 
-// implement Component for fn
+/// Implements Component for functions that take props and return a Node.
+///
+/// This allows you to use simple functions as components.
+///
+/// # Example
+///
+/// ```rust
+/// use simple_rsx::*;
+///
+/// fn Button(text: String) -> Node {
+///     rsx!(<button>{text}</button>)
+/// }
+/// ```
 impl<P> Component for fn(P) -> Node {
     type Props = P;
     fn render(&mut self, props: Self::Props) -> Node {
@@ -79,11 +257,32 @@ impl<P> Component for fn(P) -> Node {
     }
 }
 
+/// Represents a node in the RSX tree.
+///
+/// Nodes are the fundamental building blocks of RSX. They can be:
+/// - Elements (like `<div>` or `<p>`)
+/// - Text content
+/// - Fragments (groups of nodes)
+/// - Comments
+///
+/// # Example
+///
+/// ```rust
+/// use simple_rsx::*;
+///
+/// let text_node = Node::Text("Hello".to_string());
+/// let element_node = Element::new("div");
+/// let fragment = Node::Fragment(vec![text_node, element_node]);
+/// ```
 #[derive(Clone)]
 pub enum Node {
+    /// An HTML element with a tag name, attributes, and children
     Element(Element),
+    /// Plain text content
     Text(String),
+    /// A group of nodes without a wrapper element
     Fragment(Vec<Node>),
+    /// An HTML comment
     Comment(String),
 }
 
@@ -282,11 +481,11 @@ macro_rules! derive_elements {
                     pub style: String,
 
                     /// The title attribute specifies extra information about an element (displayed as a tooltip)
-                    pub title: String,
+                    pub title: Option<String>,
                     /// The width attribute specifies the width of the image
-                    pub width: String,
+                    pub width: Option<String>,
                     /// The height attribute specifies the height of the image
-                    pub height: String,
+                    pub height: Option<String>,
 
                     /// Specifies whether an element is draggable or not
                     pub draggable: bool,
@@ -327,13 +526,13 @@ macro_rules! derive_elements {
                     pub aria_current: String,
 
                     /// Defines a string value that labels the current element
-                    pub aria_label: String,
+                    pub aria_label: Option<String>,
 
                     /// Identifies the element that labels the current element
-                    pub aria_labelledby: String,
+                    pub aria_labelledby: Option<String>,
 
                     /// Identifies the element that describes the current element
-                    pub aria_describedby: String,
+                    pub aria_describedby: Option<String>,
 
                     /// Indicates whether an element is expanded or collapsed
                     pub aria_expanded: bool,
@@ -369,17 +568,17 @@ macro_rules! derive_elements {
                                 attributes.insert(key, self.$attr_name.value());
                             }
                         )*
-                        if !self.id.is_empty() {
-                            attributes.insert("id".to_string(), self.id.clone());
+                        if !self.id.value().is_empty() {
+                            attributes.insert("id".to_string(), self.id.value());
                         }
-                        if !self.class.is_empty() {
-                            attributes.insert("class".to_string(), self.class.clone());
+                        if !self.class.value().is_empty() {
+                            attributes.insert("class".to_string(), self.class.value());
                         }
-                        if !self.style.is_empty() {
-                            attributes.insert("style".to_string(), self.style.clone());
+                        if !self.style.value().is_empty() {
+                            attributes.insert("style".to_string(), self.style.value());
                         }
-                        if !self.title.is_empty() {
-                            attributes.insert("title".to_string(), self.title.clone());
+                        if !self.title.value().is_empty() {
+                            attributes.insert("title".to_string(), self.title.value());
                         }
                         if self.draggable {
                             attributes.insert("draggable".to_string(), "true".to_string());
@@ -387,14 +586,14 @@ macro_rules! derive_elements {
                         if self.hidden {
                             attributes.insert("hidden".to_string(), "true".to_string());
                         }
-                        if !self.accesskey.is_empty() {
-                            attributes.insert("accesskey".to_string(), self.accesskey.clone());
+                        if !self.accesskey.value().is_empty() {
+                            attributes.insert("accesskey".to_string(), self.accesskey.value());
                         }
                         if self.contenteditable {
                             attributes.insert("contenteditable".to_string(), "true".to_string());
                         }
-                        if !self.dir.is_empty() {
-                            attributes.insert("dir".to_string(), self.dir.clone());
+                        if !self.dir.value().is_empty() {
+                            attributes.insert("dir".to_string(), self.dir.value());
                         }
                         if let Some(tabindex) = self.tabindex {
                             attributes.insert("tabindex".to_string(), tabindex.to_string());
@@ -402,29 +601,29 @@ macro_rules! derive_elements {
                         if self.spellcheck {
                             attributes.insert("spellcheck".to_string(), "true".to_string());
                         }
-                        if !self.lang.is_empty() {
-                            attributes.insert("lang".to_string(), self.lang.clone());
+                        if !self.lang.value().is_empty() {
+                            attributes.insert("lang".to_string(), self.lang.value());
                         }
                         if self.translate {
                             attributes.insert("translate".to_string(), "true".to_string());
                         }
-                        if !self.autocapitalize.is_empty() {
-                            attributes.insert("autocapitalize".to_string(), self.autocapitalize.clone());
+                        if !self.autocapitalize.value().is_empty() {
+                            attributes.insert("autocapitalize".to_string(), self.autocapitalize.value());
                         }
-                        if !self.role.is_empty() {
-                            attributes.insert("role".to_string(), self.role.clone());
+                        if !self.role.value().is_empty() {
+                            attributes.insert("role".to_string(), self.role.value());
                         }
-                        if !self.aria_current.is_empty() {
-                            attributes.insert("aria-current".to_string(), self.aria_current.clone());
+                        if !self.aria_current.value().is_empty() {
+                            attributes.insert("aria-current".to_string(), self.aria_current.value());
                         }
-                        if !self.aria_label.is_empty() {
-                            attributes.insert("aria-label".to_string(), self.aria_label.clone());
+                        if !self.aria_label.value().is_empty() {
+                            attributes.insert("aria-label".to_string(), self.aria_label.value());
                         }
-                        if !self.aria_labelledby.is_empty() {
-                            attributes.insert("aria-labelledby".to_string(), self.aria_labelledby.clone());
+                        if !self.aria_labelledby.value().is_empty() {
+                            attributes.insert("aria-labelledby".to_string(), self.aria_labelledby.value());
                         }
-                        if !self.aria_describedby.is_empty() {
-                            attributes.insert("aria-describedby".to_string(), self.aria_describedby.clone());
+                        if !self.aria_describedby.value().is_empty() {
+                            attributes.insert("aria-describedby".to_string(), self.aria_describedby.value());
                         }
                         if self.aria_expanded {
                             attributes.insert("aria-expanded".to_string(), "true".to_string());
@@ -432,17 +631,17 @@ macro_rules! derive_elements {
                         if self.aria_selected {
                             attributes.insert("aria-selected".to_string(), "true".to_string());
                         }
-                        if !self.aria_checked.is_empty() {
-                            attributes.insert("aria-checked".to_string(), self.aria_checked.clone());
+                        if !self.aria_checked.value().is_empty() {
+                            attributes.insert("aria-checked".to_string(), self.aria_checked.value());
                         }
                         if self.aria_hidden {
                             attributes.insert("aria-hidden".to_string(), "true".to_string());
                         }
-                        if !self.aria_haspopup.is_empty() {
-                            attributes.insert("aria-haspopup".to_string(), self.aria_haspopup.clone());
+                        if !self.aria_haspopup.value().is_empty() {
+                            attributes.insert("aria-haspopup".to_string(), self.aria_haspopup.value());
                         }
-                        if !self.aria_role.is_empty() {
-                            attributes.insert("aria-role".to_string(), self.aria_role.clone());
+                        if !self.aria_role.value().is_empty() {
+                            attributes.insert("aria-role".to_string(), self.aria_role.value());
                         }
 
                         attributes
@@ -740,31 +939,31 @@ derive_elements! {
     /// ```<form action="/submit" method="post"><input type="text"><button type="submit">Submit</button></form>```
     form {
         /// The action attribute specifies where to send form data when submitted
-        /// 
+        ///
         /// Example: action="/process-form.php"
         action: String,
         /// The method attribute specifies HTTP method for sending data (GET/POST)
-        /// 
+        ///
         /// Example: method="post" (sends data in request body)
         method: String,
         /// The target attribute specifies where to display the response
-        /// 
+        ///
         /// Example: target="_blank" (opens response in new tab)
         target: String,
         /// The enctype attribute specifies how form data should be encoded
-        /// 
+        ///
         /// Example: enctype="multipart/form-data" (needed for file uploads)
         enctype: String,
         /// The novalidate attribute disables browser's built-in form validation
-        /// 
+        ///
         /// Example: novalidate (skips validation)
         novalidate: bool,
         /// The autocomplete attribute controls browser autofill behavior
-        /// 
+        ///
         /// Example: autocomplete="off" (disables autofill)
         autocomplete: String,
         /// The accept attribute specifies file types the server accepts (for file inputs)
-        /// 
+        ///
         /// Example: accept=".jpg,.png" (accepts only those image formats)
         accept: String,
         /// Example: name="contact-form"
@@ -778,47 +977,47 @@ derive_elements! {
     /// ```<input type="text" placeholder="Enter your name" required>```
     input {
         /// The type attribute specifies the input type (text, password, email, etc.)
-        /// 
+        ///
         /// Example: type="email" (validates as email address)
         r#type: String,
         /// The placeholder attribute shows hint text when field is empty
-        /// 
+        ///
         /// Example: placeholder="Enter your email"
         placeholder: String,
         /// The required attribute makes the field mandatory
-        /// 
+        ///
         /// Example: required (field must be filled)
         required: bool,
         /// The value attribute specifies the default/current value
-        /// 
+        ///
         /// Example: value="Default text"
         value: String,
         /// The name attribute specifies the name of the input (for form submission)
-        /// 
+        ///
         /// Example: name="email"
         name: String,
         /// The disabled attribute disables the input
-        /// 
+        ///
         /// Example: disabled (user cannot interact with input)
         disabled: bool,
         /// The readonly attribute makes the input read-only
-        /// 
+        ///
         /// Example: readonly (user cannot modify but can focus/select)
         readonly: bool,
         /// The min attribute specifies minimum value for number/date inputs
-        /// 
+        ///
         /// Example: min="1" (number input minimum value)
         min: String,
         /// The max attribute specifies maximum value for number/date inputs
-        /// 
+        ///
         /// Example: max="100" (number input maximum value)
         max: String,
         /// The pattern attribute specifies a regex pattern for validation
-        /// 
+        ///
         /// Example: pattern="[0-9]{3}" (requires exactly 3 digits)
         pattern: String,
         /// The autocomplete attribute controls browser autofill for this field
-        /// 
+        ///
         /// Example: autocomplete="current-password"
         autocomplete: String,
     }
