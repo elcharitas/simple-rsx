@@ -27,25 +27,28 @@
 //! - Type-safe attributes and children
 //! - Easy conversion to HTML strings
 //! - Support for custom components
+//! - WASM-based hooks for client-side state management
 //!
-//! # Custom Components
+//! # Custom Components with Hooks
 //!
 //! ```rust
 //! use simple_rsx::*;
 //!
 //! #[derive(Default)]
-//! struct ButtonProps {
-//!     text: String,
-//!     children: Vec<Node>,
+//! struct CounterProps {
+//!     initial: i32,
 //! }
 //!
 //! #[component]
-//! fn Button(props: ButtonProps) -> Node {
+//! fn Counter(props: CounterProps) -> Node {
+//!     let count = use_state(props.initial);
+//!     let increment = Box::new(move || count.set(count.get() + 1));
+//!
 //!     rsx!(
-//!         <button class="btn">
-//!             {props.text}
-//!             {props.children}
-//!         </button>
+//!         <div>
+//!             <p>Count: {count.get()}</p>
+//!             <button onclick={increment}>Increment</button>
+//!         </div>
 //!     )
 //! }
 //! ```
@@ -53,6 +56,12 @@
 use indexmap::IndexMap;
 pub use simple_rsx_macros::{component, either, rsx};
 use std::fmt::Display;
+
+#[cfg(target_arch = "wasm32")]
+mod hooks;
+
+#[cfg(target_arch = "wasm32")]
+pub use hooks::*;
 
 /// A trait for converting values into HTML attribute strings.
 ///
