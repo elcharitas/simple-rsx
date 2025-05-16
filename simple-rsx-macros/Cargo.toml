@@ -1,6 +1,6 @@
 [package]
 name = "simple-rsx-macros"
-version = "0.1.6"
+version = "0.1.7"
 edition = "2024"
 description = "Procedural macros for simple-rsx, providing JSX-like syntax for Rust"
 authors = ["Jonathan Irhodia <jonathanirhodia@gmail.com>"]
