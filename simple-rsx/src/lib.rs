@@ -703,15 +703,15 @@ derive_elements! {
     /// ```<meta charset="UTF-8">```
     meta {
         /// The character encoding of the document
-        charset: Option<String>,
+        charset: String,
         /// The HTTP response status code
-        http_equiv: Option<String>,
+        http_equiv: String,
         /// The content of the document
-        content: Option<String>,
+        content: String,
         /// The name of the metadata
         name: String,
         /// The property of the metadata
-        property: Option<String>,
+        property: String,
     }
     /// HTML `<style>` element - Defines style information for a document
     ///
@@ -726,6 +726,18 @@ derive_elements! {
     ///
     /// ```<script src="script.js"></script>```
     script {
+        /// The URL of the external script file
+        src: String,
+        /// The type of the script
+        type_: String,
+        /// The language of the script
+        language: String,
+        /// The character encoding of the script
+        charset: String,
+        /// The defer attribute specifies that the script will be executed after the document is finished parsing
+        defer: bool,
+        /// The async attribute specifies that the script will be executed asynchronously
+        async_: bool,
     }
     /// HTML `<link>` element - Specifies relationships between the current document and an external resource
     ///
@@ -739,6 +751,12 @@ derive_elements! {
         href: String,
         /// The type of the linked resource
         type_: String,
+        /// The character encoding of the linked resource
+        charset: String,
+        /// crossorigin attribute specifies that the element will request a cross-origin Isolation of its browsing context
+        crossorigin: String,
+        /// The referrerpolicy attribute specifies the referrer policy for the linked resource
+        referrerpolicy: String,
     }
     /// HTML `<div>` element - Container element for grouping and styling content
     ///
