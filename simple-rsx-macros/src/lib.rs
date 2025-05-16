@@ -101,7 +101,7 @@ pub fn component(_attr: TokenStream, input: TokenStream) -> TokenStream {
 
         impl simple_rsx::Component for #ident {
             #prop_type
-            #fn_token render(&mut self, #inputs) #output #block
+            #fn_token render(#inputs) #output #block
         }
     };
 
@@ -419,7 +419,9 @@ impl RsxNode {
                         children: vec![#(#child_tokens),*],
                     })
                 } else {
-                    None
+                    Some(quote! {
+                        children: vec![],
+                    })
                 };
 
                 let close_tag = close_tag.as_ref().and_then(|close_tag| {
@@ -427,17 +429,32 @@ impl RsxNode {
                         let #close_tag = #name;
                     })
                 });
+                let is_component = name.to_string().starts_with(|c: char| c.is_uppercase());
+
+                let use_element = if !is_component {
+                    Some(quote! {use simple_rsx::elements::#name;})
+                } else {
+                    None
+                };
+
+                let default_props = if !is_component {
+                    Some(quote! {
+                        ..Default::default()
+                    })
+                } else {
+                    None
+                };
 
                 quote! {
                     {
+                        #use_element
                         type Props = <#name as simple_rsx::Component>::Props;
                         #close_tag
-                        simple_rsx::Component::render(
-                            &mut #name,
+                        <#name as simple_rsx::Component>::render(
                             Props {
                                 #(#props_tokens)*
                                 #children_tokens
-                                ..Default::default()
+                                #default_props
                             },
                         )
                     }

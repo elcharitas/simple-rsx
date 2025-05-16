@@ -1,7 +1,7 @@
 #[allow(unused_braces)]
 fn main() {
     use simple_rsx::*;
-    let rsx = rsx!(<div>Hello World</div>);
+    let rsx = rsx! { <div>Hello World</div> };
     println!("{}", rsx.to_string());
 }
 
@@ -41,7 +41,8 @@ mod tests {
 
     #[test]
     fn test_div_children_rsx() {
-        use simple_rsx::*;
+        use simple_rsx::rsx;
+
         let rsx = rsx!(
             <div class="container">
                 <h1>Title</h1>
@@ -170,7 +171,7 @@ mod tests {
         use simple_rsx::*;
 
         struct MyComponent;
-        #[derive(Default)]
+
         struct Props {
             message: String,
             children: Vec<Node>,
@@ -178,7 +179,7 @@ mod tests {
 
         impl Component for MyComponent {
             type Props = Props;
-            fn render(&mut self, props: Self::Props) -> Node {
+            fn render(props: Self::Props) -> Node {
                 println!("{}", props.message);
                 rsx!(<div>{props.children}</div>)
             }
@@ -201,7 +202,6 @@ mod tests {
     fn test_fn_component_rendering_with_props() {
         use simple_rsx::*;
 
-        #[derive(Default)]
         struct Props {
             message: String,
             children: Vec<Node>,
