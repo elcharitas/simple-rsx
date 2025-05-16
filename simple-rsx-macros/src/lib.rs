@@ -39,6 +39,65 @@ pub fn rsx(input: TokenStream) -> TokenStream {
     let expanded = input.to_tokens();
     expanded.into()
 }
+/// A procedural macro that transforms a conditional expression into a JSX-like syntax.
+///
+/// # Examples
+/// ```rust
+/// use simple_rsx::*;
+/// // Fragment
+/// either!(show => <p>"Show me"</p>);
+/// ```
+#[proc_macro]
+pub fn either(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as Either);
+    let expanded = input.to_tokens();
+    expanded.into()
+}
+
+struct Either {
+    condition: Expr,
+    true_value: RsxNode,
+    false_value: Option<RsxNode>,
+}
+
+impl Parse for Either {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let condition = input.parse()?;
+        input.parse::<Token![=>]>()?;
+        let true_value = input.parse()?;
+        let false_value = if input.peek(Token![else]) {
+            input.parse::<Token![else]>()?;
+            Some(input.parse()?)
+        } else {
+            None
+        };
+        Ok(Either {
+            condition,
+            true_value,
+            false_value,
+        })
+    }
+}
+
+impl Either {
+    fn to_tokens(&self) -> TokenStream2 {
+        let condition = &self.condition;
+        let false_value = &self
+            .false_value
+            .as_ref()
+            .and_then(|v| Some(v.to_tokens()))
+            .or_else(|| Some(quote! {simple_rsx::Node::Fragment(vec![])}));
+        let true_value = self.true_value.to_tokens();
+
+        quote! {
+            if #condition {
+                #true_value.into()
+            } else {
+                #false_value
+            }
+        }
+    }
+}
 
 /// A procedural macro that transforms a rust function into a component.
 ///
@@ -124,6 +183,7 @@ enum RsxNode {
 }
 
 struct NodeBlock {
+    expr: Option<Expr>,
     value: Option<Block>,
 }
 
@@ -132,21 +192,16 @@ impl Parse for NodeBlock {
         if input.peek(LitStr) {
             let parsed: LitStr = input.parse()?;
             return Ok(NodeBlock {
-                value: Some(Block {
-                    brace_token: Brace::default(),
-                    stmts: vec![syn::Stmt::Expr(
-                        syn::Expr::Macro(syn::ExprMacro {
-                            attrs: Vec::new(),
-                            mac: Macro {
-                                path: parse_quote!(format),
-                                bang_token: Not::default(),
-                                delimiter: syn::MacroDelimiter::Paren(syn::token::Paren::default()),
-                                tokens: quote::quote!(#parsed),
-                            },
-                        }),
-                        None,
-                    )],
-                }),
+                value: None,
+                expr: Some(syn::Expr::Macro(syn::ExprMacro {
+                    attrs: Vec::new(),
+                    mac: Macro {
+                        path: parse_quote!(format),
+                        bang_token: Not::default(),
+                        delimiter: syn::MacroDelimiter::Paren(syn::token::Paren::default()),
+                        tokens: quote::quote!(#parsed),
+                    },
+                })),
             });
         }
 
@@ -154,7 +209,10 @@ impl Parse for NodeBlock {
 
         if is_block {
             let value: Block = input.parse()?;
-            return Ok(NodeBlock { value: Some(value) });
+            return Ok(NodeBlock {
+                value: Some(value),
+                expr: None,
+            });
         }
 
         let mut str = String::new();
@@ -200,21 +258,16 @@ impl Parse for NodeBlock {
         let lit = LitStr::new(&str.trim(), Span::call_site());
 
         Ok(NodeBlock {
-            value: Some(Block {
-                brace_token: Brace::default(),
-                stmts: vec![syn::Stmt::Expr(
-                    syn::Expr::Macro(syn::ExprMacro {
-                        attrs: Vec::new(),
-                        mac: Macro {
-                            path: parse_quote!(format),
-                            bang_token: Not::default(),
-                            delimiter: syn::MacroDelimiter::Paren(syn::token::Paren::default()),
-                            tokens: quote::quote!(#lit),
-                        },
-                    }),
-                    None,
-                )],
-            }),
+            value: None,
+            expr: Some(syn::Expr::Macro(syn::ExprMacro {
+                attrs: Vec::new(),
+                mac: Macro {
+                    path: parse_quote!(format),
+                    bang_token: Not::default(),
+                    delimiter: syn::MacroDelimiter::Paren(syn::token::Paren::default()),
+                    tokens: quote::quote!(#lit),
+                },
+            })),
         })
     }
 }
@@ -232,8 +285,17 @@ impl Parse for NodeValue {
             return Ok(NodeValue { name, value: None });
         }
         input.parse::<Token![=]>()?;
-        let NodeBlock { value } = input.parse()?;
-        Ok(NodeValue { name, value })
+        let NodeBlock { value, expr } = input.parse()?;
+        Ok(NodeValue {
+            name,
+            value: value.or_else(|| match expr {
+                Some(expr) => Some(Block {
+                    brace_token: Brace::default(),
+                    stmts: vec![syn::Stmt::Expr(expr, None)],
+                }),
+                None => None,
+            }),
+        })
     }
 }
 
@@ -378,7 +440,10 @@ impl Parse for RsxNode {
             Err(_) => match input.parse::<NodeBlock>() {
                 Ok(block) => match block.value {
                     Some(value) => Ok(RsxNode::Block(value)),
-                    _ => Ok(RsxNode::Empty),
+                    _ => match block.expr {
+                        Some(expr) => Ok(RsxNode::Text(expr)),
+                        _ => Ok(RsxNode::Empty),
+                    },
                 },
                 Err(_) => match input.parse::<Expr>() {
                     Ok(expr) => Ok(RsxNode::Text(expr)),

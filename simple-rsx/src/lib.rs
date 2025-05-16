@@ -51,7 +51,7 @@
 //! ```
 
 use indexmap::IndexMap;
-pub use simple_rsx_macros::{component, rsx};
+pub use simple_rsx_macros::{component, either, rsx};
 use std::fmt::Display;
 
 /// A trait for converting values into HTML attribute strings.
