@@ -57,10 +57,7 @@ use indexmap::IndexMap;
 pub use simple_rsx_macros::{component, either, rsx};
 use std::fmt::Display;
 
-#[cfg(target_arch = "wasm32")]
 mod hooks;
-
-#[cfg(target_arch = "wasm32")]
 pub use hooks::*;
 
 /// A trait for converting values into HTML attribute strings.
