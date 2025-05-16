@@ -2,6 +2,7 @@ use proc_macro::TokenStream;
 use proc_macro2::{Span, TokenStream as TokenStream2};
 use quote::quote;
 use syn::spanned::Spanned;
+use syn::token::Colon;
 use syn::{
     Block, Expr, ExprLit, Ident, ItemFn, Lit, LitStr, Macro, Result, Token,
     parse::{Parse, ParseStream},
@@ -64,7 +65,7 @@ pub fn component(_attr: TokenStream, input: TokenStream) -> TokenStream {
         asyncness,
         constness,
         unsafety,
-        inputs,
+        mut inputs,
         output,
         fn_token,
         ..
@@ -85,6 +86,15 @@ pub fn component(_attr: TokenStream, input: TokenStream) -> TokenStream {
             _ => panic!("Only typed inputs are supported"),
         })
         .unwrap_or_else(|| quote! {type Props = ();});
+
+    if inputs.is_empty() {
+        inputs.push(FnArg::Typed(PatType {
+            attrs: Vec::new(),
+            pat: parse_quote!(_),
+            colon_token: Colon::default(),
+            ty: parse_quote!(Self::Props),
+        }));
+    }
 
     let expanded = quote! {
         #vis #(#attrs)* struct #ident;
