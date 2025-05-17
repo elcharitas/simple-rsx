@@ -216,7 +216,7 @@ impl Node {
 ///
 /// impl Component for Card {
 ///     type Props = CardProps;
-///     fn render(&mut self, props: Self::Props) -> Node {
+///     fn render(props: Self::Props) -> Node {
 ///         rsx!(
 ///             <div class="card">
 ///                 <h2>{props.title}</h2>
@@ -302,7 +302,7 @@ impl<T: ToString> From<Option<T>> for Node {
     fn from(value: Option<T>) -> Self {
         match value {
             Some(t) => Node::Text(t.to_string()),
-            None => Node::Text("".to_string()),
+            _ => Node::Text("".to_string()),
         }
     }
 }

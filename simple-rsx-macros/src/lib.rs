@@ -45,6 +45,7 @@ pub fn rsx(input: TokenStream) -> TokenStream {
 /// ```rust
 /// use simple_rsx::*;
 /// // Fragment
+/// let show = true;
 /// either!(show => <p>"Show me"</p>);
 /// ```
 #[proc_macro]
@@ -371,7 +372,6 @@ impl Parse for RsxNode {
             while !input.peek(Token![>]) && !input.peek(Token![/]) {
                 if input.to_string().trim().starts_with('{') {
                     let expr = input.parse::<Block>()?;
-                    println!("{:?}", expr);
                     // check if expr matches {Ident} pattern
                     if let Some(Stmt::Expr(expr, token)) = expr.stmts.first() {
                         if let Expr::Path(expr_path) = expr {
@@ -494,7 +494,7 @@ impl RsxNode {
                 close_tag,
             } => {
                 let is_element = name.to_string().starts_with(|c: char| !c.is_uppercase());
-                let props = props
+                let attrs = props
                     .iter() // filter out data- attributes for elements
                     .map(|(name, value)| {
                         let value = value
@@ -503,25 +503,38 @@ impl RsxNode {
                             .or_else(|| Some(quote! {true}));
                         (name, value)
                     });
-                let data_props = is_element.then(|| {
-                    let data = props
+                let data_props = (is_element
+                    && props
+                        .iter()
+                        .any(|(name, _)| name.to_string().starts_with("data_")))
+                .then(|| {
+                    let timestamp = std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .unwrap_or_else(|_| std::time::Duration::from_secs(0))
+                        .as_nanos()
+                        .to_string();
+                    let ident =
+                        syn::Ident::new(&format!("attr_data_{}", timestamp), Span::call_site());
+                    let data = attrs
                         .clone()
                         .filter(|(name, _)| name.to_string().starts_with("data_"))
                         .map(|(name, value)| {
                             quote! {
                                 let #name = #value.value();
-                                data.insert(stringify!(#name).to_string(), #name);
+                                #ident.insert(stringify!(#name).to_string(), #name);
                             }
                         });
                     quote! {
                         r#data: {
-                            let mut data = std::collections::HashMap::new();
-                            #(#data)*
-                            data
+                            let mut #ident = std::collections::HashMap::new();
+                            {
+                                #(#data)*
+                            }
+                            #ident
                         },
                     }
                 });
-                let props_tokens = props
+                let props_tokens = attrs
                     .filter(|(name, _)| {
                         !is_element || (is_element && !name.to_string().starts_with("data_"))
                     }) // filter out data- attributes for elements
