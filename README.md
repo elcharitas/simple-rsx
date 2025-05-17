@@ -1,6 +1,4 @@
-  <img src="https://github.com/elcharitas/simple-rsx/raw/main/icon.svg" width="128" height="128" alt="Simple RSX Logo">
-
-# simple RSX </>
+# Simple RSX
 
 A lightweight and intuitive JSX-like syntax implementation for Rust, enabling HTML-like templating with the full power of Rust's type system.
 
