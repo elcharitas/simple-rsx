@@ -170,7 +170,7 @@ mod tests {
 
         struct Props {
             message: String,
-            children: Vec<Node>,
+            children: Vec<Node>, // always required in components
         }
 
         impl Component for MyComponent {
@@ -200,7 +200,7 @@ mod tests {
 
         struct Props {
             message: String,
-            children: Vec<Node>,
+            children: Vec<Node>, // always required in components
         }
 
         #[component]
@@ -220,5 +220,13 @@ mod tests {
             rsx.to_string(),
             "<div><div><p>Some component</p></div></div>"
         )
+    }
+
+    #[test]
+    fn test_attribute_binding() {
+        use simple_rsx::*;
+        let disabled = true;
+        let rsx = rsx!(<button {disabled} />); // notice how we don't need to use assignment?
+        assert_eq!(rsx.to_string(), "<button disabled=\"true\"></button>")
     }
 }

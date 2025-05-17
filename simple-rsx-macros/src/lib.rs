@@ -9,7 +9,7 @@ use syn::{
     parse_macro_input, parse_quote,
     token::{Brace, Not},
 };
-use syn::{FnArg, PatType, Signature};
+use syn::{FnArg, PatType, Signature, Stmt};
 
 /// A procedural macro that provides JSX-like syntax for creating HTML elements in Rust.
 ///
@@ -370,9 +370,40 @@ impl Parse for RsxNode {
 
             let mut attributes = Vec::with_capacity(4);
             while !input.peek(Token![>]) && !input.peek(Token![/]) {
-                match input.parse::<NodeValue>() {
-                    Ok(attr) => attributes.push((attr.name, attr.value)),
-                    Err(e) => return Err(e),
+                if input.to_string().trim().starts_with('{') {
+                    let expr = input.parse::<Block>()?;
+                    println!("{:?}", expr);
+                    // check if expr matches {Ident} pattern
+                    if let Some(Stmt::Expr(expr, token)) = expr.stmts.first() {
+                        if let Expr::Path(expr_path) = expr {
+                            match expr_path.path.segments.first() {
+                                Some(segment) => {
+                                    let ident = segment.ident.clone();
+                                    attributes.push((
+                                        ident,
+                                        Some(Block {
+                                            brace_token: Brace::default(),
+                                            stmts: vec![syn::Stmt::Expr(
+                                                expr.clone(),
+                                                token.clone(),
+                                            )],
+                                        }),
+                                    ));
+                                }
+                                _ => {
+                                    return Err(syn::Error::new(
+                                        expr_path.span(),
+                                        "Only Ident expressions are supported",
+                                    ));
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    match input.parse::<NodeValue>() {
+                        Ok(attr) => attributes.push((attr.name, attr.value)),
+                        Err(e) => return Err(e),
+                    }
                 }
             }
 
@@ -509,19 +540,26 @@ impl RsxNode {
                 } else {
                     None
                 };
+                let component = if is_component {
+                    quote! { #name }
+                } else {
+                    quote! { simple_rsx::elements::#name }
+                };
 
                 quote! {
                     {
-                        #use_element
-                        type Props = <#name as simple_rsx::Component>::Props;
-                        #close_tag
-                        <#name as simple_rsx::Component>::render(
-                            Props {
-                                #(#props_tokens)*
-                                #children_tokens
-                                #default_props
-                            },
-                        )
+                        type Props = <#component as simple_rsx::Component>::Props;
+                        let props = Props {
+                            #(#props_tokens)*
+                            #children_tokens
+                            #default_props
+                        };
+                        let render = {
+                            #use_element
+                            #close_tag
+                            <#name as simple_rsx::Component>::render(props)
+                        };
+                        render
                     }
                 }
             }
