@@ -62,7 +62,7 @@ mod tests {
         use simple_rsx::*;
         let name = "World";
         let rsx = rsx!(<div>Hello: {name}</div>);
-        assert_eq!(rsx.to_string(), "<div>Hello:World</div>")
+        assert_eq!(rsx.to_string(), "<div>Hello:World</div>") // expressions don't preserve whitespace
     }
 
     #[test]

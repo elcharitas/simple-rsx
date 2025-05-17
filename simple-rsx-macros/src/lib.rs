@@ -572,12 +572,14 @@ impl RsxNode {
             }
             RsxNode::Text(expr) => {
                 quote! {
-                    simple_rsx::Node::Text(#expr.to_string())
+                    {
+                        simple_rsx::Node::Text(#expr.to_string())
+                    }
                 }
             }
             RsxNode::Empty => {
                 quote! {
-                    simple_rsx::Node::Fragment(Vec::new())
+                    simple_rsx::Node::Empty
                 }
             }
             RsxNode::Comment(text) => {

@@ -366,6 +366,7 @@ pub enum Node {
     Fragment(Vec<Node>),
     /// An HTML comment
     Comment(String),
+    Empty,
 }
 
 impl From<String> for Node {
@@ -523,6 +524,10 @@ impl Display for Node {
             }
             Node::Comment(comment) => {
                 write!(f, "<!--{}-->", comment)?;
+                Ok(())
+            }
+            Node::Empty => {
+                write!(f, "")?;
                 Ok(())
             }
         }
