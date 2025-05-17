@@ -141,10 +141,11 @@ pub fn component(_attr: TokenStream, input: TokenStream) -> TokenStream {
 
     let prop_type = inputs
         .iter()
-        .find_map(|input| match input {
-            FnArg::Typed(PatType { ty, .. }) => Some(quote! {type Props = #ty;}),
+        .map(|input| match input {
+            FnArg::Typed(PatType { ty, .. }) => quote! {type Props = #ty;},
             _ => panic!("Only typed inputs are supported"),
         })
+        .next()
         .unwrap_or_else(|| quote! {type Props = ();});
 
     if inputs.is_empty() {
@@ -169,6 +170,7 @@ pub fn component(_attr: TokenStream, input: TokenStream) -> TokenStream {
 }
 
 /// Represents the different types of JSX nodes
+#[derive(Debug)]
 enum RsxNode {
     Fragment(Vec<RsxNode>),
     Component {
@@ -216,41 +218,38 @@ impl Parse for NodeBlock {
             });
         }
 
-        while !input.is_empty() {
-            if input.lookahead1().peek(Token![<]) {
-                // Found a non-literal '<', stop here without consuming it
-                break;
-            }
-
-            match input.parse::<proc_macro2::TokenTree>() {
-                Ok(token) => match &token {
-                    proc_macro2::TokenTree::Group(group) => {
-                        let stream = group.stream().into();
-                        let expr = syn::parse2::<Expr>(stream)?;
-                        return Ok(NodeBlock {
-                            value: None,
-                            expr: Some(expr),
-                        });
-                    }
-                    _ => {
-                        let value = " ".to_string() + &token.to_string();
-                        let str_expr = syn::Expr::Lit(ExprLit {
-                            attrs: Vec::new(),
-                            lit: Lit::Str(LitStr::new(&value, token.span())),
-                        });
-                        return Ok(NodeBlock {
-                            value: None,
-                            expr: Some(str_expr),
-                        });
-                    }
-                },
-                Err(_) => break, // End of input
-            }
+        if input.lookahead1().peek(Token![<]) {
+            // Found a non-literal '<', stop here without consuming it
+            return Ok(NodeBlock {
+                value: None,
+                expr: None,
+            });
         }
-        return Ok(NodeBlock {
-            value: None,
-            expr: None,
-        });
+
+        match input.parse::<proc_macro2::TokenTree>() {
+            Ok(token) => match &token {
+                proc_macro2::TokenTree::Group(group) => {
+                    let stream = group.stream();
+                    let expr = syn::parse2::<Expr>(stream)?;
+                    Ok(NodeBlock {
+                        value: None,
+                        expr: Some(expr),
+                    })
+                }
+                _ => {
+                    let value = token.to_string();
+                    let str_expr = syn::Expr::Lit(ExprLit {
+                        attrs: Vec::new(),
+                        lit: Lit::Str(LitStr::new(&value, token.span())),
+                    });
+                    Ok(NodeBlock {
+                        value: None,
+                        expr: Some(str_expr),
+                    })
+                }
+            },
+            Err(e) => Err(e), // End of input
+        }
     }
 }
 
@@ -298,8 +297,8 @@ impl Parse for RsxNode {
 
                 let mut comment = String::new();
                 let mut last_end = 0;
-                while !input.is_empty()
-                    && !(input.peek(Token![-]) && input.peek2(Token![-]) && input.peek3(Token![>]))
+                while !(input.is_empty()
+                    || input.peek(Token![-]) && input.peek2(Token![-]) && input.peek3(Token![>]))
                 {
                     let token = input.parse::<proc_macro2::TokenTree>()?;
                     let span_info = format!("{:?}", token.span());
@@ -331,12 +330,8 @@ impl Parse for RsxNode {
                 while !input.is_empty()
                     && !(input.peek(Token![<]) && input.peek2(Token![/]) && input.peek3(Token![>]))
                 {
-                    match input.parse::<RsxNode>() {
-                        Ok(child) => children.push(child),
-                        Err(_) => {
-                            input.parse::<proc_macro2::TokenTree>()?;
-                        }
-                    }
+                    let stream = input.parse::<RsxNode>()?;
+                    children.push(stream);
                 }
 
                 input.parse::<Token![<]>()?;
@@ -401,11 +396,32 @@ impl Parse for RsxNode {
             input.parse::<Token![>]>()?;
 
             let mut children = Vec::with_capacity(4);
-            while !input.is_empty() && !(input.peek(Token![<]) && input.peek2(Token![/])) {
+            let mut last_end = 0;
+            while !(input.is_empty() || input.peek(Token![<]) && input.peek2(Token![/])) {
+                let span_info = format!("{:?}", input.span());
+                let (start, end) = parse_range(&span_info).unwrap_or((0, 0));
                 match input.parse::<RsxNode>() {
                     Ok(child) => children.push(child),
-                    Err(e) => return Err(e),
+                    Err(_) => {
+                        let mut value = String::new();
+                        let token = input.parse::<proc_macro2::TokenTree>()?;
+
+                        if !matches!(token, proc_macro2::TokenTree::Punct(_)) {
+                            let gap_size = start - last_end;
+                            if gap_size > 0 && last_end > 0 {
+                                // Add spaces to represent the gap
+                                value.push_str(&" ".repeat(gap_size as usize));
+                            }
+                        }
+                        value.push_str(&token.to_string());
+
+                        children.push(RsxNode::Text(syn::Expr::Lit(ExprLit {
+                            attrs: Vec::new(),
+                            lit: Lit::Str(LitStr::new(&value, input.span())),
+                        })));
+                    }
                 }
+                last_end = end;
             }
 
             // Closing tag: </tag>
@@ -445,22 +461,10 @@ impl Parse for RsxNode {
         }
         match input.parse::<Block>() {
             Ok(block) => Ok(RsxNode::Block(block)),
-            Err(_) => match input.parse::<NodeBlock>() {
-                Ok(block) => match block.value {
-                    Some(value) => Ok(RsxNode::Block(value)),
-                    _ => match block.expr {
-                        Some(expr) => Ok(RsxNode::Text(expr)),
-                        _ => Ok(RsxNode::Empty),
-                    },
-                },
-                Err(_) => match input.parse::<Expr>() {
-                    Ok(expr) => Ok(RsxNode::Text(expr)),
-                    Err(_) => Err(syn::Error::new(
-                        Span::call_site(),
-                        "Invalid JSX node, expected a valid rsx block, an expression or plain text",
-                    )),
-                },
-            },
+            Err(_) => Err(syn::Error::new(
+                Span::call_site(),
+                "Invalid JSX node, expected a valid rsx block, an expression or plain text",
+            )),
         }
     }
 }
@@ -516,10 +520,8 @@ impl RsxNode {
                     }
                 });
                 let props_tokens = attrs
-                    .filter(|(name, _)| {
-                        !is_element || (is_element && !name.to_string().starts_with("data_"))
-                    }) // filter out data- attributes for elements
-                    .map(|(name, value)| quote! { #name: #value, });
+                    .filter(|(name, _)| !(is_element && name.to_string().starts_with("data_"))) // filter out data- attributes for elements
+                    .map(|(name, value)| quote! { #name: {#value}.into(), });
 
                 let child_tokens = children.iter().map(|child| child.to_tokens());
                 let children_tokens = quote! {
@@ -564,7 +566,7 @@ impl RsxNode {
 
                 quote! {
                     {
-                        simple_rsx::Node::Fragment(vec![#(#children_tokens)*])
+                        simple_rsx::Node::Fragment(vec![#(#children_tokens),*])
                     }
                 }
             }

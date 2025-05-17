@@ -1,7 +1,9 @@
 #[allow(unused_braces)]
 fn main() {
     use simple_rsx::*;
-    let rsx = rsx! { <div>Hello {" World"}</div> };
+    let rsx = rsx! {
+        <div> Hello don&apos;t You know me? {"World"}</div>
+    };
     println!("{}", rsx);
 }
 
@@ -60,7 +62,7 @@ mod tests {
         use simple_rsx::*;
         let name = "World";
         let rsx = rsx!(<div>Hello: {name}</div>);
-        assert_eq!(rsx.to_string(), "<div>Hello: World</div>")
+        assert_eq!(rsx.to_string(), "<div>Hello:World</div>")
     }
 
     #[test]
@@ -86,7 +88,7 @@ mod tests {
         );
         assert_eq!(
             rsx.to_string(),
-            "<div class=\"mixed\"><h1>Count: 42</h1><p>Static text</p>Fragment inside</div>"
+            "<div class=\"mixed\"><h1>Count:42</h1><p>Static text</p>Fragment inside</div>"
         )
     }
 

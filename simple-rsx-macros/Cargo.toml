@@ -20,4 +20,4 @@ regex = "1.11"
 syn = { version = "2.0", features = ["full", "extra-traits"] }
 
 [dev-dependencies]
-simple-rsx = { path = "../simple-rsx", version = "0.1.7" }
+simple-rsx = { path = "../simple-rsx", version = "0.1.8" }

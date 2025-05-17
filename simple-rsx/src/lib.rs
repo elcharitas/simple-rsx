@@ -85,7 +85,7 @@
 //! let conditional = either!(show =>
 //!     <p>Now you see me</p>
 //! else
-//!     <p>Now you don't</p>
+//!     <p>Now you don&apos;t</p>
 //! );
 //!
 //! // Conditional classes? Easy!
@@ -132,7 +132,7 @@
 //! // Use it anywhere!
 //! let button = rsx!(
 //!     <Button text="Click me" variant="primary">
-//!         <span>→</span>
+//!         <span>"→"</span>
 //!     </Button>
 //! );
 //! ```
@@ -239,10 +239,10 @@ impl Element {
     /// ```rust
     /// use simple_rsx::*;
     ///
-    /// let element = Element::new("div");
+    /// let element = Element::parse_tag("div");
     /// assert!(matches!(element, Node::Element(_)));
     /// ```
-    pub fn new(tag: &str) -> Node {
+    pub fn parse_tag(tag: &str) -> Node {
         Node::Element(Element {
             tag: tag.to_string(),
             attributes: IndexMap::new(),
@@ -257,7 +257,7 @@ impl Element {
     /// ```rust
     /// use simple_rsx::*;
     ///
-    /// let mut node = Element::new("div");
+    /// let mut node = Element::parse_tag("div");
     /// let mut element = node.as_element_mut().unwrap();
     /// element.set_attribute("class", "container");
     /// ```
@@ -272,9 +272,9 @@ impl Element {
     /// ```rust
     /// use simple_rsx::*;
     ///
-    /// let mut parent_node = Element::new("div");
+    /// let mut parent_node = Element::parse_tag("div");
     /// let mut parent = parent_node.as_element_mut().unwrap();
-    /// parent.append_child(Element::new("p"));
+    /// parent.append_child(Element::parse_tag("p"));
     /// ```
     pub fn append_child(&mut self, node: Node) {
         self.children.push(node);
@@ -353,7 +353,7 @@ pub trait Component {
 /// use simple_rsx::*;
 ///
 /// let text_node = Node::Text("Hello".to_string());
-/// let element_node = Element::new("div");
+/// let element_node = Element::parse_tag("div");
 /// let fragment = Node::Fragment(vec![text_node, element_node]);
 /// ```
 #[derive(Clone)]
@@ -552,9 +552,6 @@ macro_rules! derive_elements {
                 pub struct [<HTML $tag:camel Element Props>] {
                     // Global HTML attributes
 
-                    /// The child nodes of the element
-                    pub children: Vec<Node>,
-
                     /// The id attribute specifies a unique id for an HTML element
                     pub id: String,
 
@@ -563,6 +560,9 @@ macro_rules! derive_elements {
 
                     /// The class attribute specifies one or more class names for an HTML element
                     pub class: String,
+
+                    /// The child nodes of the element
+                    pub children: Vec<Node>,
 
                     /// The style attribute specifies an inline CSS style for an element
                     pub style: String,
