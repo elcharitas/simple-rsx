@@ -55,7 +55,7 @@
 //!     </div>
 //! );
 //!
-//! // Need a fragment? I've got you covered
+//! // Fragments? No problem! Just use <> and the children will be flattened
 //! let fragment = rsx!(
 //!     <>
 //!         <h1>Title</h1>
@@ -86,6 +86,14 @@
 //!     <p>Now you see me</p>
 //! else
 //!     <p>Now you don't</p>
+//! );
+//!
+//! // Conditional classes? Easy!
+//! let is_active = true;
+//! let button = rsx!(
+//!     <button class={if is_active { "active" } else { "" }}>
+//!         Toggle
+//!     </button>
 //! );
 //!
 //! // Render lists with iterator magic
@@ -129,7 +137,10 @@
 //! );
 //! ```
 //!
-//! ## Dynamic Attributes - Full Control
+//! ## HTML Data attributes
+//!
+//! With simple RSX, HTML data attributes are the only props which do not get validated by the compiler.
+//! This allows you to use any valid literal or expression in the value of a data attribute.
 //!
 //! ```rust
 //! use simple_rsx::*;
@@ -140,14 +151,6 @@
 //!         data_user="john"
 //!         data_role="admin"
 //!     />
-//! );
-//!
-//! // Conditional classes? Easy!
-//! let is_active = true;
-//! let button = rsx!(
-//!     <button class={if is_active { "active" } else { "" }}>
-//!         Toggle
-//!     </button>
 //! );
 //! ```
 //!

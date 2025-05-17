@@ -216,60 +216,41 @@ impl Parse for NodeBlock {
             });
         }
 
-        let mut str = String::new();
-        let mut in_string = false;
-        let mut last_end = 0;
-
         while !input.is_empty() {
-            if input.lookahead1().peek(Token![<]) && !in_string {
+            if input.lookahead1().peek(Token![<]) {
                 // Found a non-literal '<', stop here without consuming it
                 break;
             }
 
             match input.parse::<proc_macro2::TokenTree>() {
-                Ok(token) => {
-                    match &token {
-                        proc_macro2::TokenTree::Literal(lit) => {
-                            let lit_str = lit.to_string();
-                            in_string = lit_str.starts_with('"') || lit_str.starts_with('\'');
-                        }
-                        _ => in_string = false,
+                Ok(token) => match &token {
+                    proc_macro2::TokenTree::Group(group) => {
+                        let stream = group.stream().into();
+                        let expr = syn::parse2::<Expr>(stream)?;
+                        return Ok(NodeBlock {
+                            value: None,
+                            expr: Some(expr),
+                        });
                     }
-
-                    let span_info = format!("{:?}", token.span());
-                    let (start, end) = parse_range(&span_info).unwrap_or((0, 0));
-
-                    let mut value = token.to_string();
-
-                    if value.starts_with('{') && value.ends_with('}') {
-                        value = value.replace("{ ", "{");
-                        value = value.replace(" }", "}");
+                    _ => {
+                        let value = " ".to_string() + &token.to_string();
+                        let str_expr = syn::Expr::Lit(ExprLit {
+                            attrs: Vec::new(),
+                            lit: Lit::Str(LitStr::new(&value, token.span())),
+                        });
+                        return Ok(NodeBlock {
+                            value: None,
+                            expr: Some(str_expr),
+                        });
                     }
-
-                    if start > last_end {
-                        str.push(' ');
-                        last_end = end;
-                    }
-                    str.push_str(&value);
-                }
+                },
                 Err(_) => break, // End of input
             }
         }
-
-        let lit = LitStr::new(str.trim(), Span::call_site());
-
-        Ok(NodeBlock {
+        return Ok(NodeBlock {
             value: None,
-            expr: Some(syn::Expr::Macro(syn::ExprMacro {
-                attrs: Vec::new(),
-                mac: Macro {
-                    path: parse_quote!(format),
-                    bang_token: Not::default(),
-                    delimiter: syn::MacroDelimiter::Paren(syn::token::Paren::default()),
-                    tokens: quote::quote!(#lit),
-                },
-            })),
-        })
+            expr: None,
+        });
     }
 }
 
