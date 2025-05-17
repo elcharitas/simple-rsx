@@ -810,7 +810,7 @@ pub mod elements {
             ping: String,
         }
 
-        /// HTML <h1> element - First level heading (most important)
+        /// HTML `<h1>` element - First level heading (most important)
         ///
         /// Example:
         ///
@@ -818,7 +818,7 @@ pub mod elements {
         h1 {
         }
 
-        /// HTML <h2> element - Second level heading
+        /// HTML `<h2>` element - Second level heading
         ///
         /// Example:
         ///
@@ -826,7 +826,7 @@ pub mod elements {
         h2 {
         }
 
-        /// HTML <h3> element - Third level heading
+        /// HTML `<h3>` element - Third level heading
         ///
         /// Example:
         ///
@@ -834,7 +834,7 @@ pub mod elements {
         h3 {
         }
 
-        /// HTML <h4> element - Fourth level heading
+        /// HTML `<h4>` element - Fourth level heading
         ///
         /// Example:
         ///
@@ -842,7 +842,7 @@ pub mod elements {
         h4 {
         }
 
-        /// HTML <h5> element - Fifth level heading
+        /// HTML `<h5>` element - Fifth level heading
         ///
         /// Example:
         ///
@@ -850,7 +850,7 @@ pub mod elements {
         h5 {
         }
 
-        /// HTML <h6> element - Sixth level heading (least important)
+        /// HTML `<h6>` element - Sixth level heading (least important)
         ///
         /// Example:
         ///
@@ -1613,7 +1613,7 @@ pub mod elements {
             y: String,
         }
 
-        /// HTML <foreignObject> element - Includes non-SVG elements inside SVG
+        /// HTML `<foreignObject>` element - Includes non-SVG elements inside SVG
         ///
         /// Example:
         ///
@@ -1635,7 +1635,7 @@ pub mod elements {
         defs {
         }
 
-        /// HTML <linearGradient> element - Defines a linear gradient for SVG fills
+        /// HTML `<linearGradient>` element - Defines a linear gradient for SVG fills
         ///
         /// Example:
         ///
@@ -1678,7 +1678,7 @@ pub mod elements {
             stop_opacity: String,
         }
 
-        /// HTML <radialGradient> element - Defines a radial gradient for SVG fills
+        /// HTML `<radialGradient>` element - Defines a radial gradient for SVG fills
         ///
         /// Example:
         ///
