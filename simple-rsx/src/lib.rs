@@ -224,7 +224,6 @@ impl<T: ToString> OptionAttribute for Option<T> {
 ///     </div>
 /// );
 /// ```
-#[derive(Clone)]
 pub struct Element {
     tag: String,
     attributes: IndexMap<String, String>,
@@ -356,7 +355,6 @@ pub trait Component {
 /// let element_node = Element::parse_tag("div");
 /// let fragment = Node::Fragment(vec![text_node, element_node]);
 /// ```
-#[derive(Clone)]
 pub enum Node {
     /// An HTML element with a tag name, attributes, and children
     Element(Element),
@@ -393,14 +391,12 @@ impl From<&&str> for Node {
     }
 }
 
-impl<T: ToString> From<Vec<T>> for Node {
+impl<T> From<Vec<T>> for Node
+where
+    Node: From<T>,
+{
     fn from(value: Vec<T>) -> Self {
-        Node::Fragment(
-            value
-                .into_iter()
-                .map(|t| Node::Text(t.to_string()))
-                .collect(),
-        )
+        Node::Fragment(value.into_iter().map(|t| Node::from(t)).collect())
     }
 }
 

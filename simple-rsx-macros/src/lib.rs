@@ -18,7 +18,7 @@ use syn::{FnArg, PatType, Signature, Stmt};
 /// ```rust
 /// use simple_rsx::*;
 /// // Fragment
-/// rsx!(<>Hello World</>);
+/// rsx!(<>"Hello World"</>);
 ///
 /// // Self-closing tag
 /// rsx!(<div class="container" id="app" />);
@@ -505,7 +505,7 @@ impl RsxNode {
                         .filter(|(name, _)| name.to_string().starts_with("data_"))
                         .map(|(name, value)| {
                             quote! {
-                                let #name = #value.value();
+                                let #name = #value;
                                 #ident.insert(stringify!(#name).to_string(), #name);
                             }
                         });
@@ -573,7 +573,7 @@ impl RsxNode {
             RsxNode::Text(expr) => {
                 quote! {
                     {
-                        simple_rsx::Node::Text(#expr.to_string())
+                        simple_rsx::Node::from(#expr)
                     }
                 }
             }
