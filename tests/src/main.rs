@@ -1,8 +1,9 @@
 #[allow(unused_braces)]
 fn main() {
     use simple_rsx::*;
+    let inject = "<b>Hello World</b>";
     let rsx = rsx! {
-        <div> Hello don&apos;t You know me? {"World"}</div>
+        <div> Hello don&apos;t You know me? {"World"} {inject}</div>
     };
     println!("{}", rsx);
 }

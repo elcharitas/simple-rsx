@@ -513,7 +513,7 @@ impl Display for Node {
                 Ok(())
             }
             Node::Text(text) => {
-                write!(f, "{}", text)?;
+                write!(f, "{}", sanitize_html(text))?;
                 Ok(())
             }
             Node::Fragment(nodes) => {
@@ -532,6 +532,36 @@ impl Display for Node {
             }
         }
     }
+}
+
+fn sanitize_html(input: &str) -> String {
+    let mut result = String::new();
+    for c in input.chars() {
+        match c {
+            '<' => {
+                result.push_str("&lt;");
+            }
+            '>' => {
+                result.push_str("&gt;");
+            }
+            '&' => {
+                result.push_str("&amp;");
+            }
+            '"' => {
+                result.push_str("&quot;");
+            }
+            '\'' => {
+                result.push_str("&#39;");
+            }
+            '/' => {
+                result.push_str("&#x2F;");
+            }
+            _ => {
+                result.push(c);
+            }
+        };
+    }
+    result
 }
 
 macro_rules! derive_elements {
