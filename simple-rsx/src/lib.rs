@@ -1,54 +1,156 @@
-//! Simple RSX - A lightweight JSX-like library for Rust
+//! Simple RSX - A React-inspired JSX Library for Rust
 //!
-//! This crate provides a simple way to write HTML-like components in Rust using JSX-style syntax.
-//! It's perfect for building user interfaces or generating HTML content with a familiar, component-based approach.
+//! I created Simple RSX to bring the familiar feel of React's JSX to Rust projects. If you're coming
+//! from a React background, you'll feel right at home. And if you're new to both, don't worry - I've made
+//! it super intuitive while keeping all the type safety and performance benefits of Rust.
 //!
-//! # Quick Start
+//! # Why Simple RSX?
+//!
+//! I started this project while attempting to transit my [portfolio](https://elcharitas.wtf) from Next.js to Rust.
+//! I wanted to keep my codebase as simple as possible, and I wanted to use Rust's powerful type system
+//! to ensure that my components were always correct. I tried existing libraries like `yew` and `sycamore`,
+//! but they were either too complex or didn't feel quite like React. And so, here we are.
+//!
+//! I know what you're thinking - "Another UI library?" But here's what makes Simple RSX special:
+//!
+//! - **React-like Syntax**: Write your templates using the `rsx!` macro - it's just like JSX!
+//! - **Type Safety**: Get compile-time checks for your components and props
+//! - **Zero Runtime Overhead**: All the magic happens at compile time
+//! - **Familiar Patterns**: Components, props, fragments - all the React concepts you love
+//!
+//! # Let's Get Started!
+//!
+//! Here's a quick taste of what you can do:
 //!
 //! ```rust
 //! use simple_rsx::*;
 //!
-//! // Create a simple component
+//! // Create your first component - looks familiar, right?
 //! let greeting = rsx!(
 //!     <div class="greeting">
-//!         <h1>Hello, World!</h1>
+//!         <h1>Hello, {"World"}!</h1>
 //!         <p>Welcome to Simple RSX</p>
 //!     </div>
 //! );
 //!
-//! // Convert to HTML string
-//! println!("{}", greeting); // Outputs the HTML
+//! // Turn it into HTML - perfect for server-side rendering (P.S: This to me is my favorite feature)
+//! println!("{}", greeting);
 //! ```
 //!
-//! # Features
+//! # Features You'll Love
 //!
-//! - JSX-like syntax with the `rsx!` macro
-//! - Component-based architecture
-//! - Type-safe attributes and children
-//! - Easy conversion to HTML strings
-//! - Support for custom components
-//!
-//! # Custom Components
+//! ## JSX-style Elements - Write HTML, Get Rust
 //!
 //! ```rust
 //! use simple_rsx::*;
 //!
+//! // Self-closing tags? Check!
+//! let img = rsx!(<img src="image.jpg" alt="An image" />);
+//!
+//! // Nested elements? Of course!
+//! let card = rsx!(
+//!     <div class="card">
+//!         <h2>Title</h2>
+//!         <p>Content</p>
+//!     </div>
+//! );
+//!
+//! // Need a fragment? I've got you covered
+//! let fragment = rsx!(
+//!     <>
+//!         <h1>Title</h1>
+//!         <p>No wrapper needed</p>
+//!     </>
+//! );
+//! ```
+//!
+//! ## Dynamic Content - Make It Come Alive
+//!
+//! ```rust
+//! use simple_rsx::*;
+//!
+//! let name = "World";
+//! let count = 42;
+//!
+//! // Drop in any Rust expression with {}
+//! let dynamic = rsx!(
+//!     <div>
+//!         <h1>Hello, {name}!</h1>
+//!         <p>Count: {count}</p>
+//!     </div>
+//! );
+//!
+//! // Conditional rendering? Use the either! macro
+//! let show = true;
+//! let conditional = either!(show =>
+//!     <p>Now you see me</p>
+//! else
+//!     <p>Now you don't</p>
+//! );
+//!
+//! // Render lists with iterator magic
+//! let items = vec!["A", "B", "C"];
+//! let list = rsx!(
+//!     <ul>
+//!         {items.iter().map(|item| rsx!(<li>{item}</li>))}
+//!     </ul>
+//! );
+//! ```
+//!
+//! ## Components and Props - Build Reusable UI
+//!
+//! ```rust
+//! use simple_rsx::*;
+//!
+//! // Define your props - just like React's PropTypes
 //! #[derive(Default)]
 //! struct ButtonProps {
 //!     text: String,
+//!     variant: String,
 //!     children: Vec<Node>,
 //! }
 //!
+//! // Create a component - clean and simple
 //! #[component]
 //! fn Button(props: ButtonProps) -> Node {
 //!     rsx!(
-//!         <button class="btn">
+//!         <button class={format!("btn btn-{}", props.variant)}>
 //!             {props.text}
 //!             {props.children}
 //!         </button>
 //!     )
 //! }
+//!
+//! // Use it anywhere!
+//! let button = rsx!(
+//!     <Button text="Click me" variant="primary">
+//!         <span>→</span>
+//!     </Button>
+//! );
 //! ```
+//!
+//! ## Dynamic Attributes - Full Control
+//!
+//! ```rust
+//! use simple_rsx::*;
+//!
+//! // Data attributes? No problem!
+//! let element = rsx!(
+//!     <div
+//!         data_user="john"
+//!         data_role="admin"
+//!     />
+//! );
+//!
+//! // Conditional classes? Easy!
+//! let is_active = true;
+//! let button = rsx!(
+//!     <button class={if is_active { "active" } else { "" }}>
+//!         Toggle
+//!     </button>
+//! );
+//! ```
+//!
 
 use indexmap::IndexMap;
 pub use simple_rsx_macros::{component, either, rsx};
