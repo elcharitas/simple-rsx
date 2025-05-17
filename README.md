@@ -29,6 +29,7 @@ A lightweight and intuitive JSX-like syntax implementation for Rust, enabling HT
 - [x] List rendering
 - [x] Custom components
 - [x] Props validation
+- [x] Props binding
 - [ ] State management
 - [ ] Lifecycle hooks
 - [ ] Event handling

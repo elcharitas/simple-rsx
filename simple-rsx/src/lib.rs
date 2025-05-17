@@ -502,6 +502,9 @@ macro_rules! derive_elements {
                     /// Specifies an inline CSS style for an element
                     pub role: String,
 
+                    /// Custom data attributes (data-*)
+                    pub r#data: std::collections::HashMap<String, String>,
+
                     // ARIA Accessibility attributes
 
                     /// Identifies the current element within a set
@@ -629,6 +632,14 @@ macro_rules! derive_elements {
                         }
                         if !self.aria_role.value().is_empty() {
                             attributes.insert("aria-role".to_string(), self.aria_role.value());
+                        }
+                        // Add data-* attributes
+                        for (key, value) in &self.r#data {
+                            if key.starts_with("data_") {
+                                attributes.insert(key.replace("_", "-"), value.clone());
+                            } else {
+                                attributes.insert(format!("data-{}", key), value.clone());
+                            }
                         }
 
                         attributes

@@ -85,7 +85,7 @@ impl Either {
         let false_value = &self
             .false_value
             .as_ref()
-            .and_then(|v| Some(v.to_tokens()))
+            .map(|v| v.to_tokens())
             .or_else(|| Some(quote! {simple_rsx::Node::Fragment(vec![])}));
         let true_value = self.true_value.to_tokens();
 
@@ -255,7 +255,7 @@ impl Parse for NodeBlock {
             }
         }
 
-        let lit = LitStr::new(&str.trim(), Span::call_site());
+        let lit = LitStr::new(str.trim(), Span::call_site());
 
         Ok(NodeBlock {
             value: None,
@@ -288,12 +288,11 @@ impl Parse for NodeValue {
         let NodeBlock { value, expr } = input.parse()?;
         Ok(NodeValue {
             name,
-            value: value.or_else(|| match expr {
-                Some(expr) => Some(Block {
+            value: value.or_else(|| {
+                expr.map(|expr| Block {
                     brace_token: Brace::default(),
                     stmts: vec![syn::Stmt::Expr(expr, None)],
-                }),
-                None => None,
+                })
             }),
         })
     }
@@ -383,10 +382,7 @@ impl Parse for RsxNode {
                                         ident,
                                         Some(Block {
                                             brace_token: Brace::default(),
-                                            stmts: vec![syn::Stmt::Expr(
-                                                expr.clone(),
-                                                token.clone(),
-                                            )],
+                                            stmts: vec![syn::Stmt::Expr(expr.clone(), *token)],
                                         }),
                                     ));
                                 }
@@ -497,50 +493,55 @@ impl RsxNode {
                 children,
                 close_tag,
             } => {
-                let props_tokens = props.iter().map(|(name, value)| {
-                    if value.is_none() {
-                        quote! {
-                            #name: true,
-                        }
-                    } else {
-                        quote! {
-                            #name: #value.into(),
-                        }
+                let is_element = name.to_string().starts_with(|c: char| !c.is_uppercase());
+                let props = props
+                    .iter() // filter out data- attributes for elements
+                    .map(|(name, value)| {
+                        let value = value
+                            .as_ref()
+                            .map(|v| quote! {#v})
+                            .or_else(|| Some(quote! {true}));
+                        (name, value)
+                    });
+                let data_props = is_element.then(|| {
+                    let data = props
+                        .clone()
+                        .filter(|(name, _)| name.to_string().starts_with("data_"))
+                        .map(|(name, value)| {
+                            quote! {
+                                let #name = #value.value();
+                                data.insert(stringify!(#name).to_string(), #name);
+                            }
+                        });
+                    quote! {
+                        r#data: {
+                            let mut data = std::collections::HashMap::new();
+                            #(#data)*
+                            data
+                        },
+                    }
+                });
+                let props_tokens = props
+                    .filter(|(name, _)| {
+                        !is_element || (is_element && !name.to_string().starts_with("data_"))
+                    }) // filter out data- attributes for elements
+                    .map(|(name, value)| quote! { #name: #value, });
+
+                let child_tokens = children.iter().map(|child| child.to_tokens());
+                let children_tokens = quote! {
+                    children: vec![#(#child_tokens),*],
+                };
+
+                let close_tag = close_tag.as_ref().map(|close_tag| {
+                    quote! {
+                        let #close_tag = #name;
                     }
                 });
 
-                let children_tokens = if !children.is_empty() {
-                    let child_tokens = children.iter().map(|child| child.to_tokens());
-                    Some(quote! {
-                        children: vec![#(#child_tokens),*],
-                    })
-                } else {
-                    Some(quote! {
-                        children: vec![],
-                    })
-                };
+                let use_element = is_element.then(|| quote! {use simple_rsx::elements::#name;});
+                let default_props = is_element.then(|| quote! {..Default::default()});
 
-                let close_tag = close_tag.as_ref().and_then(|close_tag| {
-                    Some(quote! {
-                        let #close_tag = #name;
-                    })
-                });
-                let is_component = name.to_string().starts_with(|c: char| c.is_uppercase());
-
-                let use_element = if !is_component {
-                    Some(quote! {use simple_rsx::elements::#name;})
-                } else {
-                    None
-                };
-
-                let default_props = if !is_component {
-                    Some(quote! {
-                        ..Default::default()
-                    })
-                } else {
-                    None
-                };
-                let component = if is_component {
+                let component = if !is_element {
                     quote! { #name }
                 } else {
                     quote! { simple_rsx::elements::#name }
@@ -552,6 +553,7 @@ impl RsxNode {
                         let props = Props {
                             #(#props_tokens)*
                             #children_tokens
+                            #data_props
                             #default_props
                         };
                         let render = {

@@ -2,7 +2,7 @@
 fn main() {
     use simple_rsx::*;
     let rsx = rsx! { <div>Hello World</div> };
-    println!("{}", rsx.to_string());
+    println!("{}", rsx);
 }
 
 #[cfg(test)]
@@ -105,7 +105,7 @@ mod tests {
     #[test]
     fn test_rsx_looping() {
         use simple_rsx::*;
-        let items = vec!["Item 1", "Item 2", "Item 3"];
+        let items = ["Item 1", "Item 2", "Item 3"];
         let list = rsx!(
             <ul>
                 {items.iter().map(|item| rsx!(<li>{item}</li>))}
@@ -120,7 +120,7 @@ mod tests {
     #[test]
     fn test_rsx_looping_with_index() {
         use simple_rsx::*;
-        let items = vec!["Item 1", "Item 2", "Item 3"];
+        let items = ["Item 1", "Item 2", "Item 3"];
         let list = rsx!(
             <ul>
                 {items.iter().enumerate().map(|(index, item)| rsx!(<li key={index.to_string()}>{item}</li>))}
