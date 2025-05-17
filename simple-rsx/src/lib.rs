@@ -1205,15 +1205,15 @@ pub mod elements {
             /// The placeholder attribute shows hint text when field is empty
             ///
             /// Example: placeholder="Enter your email"
-            placeholder: String,
+            placeholder: Option<String>,
             /// The required attribute makes the field mandatory
             ///
             /// Example: required (field must be filled)
-            required: bool,
+            required: Option<bool>,
             /// The value attribute specifies the default/current value
             ///
             /// Example: value="Default text"
-            value: String,
+            value: Option<String>,
             /// The name attribute specifies the name of the input (for form submission)
             ///
             /// Example: name="email"
@@ -1221,27 +1221,27 @@ pub mod elements {
             /// The disabled attribute disables the input
             ///
             /// Example: disabled (user cannot interact with input)
-            disabled: bool,
+            disabled: Option<bool>,
             /// The readonly attribute makes the input read-only
             ///
             /// Example: readonly (user cannot modify but can focus/select)
-            readonly: bool,
+            readonly: Option<bool>,
             /// The min attribute specifies minimum value for number/date inputs
             ///
             /// Example: min="1" (number input minimum value)
-            min: String,
+            min: Option<String>,
             /// The max attribute specifies maximum value for number/date inputs
             ///
             /// Example: max="100" (number input maximum value)
-            max: String,
+            max: Option<String>,
             /// The pattern attribute specifies a regex pattern for validation
             ///
             /// Example: pattern="[0-9]{3}" (requires exactly 3 digits)
-            pattern: String,
+            pattern: Option<String>,
             /// The autocomplete attribute controls browser autofill for this field
             ///
             /// Example: autocomplete="current-password"
-            autocomplete: String,
+            autocomplete: Option<String>,
         }
 
         /// HTML `<textarea>` element - Multi-line text input control

@@ -72,7 +72,7 @@ mod tests {
         let rsx = rsx!(<input type_="text" placeholder="Enter name" required />);
         assert_eq!(
             rsx.to_string(),
-            "<input type=\"text\" placeholder=\"Enter name\" required=\"true\" disabled=\"false\" readonly=\"false\"></input>"
+            "<input type=\"text\" placeholder=\"Enter name\" required=\"true\"></input>"
         )
     }
 
