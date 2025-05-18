@@ -182,7 +182,7 @@ enum RsxNode {
     Text(Expr),
     Block(Block),
     Empty,
-    Comment(String), // HTML comments
+    Comment(Expr), // HTML comments
 }
 
 struct NodeBlock {
@@ -279,6 +279,45 @@ impl Parse for NodeValue {
     }
 }
 
+struct RsxChildren {
+    children: Vec<RsxNode>,
+}
+
+impl Parse for RsxChildren {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let mut children = Vec::with_capacity(4);
+        let mut last_end = 0;
+        while !(input.is_empty() || input.peek(Token![<]) && input.peek2(Token![/])) {
+            let span_info = format!("{:?}", input.span());
+            let (start, end) = parse_range(&span_info).unwrap_or((0, 0));
+            match input.parse::<RsxNode>() {
+                Ok(child) => children.push(child),
+                Err(_) => {
+                    let mut value = String::new();
+                    let token = input.parse::<proc_macro2::TokenTree>()?;
+
+                    if !matches!(token, proc_macro2::TokenTree::Punct(_)) {
+                        let gap_size = start - last_end;
+                        if gap_size > 0 && last_end > 0 {
+                            // Add spaces to represent the gap
+                            value.push_str(&" ".repeat(gap_size as usize));
+                        }
+                    }
+                    value.push_str(&token.to_string());
+
+                    children.push(RsxNode::Text(syn::Expr::Lit(ExprLit {
+                        attrs: Vec::new(),
+                        lit: Lit::Str(LitStr::new(&value, token.span())),
+                    })));
+                }
+            }
+            last_end = end;
+        }
+
+        Ok(RsxChildren { children })
+    }
+}
+
 impl Parse for RsxNode {
     fn parse(input: ParseStream) -> Result<Self> {
         if input.is_empty() {
@@ -295,44 +334,67 @@ impl Parse for RsxNode {
                 input.parse::<Token![-]>()?;
                 input.parse::<Token![-]>()?;
 
-                let mut comment = String::new();
                 let mut last_end = 0;
+
+                let mut nodes = Vec::new();
                 while !(input.is_empty()
                     || input.peek(Token![-]) && input.peek2(Token![-]) && input.peek3(Token![>]))
                 {
+                    let mut comment = String::new();
                     let token = input.parse::<proc_macro2::TokenTree>()?;
                     let span_info = format!("{:?}", token.span());
                     let (start, end) = parse_range(&span_info).unwrap_or((0, 0));
-                    if start > last_end {
-                        comment.push(' ');
+                    let gap_size = start - last_end;
+                    if gap_size > 0 && last_end > 0 {
                         last_end = end;
+                        comment.push_str(&" ".repeat(gap_size as usize));
                     }
                     comment.push_str(&token.to_string());
+
+                    nodes.push(LitStr::new(&comment, token.span()));
                 }
 
                 let token = input.parse::<Token![-]>()?;
                 let span_info = format!("{:?}", token.span());
                 let (start, _) = parse_range(&span_info).unwrap_or((0, 0));
                 if start > last_end {
-                    comment.push(' ');
+                    nodes.push(LitStr::new(" ", token.span()));
                 }
                 input.parse::<Token![-]>()?;
                 input.parse::<Token![>]>()?;
 
-                return Ok(RsxNode::Comment(comment.to_string()));
+                // concat all nodes into a single lit
+                // Convert each LitStr to an Expr::Lit
+                let exprs: Vec<Expr> = nodes
+                    .into_iter()
+                    .map(|lit| {
+                        Expr::Lit(syn::ExprLit {
+                            attrs: vec![],
+                            lit: syn::Lit::Str(lit),
+                        })
+                    })
+                    .collect();
+
+                // Build a binary expression tree with the + operator
+                let mut result = syn::parse_str::<Expr>("String::new()").unwrap();
+
+                for expr in exprs.into_iter() {
+                    result = Expr::Binary(syn::ExprBinary {
+                        attrs: vec![],
+                        left: Box::new(result),
+                        op: syn::BinOp::Add(syn::token::Plus::default()),
+                        right: Box::new(expr),
+                    });
+                }
+
+                return Ok(RsxNode::Comment(result));
             }
 
             // Fragment: <>...</>
             if input.peek(Token![>]) {
                 input.parse::<Token![>]>()?;
 
-                let mut children = Vec::with_capacity(4); // Pre-allocate with reasonable capacity
-                while !input.is_empty()
-                    && !(input.peek(Token![<]) && input.peek2(Token![/]) && input.peek3(Token![>]))
-                {
-                    let stream = input.parse::<RsxNode>()?;
-                    children.push(stream);
-                }
+                let RsxChildren { children } = input.parse()?;
 
                 input.parse::<Token![<]>()?;
                 input.parse::<Token![/]>()?;
@@ -395,34 +457,7 @@ impl Parse for RsxNode {
             // Opening tag ends: <tag ...>
             input.parse::<Token![>]>()?;
 
-            let mut children = Vec::with_capacity(4);
-            let mut last_end = 0;
-            while !(input.is_empty() || input.peek(Token![<]) && input.peek2(Token![/])) {
-                let span_info = format!("{:?}", input.span());
-                let (start, end) = parse_range(&span_info).unwrap_or((0, 0));
-                match input.parse::<RsxNode>() {
-                    Ok(child) => children.push(child),
-                    Err(_) => {
-                        let mut value = String::new();
-                        let token = input.parse::<proc_macro2::TokenTree>()?;
-
-                        if !matches!(token, proc_macro2::TokenTree::Punct(_)) {
-                            let gap_size = start - last_end;
-                            if gap_size > 0 && last_end > 0 {
-                                // Add spaces to represent the gap
-                                value.push_str(&" ".repeat(gap_size as usize));
-                            }
-                        }
-                        value.push_str(&token.to_string());
-
-                        children.push(RsxNode::Text(syn::Expr::Lit(ExprLit {
-                            attrs: Vec::new(),
-                            lit: Lit::Str(LitStr::new(&value, input.span())),
-                        })));
-                    }
-                }
-                last_end = end;
-            }
+            let RsxChildren { children } = input.parse()?;
 
             // Closing tag: </tag>
             input.parse::<Token![<]>()?;
@@ -582,9 +617,9 @@ impl RsxNode {
                     simple_rsx::Node::Empty
                 }
             }
-            RsxNode::Comment(text) => {
+            RsxNode::Comment(expr) => {
                 quote! {
-                    simple_rsx::Node::Comment(#text.to_string())
+                    simple_rsx::Node::Comment(#expr)
                 }
             }
             RsxNode::Block(block) => {

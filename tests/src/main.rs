@@ -3,7 +3,7 @@ fn main() {
     use simple_rsx::*;
     let inject = "<b>Hello World</b>";
     let rsx = rsx! {
-        <div> Hello don&apos;t You know me? {"World"} {inject}</div>
+        <div data_name=""> Hello don&apos;t You know me? {"World"} {inject}</div>
     };
     println!("{}", rsx);
 }
@@ -21,7 +21,7 @@ mod tests {
     #[test]
     fn test_text_rsx() {
         use simple_rsx::*;
-        let rsx = rsx!(<>"Hello World"</>);
+        let rsx = rsx!(<>Hello World</>);
         assert_eq!(rsx.to_string(), "Hello World")
     }
 
