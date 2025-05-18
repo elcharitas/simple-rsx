@@ -1,15 +1,14 @@
-#[allow(unused_braces)]
+#![allow(unused_braces)]
+
 fn main() {
     use simple_rsx::*;
-    let inject = "<b>Hello World</b>";
     let rsx = rsx! {
-        <div data_name=""> Hello don&apos;t You know me? {"World"} {inject}</div>
+        <div>Hello World</div>
     };
     println!("{}", rsx);
 }
 
 #[cfg(test)]
-#[allow(unused_braces)]
 mod tests {
     #[test]
     fn test_basic_rsx() {
