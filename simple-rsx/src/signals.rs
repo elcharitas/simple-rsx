@@ -1,7 +1,11 @@
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
+use std::sync::Arc;
 
 thread_local! {
+    // Track the stack of active scopes
+    static SCOPE_STACK: RefCell<Vec<usize>> = RefCell::new(Vec::new());
+
     // Track the current scope being executed
     static CURRENT_SCOPE: RefCell<Option<usize>> = RefCell::new(None);
 
@@ -20,7 +24,7 @@ thread_local! {
     static SIGNALS: RefCell<HashMap<(usize, usize), SignalValue>> = RefCell::new(HashMap::new());
 
     // Store scope functions that can be re-executed
-    static SCOPE_FUNCTIONS: RefCell<HashMap<usize, Box<dyn Fn() + Send>>> = RefCell::new(HashMap::new());
+    static SCOPE_FUNCTIONS: RefCell<HashMap<usize, Arc<dyn Fn() + Send>>> = RefCell::new(HashMap::new());
 
     // Store next effect ID for each scope
     static SCOPE_EFFECT_COUNTERS: RefCell<HashMap<usize, usize>> = RefCell::new(HashMap::new());
@@ -159,25 +163,30 @@ pub struct Signal<T> {
     _marker: std::marker::PhantomData<T>,
 }
 
-pub struct SignalValue {
-    pub value: Box<dyn DynamicValue>,
+struct SignalValue {
+    value: Box<dyn DynamicValue>,
 }
 
-impl<T: DynamicValue + Clone + 'static> Signal<T> {
+impl<T: DynamicValue + PartialEq + Clone + 'static> Signal<T> {
     pub fn set(&self, value: T) {
-        let new_value = SignalValue {
-            value: Box::new(value),
-        };
         let mut changed = false;
-
         // Update the signal value
         SIGNALS.with(|signals| {
             if let Some(stored) = signals.borrow_mut().get_mut(&self.id) {
                 // Only update if the value actually changed
-                // if *stored != new_value {
-                *stored = new_value;
-                changed = true;
-                // }
+                if let Some(should_update) = stored
+                    .value
+                    .as_any()
+                    .and_then(|any| any.downcast_ref::<T>().and_then(|val| Some(val != &value)))
+                    .or(Some(false))
+                {
+                    if should_update {
+                        *stored = SignalValue {
+                            value: Box::new(value),
+                        };
+                        changed = true;
+                    }
+                }
             }
         });
 
@@ -237,6 +246,14 @@ fn set_current_scope(scope_id: Option<usize>) {
     CURRENT_SCOPE.with(|scope| {
         *scope.borrow_mut() = scope_id;
     });
+    if let Some(id) = scope_id {
+        SCOPE_STACK.with(|stack| {
+            let mut stack = stack.borrow_mut();
+            if !stack.contains(&id) {
+                stack.push(id);
+            }
+        });
+    }
 }
 
 fn get_next_signal_id_for_scope(scope_id: usize) -> usize {
@@ -255,13 +272,19 @@ fn reset_signal_counters(scope_id: usize) {
 }
 
 fn schedule_dependent_scopes_for_rerender(signal_id: (usize, usize)) {
-    let dependent_scopes =
-        SIGNAL_DEPENDENCIES.with(|deps| deps.borrow().get(&signal_id).cloned().unwrap_or_default());
+    let dependent_scopes = SIGNAL_DEPENDENCIES.with(|deps| {
+        if let Ok(deps) = deps.try_borrow() {
+            deps.get(&signal_id).cloned().unwrap_or_default()
+        } else {
+            HashSet::new()
+        }
+    });
 
     PENDING_SCOPE_RENDERS.with(|pending| {
-        let mut pending = pending.borrow_mut();
-        for scope_id in dependent_scopes {
-            pending.insert(scope_id);
+        if let Ok(mut pending) = pending.try_borrow_mut() {
+            for scope_id in dependent_scopes {
+                pending.insert(scope_id);
+            }
         }
     });
 }
@@ -269,13 +292,16 @@ fn schedule_dependent_scopes_for_rerender(signal_id: (usize, usize)) {
 fn process_pending_renders() {
     loop {
         let scopes_to_render = PENDING_SCOPE_RENDERS.with(|pending| {
-            let mut pending = pending.borrow_mut();
-            if pending.is_empty() {
-                return Vec::new();
+            if let Ok(mut pending) = pending.try_borrow_mut() {
+                if pending.is_empty() {
+                    return Vec::new();
+                }
+                let scopes = pending.iter().copied().collect::<Vec<_>>();
+                pending.clear();
+                scopes
+            } else {
+                Vec::new()
             }
-            let scopes = pending.iter().copied().collect::<Vec<_>>();
-            pending.clear();
-            scopes
         });
 
         if scopes_to_render.is_empty() {
@@ -288,45 +314,86 @@ fn process_pending_renders() {
     }
 }
 
+struct ScopeGuard {
+    previous_scope: Option<usize>,
+}
+
+impl Drop for ScopeGuard {
+    fn drop(&mut self) {
+        set_current_scope(self.previous_scope);
+    }
+}
+
 fn render_scope(scope_id: usize) {
+    // Create a scope guard that will restore the previous scope when dropped
+    let _guard = ScopeGuard {
+        previous_scope: get_current_scope(),
+    };
+
+    // Set the current scope for rendering
+    set_current_scope(Some(scope_id));
+
+    // Clear dependencies for this scope
     SIGNAL_DEPENDENCIES.with(|deps| {
-        let mut deps = deps.borrow_mut();
-        // Remove this scope from all signal dependencies
-        for (_, scopes) in deps.iter_mut() {
-            scopes.remove(&scope_id);
+        if let Ok(mut deps) = deps.try_borrow_mut() {
+            for (_, scopes) in deps.iter_mut() {
+                scopes.remove(&scope_id);
+            }
         }
     });
 
-    // Set the rendering context
-    set_current_scope(Some(scope_id));
-    RENDERING_SCOPE.with(|flag| *flag.borrow_mut() = true);
-    SCOPE_SIGNAL_CHANGES.with(|changes| changes.borrow_mut().clear());
+    // Set rendering flag and clear changes
+    RENDERING_SCOPE.with(|flag| {
+        if let Ok(mut flag) = flag.try_borrow_mut() {
+            *flag = true;
+        }
+    });
+
+    SCOPE_SIGNAL_CHANGES.with(|changes| {
+        if let Ok(mut changes) = changes.try_borrow_mut() {
+            changes.clear();
+        }
+    });
 
     // Execute the scope function
-    SCOPE_FUNCTIONS.with(|scope_functions| {
-        if let Some(scope_fn) = scope_functions.borrow().get(&scope_id) {
-            scope_fn();
+    let scope_fn = SCOPE_FUNCTIONS.with(|scope_functions| {
+        let scope_functions = scope_functions.borrow();
+        if let Some(scope_fn) = scope_functions.get(&scope_id) {
+            return Some(scope_fn.clone());
         }
+        return None;
     });
+
+    if let Some(scope_fn) = scope_fn {
+        scope_fn();
+    }
 
     reset_signal_counters(scope_id);
     run_scope_effects(scope_id);
     reset_effect_counters(scope_id);
 
+    // Collect signal changes
     let signal_changes = SCOPE_SIGNAL_CHANGES.with(|stored_changes| {
-        let changes = stored_changes.borrow().clone();
-        stored_changes.borrow_mut().clear();
-        changes
+        if let Ok(mut changes) = stored_changes.try_borrow_mut() {
+            let collected = changes.clone();
+            changes.clear();
+            collected
+        } else {
+            HashSet::new()
+        }
     });
 
-    RENDERING_SCOPE.with(|flag| *flag.borrow_mut() = false);
+    RENDERING_SCOPE.with(|flag| {
+        if let Ok(mut flag) = flag.try_borrow_mut() {
+            *flag = false;
+        }
+    });
 
-    set_current_scope(None);
-
-    // If signals changed during rendering, schedule dependent scopes
+    // Schedule dependent scopes for rerender
     for signal_id in signal_changes {
         schedule_dependent_scopes_for_rerender(signal_id);
     }
+    // Guard will automatically restore previous scope when dropped
 }
 
 fn run_scope_effects(scope_id: usize) {
@@ -340,7 +407,7 @@ fn run_scope_effects(scope_id: usize) {
     });
 }
 
-pub fn create_signal<T: DynamicValue + 'static>(
+pub fn create_signal<T: DynamicValue + PartialEq + 'static>(
     initial_value: T,
 ) -> Result<Signal<T>, SignalCreationError> {
     let scope_id = get_current_scope().ok_or(SignalCreationError::OutsideScope)?;
@@ -404,26 +471,31 @@ pub fn create_effect(
     Ok(effect_struct)
 }
 
-pub fn run_scope(scope_fn: impl Fn() + Send + Sync + 'static) {
+pub fn run_scope(scope_fn: impl Fn() + Send + Sync + 'static) -> usize {
     // Get next scope ID
     let scope_id = NEXT_SCOPE_ID.with(|id| {
-        let current = *id.borrow();
-        *id.borrow_mut() = current + 1;
-        current
+        if let Ok(mut id) = id.try_borrow_mut() {
+            let current = *id;
+            *id = current + 1;
+            current
+        } else {
+            panic!("Failed to get next scope ID")
+        }
     });
 
     // Store the scope function so it can be re-executed
     SCOPE_FUNCTIONS.with(|scope_functions| {
-        scope_functions
-            .borrow_mut()
-            .insert(scope_id, Box::new(scope_fn));
-
-        // Initial render of the scope
-        render_scope(scope_id);
-
-        // Process any pending renders that might have been triggered
-        process_pending_renders();
+        let mut scope_functions = scope_functions.borrow_mut();
+        scope_functions.insert(scope_id, Arc::new(scope_fn));
     });
+
+    // Initial render of the scope
+    render_scope(scope_id);
+
+    // Process any pending renders that might have been triggered
+    process_pending_renders();
+
+    scope_id
 }
 
 // Helper function to manually trigger all scopes to re-render (useful for debugging)
@@ -443,6 +515,22 @@ mod tests {
     use super::*;
     use std::sync::Arc;
     use std::sync::atomic::{AtomicUsize, Ordering};
+
+    #[test]
+    fn test_nested_scopes() {
+        let outer_scope_id = run_scope(|| {
+            let outer_signal = create_signal(0).unwrap();
+
+            run_scope(move || {
+                let inner_signal = create_signal("hello").unwrap();
+                assert!(inner_signal.get().is_some());
+                outer_signal.set(42); // Can access outer scope's signals
+            });
+
+            // assert_ne!(outer_scope_id, inner_scope_id);
+            assert_eq!(outer_signal.get(), Some(42));
+        });
+    }
 
     #[test]
     fn test_signal_and_effect_in_scope() {
