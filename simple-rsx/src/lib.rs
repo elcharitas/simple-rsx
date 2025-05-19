@@ -154,6 +154,8 @@
 //! );
 //! ```
 //!
+pub mod dom;
+pub mod signals;
 
 use indexmap::IndexMap;
 pub use simple_rsx_macros::{component, either, rsx};
