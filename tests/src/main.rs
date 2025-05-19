@@ -2,6 +2,7 @@
 
 // Example Usage
 fn main() {
+    use simple_rsx::rsx;
     use simple_rsx::signals::*;
     run_scope(|| {
         let signal = create_signal(0).unwrap();
@@ -17,6 +18,13 @@ fn main() {
             }
         })
         .unwrap();
+
+        rsx! {
+            <div>
+                <h1>Hello World</h1>
+                <p>Count: {signal.get().unwrap()}</p>
+            </div>
+        }
     });
 }
 

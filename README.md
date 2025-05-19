@@ -87,11 +87,7 @@ let expression = rsx!(<p>Count: {count}</p>);
 let show = true;
 let conditional = rsx!(
     <div>
-        {if show {
-            rsx!(<p>This is shown.</p>)
-        } else {
-            rsx!(<p>This is hidden.</p>)
-        }}
+        {either!(show => <p>This is shown.</p>) else <p>This is hidden.</p>}
     </div>
 );
 
@@ -107,10 +103,10 @@ let list = rsx!(
 let nodes = rsx!(
     <html>
         <head>
-            <title>My Page</title>
+            <title>"My Page"</title>
         </head>
         <body>
-            <h1>Welcome to my page!</h1>
+            <h1>"Welcome to my page!"</h1>
         </body>
     </html>
 );

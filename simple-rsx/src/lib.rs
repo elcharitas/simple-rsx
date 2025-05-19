@@ -154,6 +154,7 @@
 //! );
 //! ```
 //!
+pub mod dom;
 pub mod signals;
 
 use indexmap::IndexMap;

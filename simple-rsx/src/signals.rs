@@ -2,6 +2,8 @@ use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
+use crate::Node;
+
 thread_local! {
     // Track the stack of active scopes
     static SCOPE_STACK: RefCell<Vec<usize>> = RefCell::new(Vec::new());
@@ -24,7 +26,7 @@ thread_local! {
     static SIGNALS: RefCell<HashMap<(usize, usize), SignalValue>> = RefCell::new(HashMap::new());
 
     // Store scope functions that can be re-executed
-    static SCOPE_FUNCTIONS: RefCell<HashMap<usize, Arc<dyn Fn() + Send>>> = RefCell::new(HashMap::new());
+    static SCOPE_FUNCTIONS: RefCell<HashMap<usize, Arc<dyn Fn() -> Node + Send>>> = RefCell::new(HashMap::new());
 
     // Store next effect ID for each scope
     static SCOPE_EFFECT_COUNTERS: RefCell<HashMap<usize, usize>> = RefCell::new(HashMap::new());
@@ -324,7 +326,7 @@ impl Drop for ScopeGuard {
     }
 }
 
-fn render_scope(scope_id: usize) {
+fn render_scope(scope_id: usize) -> Option<Node> {
     // Create a scope guard that will restore the previous scope when dropped
     let _guard = ScopeGuard {
         previous_scope: get_current_scope(),
@@ -364,8 +366,10 @@ fn render_scope(scope_id: usize) {
         return None;
     });
 
+    let mut node = None;
+
     if let Some(scope_fn) = scope_fn {
-        scope_fn();
+        node = Some(scope_fn());
     }
 
     reset_signal_counters(scope_id);
@@ -393,6 +397,8 @@ fn render_scope(scope_id: usize) {
     for signal_id in signal_changes {
         schedule_dependent_scopes_for_rerender(signal_id);
     }
+
+    node
     // Guard will automatically restore previous scope when dropped
 }
 
@@ -471,7 +477,7 @@ pub fn create_effect(
     Ok(effect_struct)
 }
 
-pub fn run_scope(scope_fn: impl Fn() + Send + Sync + 'static) -> usize {
+pub fn run_scope(scope_fn: impl Fn() -> Node + Send + Sync + 'static) -> Option<Node> {
     // Get next scope ID
     let scope_id = NEXT_SCOPE_ID.with(|id| {
         if let Ok(mut id) = id.try_borrow_mut() {
@@ -490,12 +496,12 @@ pub fn run_scope(scope_fn: impl Fn() + Send + Sync + 'static) -> usize {
     });
 
     // Initial render of the scope
-    render_scope(scope_id);
+    let node = render_scope(scope_id);
 
     // Process any pending renders that might have been triggered
     process_pending_renders();
 
-    scope_id
+    node
 }
 
 // Helper function to manually trigger all scopes to re-render (useful for debugging)
@@ -518,17 +524,20 @@ mod tests {
 
     #[test]
     fn test_nested_scopes() {
-        let outer_scope_id = run_scope(|| {
+        run_scope(|| {
             let outer_signal = create_signal(0).unwrap();
 
             run_scope(move || {
                 let inner_signal = create_signal("hello").unwrap();
                 assert!(inner_signal.get().is_some());
                 outer_signal.set(42); // Can access outer scope's signals
+                Node::Empty
             });
 
             // assert_ne!(outer_scope_id, inner_scope_id);
             assert_eq!(outer_signal.get(), Some(42));
+
+            Node::Empty
         });
     }
 
@@ -548,6 +557,8 @@ mod tests {
                 signal.set(1);
             })
             .unwrap();
+
+            Node::Empty
         });
     }
 
@@ -571,6 +582,8 @@ mod tests {
             // Verify final values
             assert_eq!(signal1.get().unwrap(), "world");
             assert_eq!(signal2.get().unwrap(), 42);
+
+            Node::Empty
         });
     }
 
