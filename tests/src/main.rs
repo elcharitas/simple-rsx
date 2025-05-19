@@ -1,11 +1,23 @@
 #![allow(unused_braces)]
 
+// Example Usage
 fn main() {
-    use simple_rsx::*;
-    let rsx = rsx! {
-        <div>Hello World</div>
-    };
-    println!("{}", rsx);
+    use simple_rsx::signals::*;
+    run_scope(|| {
+        let signal = create_signal(0).unwrap();
+
+        // Create effect directly - no run_scope wrapper needed
+        create_effect(move || {
+            let value = signal.get().unwrap();
+            println!("Effect running with value: {}", value);
+
+            // This will cause the effect to keep running until stable
+            if value != 5 {
+                signal.set(value + 1); // Triggers re-run
+            }
+        })
+        .unwrap();
+    });
 }
 
 #[cfg(test)]
