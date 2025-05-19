@@ -5,24 +5,23 @@ fn main() {
     use simple_rsx::rsx;
     use simple_rsx::signals::*;
     run_scope(|| {
-        let signal = create_signal(0).unwrap();
+        let signal = create_signal(0);
 
         // Create effect directly - no run_scope wrapper needed
         create_effect(move || {
-            let value = signal.get().unwrap();
+            let value = signal.get();
             println!("Effect running with value: {}", value);
 
             // This will cause the effect to keep running until stable
             if value != 5 {
                 signal.set(value + 1); // Triggers re-run
             }
-        })
-        .unwrap();
+        });
 
         rsx! {
             <div>
                 <h1>Hello World</h1>
-                <p>Count: {signal.get().unwrap()}</p>
+                <p>Count: {signal.get()}</p>
             </div>
         }
     });

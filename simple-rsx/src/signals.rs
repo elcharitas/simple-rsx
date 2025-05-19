@@ -199,7 +199,7 @@ impl<T: DynamicValue + PartialEq + Clone + 'static> Signal<T> {
         }
     }
 
-    pub fn get(&self) -> Option<T> {
+    pub fn get(&self) -> T {
         if let Some(current_scope) = get_current_scope() {
             SIGNAL_DEPENDENCIES.with(|deps| {
                 let mut deps = deps.borrow_mut();
@@ -208,18 +208,20 @@ impl<T: DynamicValue + PartialEq + Clone + 'static> Signal<T> {
             });
         }
 
-        SIGNALS.with(|signals| {
-            if let Some(stored) = signals.borrow().get(&self.id) {
-                if let Some(parsed) = stored
-                    .value
-                    .as_any()
-                    .and_then(|any| any.downcast_ref::<T>())
-                {
-                    return Some(parsed.clone());
+        SIGNALS
+            .with(|signals| {
+                if let Some(stored) = signals.borrow().get(&self.id) {
+                    if let Some(parsed) = stored
+                        .value
+                        .as_any()
+                        .and_then(|any| any.downcast_ref::<T>())
+                    {
+                        return Some(parsed.clone());
+                    }
                 }
-            }
-            None
-        })
+                None
+            })
+            .unwrap()
     }
 }
 
@@ -413,10 +415,10 @@ fn run_scope_effects(scope_id: usize) {
     });
 }
 
-pub fn create_signal<T: DynamicValue + PartialEq + 'static>(
-    initial_value: T,
-) -> Result<Signal<T>, SignalCreationError> {
-    let scope_id = get_current_scope().ok_or(SignalCreationError::OutsideScope)?;
+pub fn create_signal<T: DynamicValue + PartialEq + 'static>(initial_value: T) -> Signal<T> {
+    let scope_id = get_current_scope()
+        .ok_or(SignalCreationError::OutsideScope)
+        .unwrap();
 
     let signal_id = get_next_signal_id_for_scope(scope_id);
     let signal = Signal {
@@ -435,11 +437,11 @@ pub fn create_signal<T: DynamicValue + PartialEq + 'static>(
         }
     });
 
-    Ok(signal)
+    signal
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct Effect {
+struct Effect {
     id: (usize, usize),
 }
 
@@ -458,10 +460,10 @@ fn reset_effect_counters(scope_id: usize) {
     });
 }
 
-pub fn create_effect(
-    effect: impl Fn() + Send + Sync + 'static,
-) -> Result<Effect, SignalCreationError> {
-    let scope_id = get_current_scope().ok_or(SignalCreationError::OutsideScope)?;
+pub fn create_effect(effect: impl Fn() + Send + Sync + 'static) {
+    let scope_id = get_current_scope()
+        .ok_or(SignalCreationError::OutsideScope)
+        .unwrap();
 
     let effect_id = get_next_effect_id_for_scope(scope_id);
     let effect_struct = Effect {
@@ -473,8 +475,6 @@ pub fn create_effect(
             .borrow_mut()
             .insert(effect_struct.id, Box::new(effect));
     });
-
-    Ok(effect_struct)
 }
 
 pub fn run_scope(scope_fn: impl Fn() -> Node + Send + Sync + 'static) -> Option<Node> {
@@ -525,17 +525,17 @@ mod tests {
     #[test]
     fn test_nested_scopes() {
         run_scope(|| {
-            let outer_signal = create_signal(0).unwrap();
+            let outer_signal = create_signal(0);
 
             run_scope(move || {
-                let inner_signal = create_signal("hello").unwrap();
-                assert!(inner_signal.get().is_some());
+                let inner_signal = create_signal("hello");
+                assert!(inner_signal.get() == "hello");
                 outer_signal.set(42); // Can access outer scope's signals
                 Node::Empty
             });
 
             // assert_ne!(outer_scope_id, inner_scope_id);
-            assert_eq!(outer_signal.get(), Some(42));
+            assert_eq!(outer_signal.get(), 42);
 
             Node::Empty
         });
@@ -546,7 +546,7 @@ mod tests {
         run_scope(move || {
             let effect_count = Arc::new(AtomicUsize::new(0));
             let effect_count_clone = effect_count.clone();
-            let signal = create_signal(0).unwrap();
+            let signal = create_signal(0);
 
             create_effect(move || {
                 let _ = signal.get();
@@ -555,8 +555,7 @@ mod tests {
                 assert!(effect_count.load(Ordering::SeqCst) > 0);
                 // Update signal value
                 signal.set(1);
-            })
-            .unwrap();
+            });
 
             Node::Empty
         });
@@ -565,37 +564,24 @@ mod tests {
     #[test]
     fn test_multiple_signals_and_dependencies() {
         run_scope(|| {
-            let signal1 = create_signal("hello").unwrap();
-            let signal2 = create_signal(0).unwrap();
+            let signal1 = create_signal("hello");
+            let signal2 = create_signal(0);
 
             create_effect(move || {
-                let str_val = signal1.get().unwrap_or_default();
-                let num_val = signal2.get().unwrap_or_default();
+                let str_val = signal1.get();
+                let num_val = signal2.get();
 
                 println!("Effect running with values: {}, {}", str_val, num_val);
-            })
-            .unwrap();
+            });
 
             signal1.set("world");
             signal2.set(42);
 
             // Verify final values
-            assert_eq!(signal1.get().unwrap(), "world");
-            assert_eq!(signal2.get().unwrap(), 42);
+            assert_eq!(signal1.get(), "world");
+            assert_eq!(signal2.get(), 42);
 
             Node::Empty
         });
-    }
-
-    #[test]
-    fn test_signal_creation_outside_scope() {
-        let result = create_signal(0);
-        assert!(matches!(result, Err(SignalCreationError::OutsideScope)));
-
-        let effect_result = create_effect(|| {});
-        assert!(matches!(
-            effect_result,
-            Err(SignalCreationError::OutsideScope)
-        ));
     }
 }
