@@ -5,4 +5,4 @@ edition = "2024"
 metadata.workspace = true
 
 [dependencies]
-simple-rsx = { path = "../simple-rsx" }
+simple-rsx = { path = "../simple-rsx", features = ["wasm"] }

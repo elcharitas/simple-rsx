@@ -1,5 +1,6 @@
 use crate::{Component, Node, signals::run_scope};
 
+#[cfg(feature = "wasm")]
 pub fn render_node<C: Component<Props = ()>>(mount_point: web_sys::Element) {
     loop {
         let node = render_component::<C>(()).unwrap();
