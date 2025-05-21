@@ -209,6 +209,7 @@ impl<T: ToString> OptionAttribute for Option<T> {
     }
 }
 
+#[derive(Debug)]
 /// Represents an HTML element with its tag name, attributes, and children.
 ///
 /// Elements are the building blocks of the RSX tree structure. Each element
@@ -340,6 +341,12 @@ pub trait Component {
     fn render(props: Self::Props) -> Node;
 }
 
+#[derive(Default)]
+pub struct PropWithChildren {
+    pub children: Vec<Node>,
+}
+
+#[derive(Debug)]
 /// Represents a node in the RSX tree.
 ///
 /// Nodes are the fundamental building blocks of RSX. They can be:
@@ -492,6 +499,23 @@ where
     fn from(iter: std::iter::Map<I, F>) -> Self {
         let nodes: Vec<Node> = iter.collect();
         Node::from(nodes)
+    }
+}
+
+#[cfg(feature = "wasm")]
+pub struct EventCallback(Box<dyn FnMut(web_sys::EventTarget)>);
+
+#[cfg(feature = "wasm")]
+impl Default for EventCallback {
+    fn default() -> Self {
+        Self(Box::new(|_| {}))
+    }
+}
+
+#[cfg(feature = "wasm")]
+impl<T: Fn(web_sys::EventTarget) + 'static> From<T> for EventCallback {
+    fn from(value: T) -> Self {
+        Self(Box::new(value))
     }
 }
 
@@ -674,6 +698,67 @@ macro_rules! derive_elements {
 
                     /// Defines an element's role
                     pub aria_role: String,
+
+                    #[cfg(feature = "wasm")]
+                    pub on_click: EventCallback,
+                    #[cfg(feature = "wasm")]
+                    pub on_keydown: EventCallback,
+                    #[cfg(feature = "wasm")]
+                    pub on_keyup: EventCallback,
+                    #[cfg(feature = "wasm")]
+                    pub on_keypress: EventCallback,
+                    #[cfg(feature = "wasm")]
+                    pub on_focus: EventCallback,
+                    #[cfg(feature = "wasm")]
+                    pub on_blur: EventCallback,
+                    #[cfg(feature = "wasm")]
+                    pub on_change: EventCallback,
+                    #[cfg(feature = "wasm")]
+                    pub on_input: EventCallback,
+                    #[cfg(feature = "wasm")]
+                    pub on_submit: EventCallback,
+                    #[cfg(feature = "wasm")]
+                    pub on_reset: EventCallback,
+                    #[cfg(feature = "wasm")]
+                    pub on_mouseover: EventCallback,
+                    #[cfg(feature = "wasm")]
+                    pub on_mouseout: EventCallback,
+                    #[cfg(feature = "wasm")]
+                    pub on_mousedown: EventCallback,
+                    #[cfg(feature = "wasm")]
+                    pub on_mouseup: EventCallback,
+                    #[cfg(feature = "wasm")]
+                    pub on_mousemove: EventCallback,
+                    #[cfg(feature = "wasm")]
+                    pub on_mouseenter: EventCallback,
+                    #[cfg(feature = "wasm")]
+                    pub on_mouseleave: EventCallback,
+                    #[cfg(feature = "wasm")]
+                    pub on_mousewheel: EventCallback,
+                    #[cfg(feature = "wasm")]
+                    pub on_scroll: EventCallback,
+                    #[cfg(feature = "wasm")]
+                    pub on_load: EventCallback,
+                    #[cfg(feature = "wasm")]
+                    pub on_unload: EventCallback,
+                    #[cfg(feature = "wasm")]
+                    pub on_abort: EventCallback,
+                    #[cfg(feature = "wasm")]
+                    pub on_error: EventCallback,
+                    #[cfg(feature = "wasm")]
+                    pub on_resize: EventCallback,
+                    #[cfg(feature = "wasm")]
+                    pub on_cut: EventCallback,
+                    #[cfg(feature = "wasm")]
+                    pub on_copy: EventCallback,
+                    #[cfg(feature = "wasm")]
+                    pub on_paste: EventCallback,
+                    #[cfg(feature = "wasm")]
+                    pub on_contextmenu: EventCallback,
+                    #[cfg(feature = "wasm")]
+                    pub on_dblclick: EventCallback,
+                    #[cfg(feature = "wasm")]
+                    pub on_drop: EventCallback,
 
                     // Element specific attributes
                     $(
@@ -866,9 +951,9 @@ pub mod elements {
             /// The character encoding of the script
             charset: String,
             /// The defer attribute specifies that the script will be executed after the document is finished parsing
-            defer: bool,
+            defer: Option<bool>,
             /// The async attribute specifies that the script will be executed asynchronously
-            async_: bool,
+            async_: Option<bool>,
         }
         /// HTML `<link>` element - Specifies relationships between the current document and an external resource
         ///
@@ -1064,7 +1149,7 @@ pub mod elements {
             start: i32,
             /// The reversed attribute specifies that list should be in descending order
             /// Example: reversed (counts down instead of up)
-            reversed: bool,
+            reversed: Option<bool>,
         }
 
         /// HTML `<table>` element - Creates a data table with rows and columns
@@ -1181,7 +1266,7 @@ pub mod elements {
             /// The novalidate attribute disables browser's built-in form validation
             ///
             /// Example: novalidate (skips validation)
-            novalidate: bool,
+            novalidate: Option<bool>,
             /// The autocomplete attribute controls browser autofill behavior
             ///
             /// Example: autocomplete="off" (disables autofill)
@@ -1257,28 +1342,28 @@ pub mod elements {
             placeholder: String,
             /// The required attribute makes the field mandatory
             /// Example: required (must be filled before submission)
-            required: bool,
+            required: Option<bool>,
             /// The value attribute specifies the default/current text content
             /// Example: value="Default text in the textarea"
             value: String,
             /// The rows attribute specifies visible number of text lines
             /// Example: rows="10" (shows 10 lines of text)
-            rows: i32,
+            rows: Option<i32>,
             /// The cols attribute specifies visible width in average characters
             /// Example: cols="40" (about 40 characters wide)
-            cols: i32,
+            cols: Option<i32>,
             /// The name attribute specifies the name of the textarea (for form submission)
             /// Example: name="comments"
             name: String,
             /// The disabled attribute disables the textarea
             /// Example: disabled (user cannot interact)
-            disabled: bool,
+            disabled: Option<bool>,
             /// The readonly attribute makes the textarea read-only
             /// Example: readonly (user cannot modify but can focus/select)
-            readonly: bool,
+            readonly: Option<bool>,
             /// The maxlength attribute specifies maximum character count
             /// Example: maxlength="500" (limits to 500 characters)
-            maxlength: i32,
+            maxlength: Option<i32>,
         }
 
         /// HTML `<button>` element - Clickable button control
@@ -1295,7 +1380,7 @@ pub mod elements {
             value: String,
             /// The disabled attribute disables the button
             /// Example: disabled (button cannot be clicked)
-            disabled: bool,
+            disabled: Option<bool>,
             /// The name attribute specifies the name of the button (for form submission)
             /// Example: name="submit-button"
             name: String,
@@ -1315,10 +1400,10 @@ pub mod elements {
         select {
             /// The multiple attribute allows selecting multiple options
             /// Example: multiple (user can select multiple items)
-            multiple: bool,
+            multiple: Option<bool>,
             /// The disabled attribute disables the dropdown
             /// Example: disabled (user cannot interact)
-            disabled: bool,
+            disabled: Option<bool>,
             /// The value attribute specifies the selected value
             /// Example: value="option2" (preselects this option)
             value: String,
@@ -1330,7 +1415,7 @@ pub mod elements {
             size: i32,
             /// The required attribute makes selection mandatory
             /// Example: required (user must select an option)
-            required: bool,
+            required: Option<bool>,
         }
 
         /// HTML `<option>` element - Defines option in a select dropdown
@@ -1344,10 +1429,10 @@ pub mod elements {
             value: String,
             /// The selected attribute preselects this option when page loads
             /// Example: selected (this option is selected by default)
-            selected: bool,
+            selected: Option<bool>,
             /// The disabled attribute makes this option unselectable
             /// Example: disabled (cannot be chosen)
-            disabled: bool,
+            disabled: Option<bool>,
         }
 
         /// HTML `<label>` element - Caption for a form control
@@ -1378,7 +1463,7 @@ pub mod elements {
             allow: String,
             /// The allowfullscreen attribute allows iframe content to go fullscreen
             /// Example: allowfullscreen (allows fullscreen mode)
-            allowfullscreen: bool,
+            allowfullscreen: Option<bool>,
             /// The sandbox attribute restricts iframe capabilities for security
             /// Example: sandbox="allow-scripts" (only allows scripts to run)
             sandbox: String,
@@ -1395,25 +1480,25 @@ pub mod elements {
             src: String,
             /// The controls attribute displays video playback controls
             /// Example: controls (shows play/pause/volume controls)
-            controls: bool,
+            controls: Option<bool>,
             /// The autoplay attribute starts playing video automatically
             /// Example: autoplay (video plays when page loads)
-            autoplay: bool,
+            autoplay: Option<bool>,
             /// The loop attribute makes the video replay when finished
             /// Example: loop (continuously replays)
-            loop_: bool,
+            loop_: Option<bool>,
             /// The poster attribute specifies an image shown before video plays
             /// Example: poster="thumbnail.jpg"
             poster: String,
             /// The muted attribute mutes the audio by default
             /// Example: muted (starts with no sound)
-            muted: bool,
+            muted: Option<bool>,
             /// The preload attribute hints how to preload the video
             /// Example: preload="auto" (preload entire video)
             preload: String,
             /// The playsinline attribute plays inline on iOS (instead of fullscreen)
             /// Example: playsinline (important for iPhone users)
-            playsinline: bool,
+            playsinline: Option<bool>,
         }
 
         /// HTML `<audio>` element - Embeds sound content in the document
@@ -1427,16 +1512,16 @@ pub mod elements {
             src: String,
             /// The controls attribute displays audio playback controls
             /// Example: controls (shows play/pause/volume controls)
-            controls: bool,
+            controls: Option<bool>,
             /// The autoplay attribute starts playing audio automatically
             /// Example: autoplay (audio plays when page loads)
-            autoplay: bool,
+            autoplay: Option<bool>,
             /// The loop attribute makes the audio replay when finished
             /// Example: loop (continuously replays)
-            loop_: bool,
+            loop_: Option<bool>,
             /// The muted attribute mutes the audio by default
             /// Example: muted (starts with no sound)
-            muted: bool,
+            muted: Option<bool>,
             /// The preload attribute hints how to preload the audio
             /// Example: preload="none" (doesn't preload)
             preload: String,
@@ -2079,7 +2164,7 @@ pub mod elements {
         ///
         /// Example:
         ///
-        /// ```<form><input type="number" id="num1" /><input type="number" id="num2" /><button onclick="calculate()">Calculate</button><output id="result"></output></form>```
+        /// ```<form><input type="number" id="num1" /><input type="number" id="num2" /><button>Calculate</button><output id="result"></output></form>```
         output {
         }
 
@@ -2232,7 +2317,7 @@ pub mod elements {
         ///
         /// Example:
         ///
-        /// ```<dialog><p>Dialog content goes here...</p><button onclick="closeDialog()">Close</button></dialog>```
+        /// ```<dialog><p>Dialog content goes here...</p><button>Close</button></dialog>```
         dialog {
             /// The open attribute specifies whether the dialog is open or closed
             /// Example: open="open" (dialog is open)

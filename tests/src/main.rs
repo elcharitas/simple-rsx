@@ -1,10 +1,29 @@
 #![allow(unused_braces)]
 
+use simple_rsx::{Node, component, dom::render_component};
+
 // Example Usage
 fn main() {
     use simple_rsx::rsx;
     use simple_rsx::signals::*;
-    run_scope(|| {
+
+    #[component]
+    fn Counter() -> Node {
+        let count = create_signal(0);
+        let increment = move |_| {
+            count.set(count.get() + 1);
+        };
+        rsx! {
+            <div>
+                <h1>Counter</h1>
+                <p>Count: {count.get()}</p>
+                <button on_click={increment}>Increment</button>
+            </div>
+        }
+    }
+
+    #[component]
+    fn App() -> Node {
         let signal = create_signal(0);
 
         // Create effect directly - no run_scope wrapper needed
@@ -21,10 +40,17 @@ fn main() {
         rsx! {
             <div>
                 <h1>Hello World</h1>
-                <p>Count: {signal.get()}</p>
+                <Counter />
             </div>
         }
-    });
+    }
+
+    render_component::<App>(
+        || Default::default(),
+        |node| {
+            println!("{}", node.to_string());
+        },
+    );
 }
 
 #[cfg(test)]
@@ -129,7 +155,10 @@ mod tests {
         let items = ["Item 1", "Item 2", "Item 3"];
         let list = rsx!(
             <ul>
-                {items.iter().map(|item| rsx!(<li>{item}</li>))}
+                {items.iter().map(|item| {
+                    let item = item.to_string();
+                    rsx!(<li>{item}</li>)
+                })}
             </ul>
         );
         assert_eq!(
@@ -144,7 +173,10 @@ mod tests {
         let items = ["Item 1", "Item 2", "Item 3"];
         let list = rsx!(
             <ul>
-                {items.iter().enumerate().map(|(index, item)| rsx!(<li key={index.to_string()}>{item}</li>))}
+                {items.iter().enumerate().map(|(index, item)| {
+                    let item = item.to_string();
+                    rsx!(<li key={index.to_string()}>{item}</li>)
+                })}
             </ul>
         );
         assert_eq!(
@@ -225,9 +257,9 @@ mod tests {
         }
 
         #[component]
-        fn MyComponent(props: Props) -> Node {
-            println!("{}", props.message);
-            rsx!(<div>{props.children}</div>)
+        fn MyComponent(Props { children, message }: Props) -> Node {
+            println!("{}", message);
+            rsx!(<div>{children}</div>)
         }
 
         let rsx = rsx!(

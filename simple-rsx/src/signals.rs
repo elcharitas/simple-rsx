@@ -26,13 +26,16 @@ thread_local! {
     static SIGNALS: RefCell<HashMap<(usize, usize), SignalValue>> = RefCell::new(HashMap::new());
 
     // Store scope functions that can be re-executed
-    static SCOPE_FUNCTIONS: RefCell<HashMap<usize, Arc<dyn Fn() -> Node + Send>>> = RefCell::new(HashMap::new());
+    static SCOPE_FUNCTIONS: RefCell<HashMap<usize, ScopeFn>> = RefCell::new(HashMap::new());
+
+    // Store scope functions that can be re-executed
+    static SCOPE_CALLBACKS: RefCell<HashMap<usize, Arc<dyn Fn(&Node)>>> = RefCell::new(HashMap::new());
 
     // Store next effect ID for each scope
     static SCOPE_EFFECT_COUNTERS: RefCell<HashMap<usize, usize>> = RefCell::new(HashMap::new());
 
     // Store effects with their IDs
-    static SCOPE_EFFECTS: RefCell<HashMap<(usize, usize), Box<dyn Fn() + Send + Sync>>> = RefCell::new(HashMap::new());
+    static SCOPE_EFFECTS: RefCell<HashMap<(usize, usize), Box<dyn Fn()>>> = RefCell::new(HashMap::new());
 
     // Track which scopes depend on which signals
     static SIGNAL_DEPENDENCIES: RefCell<HashMap<(usize, usize), HashSet<usize>>> = RefCell::new(HashMap::new());
@@ -328,6 +331,20 @@ impl Drop for ScopeGuard {
     }
 }
 
+struct ScopeFn {
+    inner: Option<Box<dyn FnOnce() -> Node>>,
+}
+
+impl ScopeFn {
+    fn new(inner: Box<dyn FnOnce() -> Node>) -> Self {
+        Self { inner: Some(inner) }
+    }
+
+    fn call(&mut self) -> Option<Node> {
+        self.inner.take().map(|inner| inner())
+    }
+}
+
 fn render_scope(scope_id: usize) -> Option<Node> {
     // Create a scope guard that will restore the previous scope when dropped
     let _guard = ScopeGuard {
@@ -360,19 +377,34 @@ fn render_scope(scope_id: usize) -> Option<Node> {
     });
 
     // Execute the scope function
-    let scope_fn = SCOPE_FUNCTIONS.with(|scope_functions| {
-        let scope_functions = scope_functions.borrow();
-        if let Some(scope_fn) = scope_functions.get(&scope_id) {
-            return Some(scope_fn.clone());
+    let node = SCOPE_FUNCTIONS.with(|scope_functions| {
+        let mut scope_functions = scope_functions.borrow_mut();
+        if let Some(fn_box) = scope_functions.remove(&scope_id) {
+            // Take and call the function
+            Some(fn_box)
+        } else {
+            None
         }
-        return None;
     });
 
-    let mut node = None;
+    let node = node.and_then(|mut fn_box| {
+        let node = fn_box.call();
+        // re insert the function
+        SCOPE_FUNCTIONS.with(|scope_functions| {
+            let mut scope_functions = scope_functions.borrow_mut();
+            scope_functions.insert(scope_id, fn_box);
+        });
+        node
+    });
 
-    if let Some(scope_fn) = scope_fn {
-        node = Some(scope_fn());
-    }
+    let callback = SCOPE_CALLBACKS.with(|scope_callbacks| {
+        let scope_callbacks = scope_callbacks.borrow();
+        scope_callbacks.get(&scope_id).map(|fn_ptr| fn_ptr.clone())
+    });
+
+    node.as_ref().map(|node| {
+        callback.map(|callback| callback(node));
+    });
 
     reset_signal_counters(scope_id);
     run_scope_effects(scope_id);
@@ -460,7 +492,7 @@ fn reset_effect_counters(scope_id: usize) {
     });
 }
 
-pub fn create_effect(effect: impl Fn() + Send + Sync + 'static) {
+pub fn create_effect(effect: impl Fn() + 'static) {
     let scope_id = get_current_scope()
         .ok_or(SignalCreationError::OutsideScope)
         .unwrap();
@@ -477,7 +509,10 @@ pub fn create_effect(effect: impl Fn() + Send + Sync + 'static) {
     });
 }
 
-pub fn run_scope(scope_fn: impl Fn() -> Node + Send + Sync + 'static) -> Option<Node> {
+pub(crate) fn run_scope(
+    scope_fn: impl FnOnce() -> Node + 'static,
+    callback: impl Fn(&Node) + 'static,
+) -> Option<Node> {
     // Get next scope ID
     let scope_id = NEXT_SCOPE_ID.with(|id| {
         if let Ok(mut id) = id.try_borrow_mut() {
@@ -492,7 +527,12 @@ pub fn run_scope(scope_fn: impl Fn() -> Node + Send + Sync + 'static) -> Option<
     // Store the scope function so it can be re-executed
     SCOPE_FUNCTIONS.with(|scope_functions| {
         let mut scope_functions = scope_functions.borrow_mut();
-        scope_functions.insert(scope_id, Arc::new(scope_fn));
+        scope_functions.insert(scope_id, ScopeFn::new(Box::new(scope_fn)));
+    });
+
+    SCOPE_CALLBACKS.with(|scope_callbacks| {
+        let mut scope_callbacks = scope_callbacks.borrow_mut();
+        scope_callbacks.insert(scope_id, Arc::new(callback));
     });
 
     // Initial render of the scope
@@ -524,64 +564,76 @@ mod tests {
 
     #[test]
     fn test_nested_scopes() {
-        run_scope(|| {
-            let outer_signal = create_signal(0);
+        run_scope(
+            || {
+                let outer_signal = create_signal(0);
 
-            run_scope(move || {
-                let inner_signal = create_signal("hello");
-                assert!(inner_signal.get() == "hello");
-                outer_signal.set(42); // Can access outer scope's signals
+                run_scope(
+                    move || {
+                        let inner_signal = create_signal("hello");
+                        assert!(inner_signal.get() == "hello");
+                        outer_signal.set(42); // Can access outer scope's signals
+                        Node::Empty
+                    },
+                    |_| {},
+                );
+
+                // assert_ne!(outer_scope_id, inner_scope_id);
+                assert_eq!(outer_signal.get(), 42);
+
                 Node::Empty
-            });
-
-            // assert_ne!(outer_scope_id, inner_scope_id);
-            assert_eq!(outer_signal.get(), 42);
-
-            Node::Empty
-        });
+            },
+            |_| {},
+        );
     }
 
     #[test]
     fn test_signal_and_effect_in_scope() {
-        run_scope(move || {
-            let effect_count = Arc::new(AtomicUsize::new(0));
-            let effect_count_clone = effect_count.clone();
-            let signal = create_signal(0);
+        run_scope(
+            move || {
+                let effect_count = Arc::new(AtomicUsize::new(0));
+                let effect_count_clone = effect_count.clone();
+                let signal = create_signal(0);
 
-            create_effect(move || {
-                let _ = signal.get();
-                effect_count_clone.fetch_add(1, Ordering::SeqCst);
-                // Effect should run once initially
-                assert!(effect_count.load(Ordering::SeqCst) > 0);
-                // Update signal value
-                signal.set(1);
-            });
+                create_effect(move || {
+                    let _ = signal.get();
+                    effect_count_clone.fetch_add(1, Ordering::SeqCst);
+                    // Effect should run once initially
+                    assert!(effect_count.load(Ordering::SeqCst) > 0);
+                    // Update signal value
+                    signal.set(1);
+                });
 
-            Node::Empty
-        });
+                Node::Empty
+            },
+            |_| {},
+        );
     }
 
     #[test]
     fn test_multiple_signals_and_dependencies() {
-        run_scope(|| {
-            let signal1 = create_signal("hello");
-            let signal2 = create_signal(0);
+        run_scope(
+            || {
+                let signal1 = create_signal("hello");
+                let signal2 = create_signal(0);
 
-            create_effect(move || {
-                let str_val = signal1.get();
-                let num_val = signal2.get();
+                create_effect(move || {
+                    let str_val = signal1.get();
+                    let num_val = signal2.get();
 
-                println!("Effect running with values: {}, {}", str_val, num_val);
-            });
+                    println!("Effect running with values: {}, {}", str_val, num_val);
+                });
 
-            signal1.set("world");
-            signal2.set(42);
+                signal1.set("world");
+                signal2.set(42);
 
-            // Verify final values
-            assert_eq!(signal1.get(), "world");
-            assert_eq!(signal2.get(), 42);
+                // Verify final values
+                assert_eq!(signal1.get(), "world");
+                assert_eq!(signal2.get(), 42);
 
-            Node::Empty
-        });
+                Node::Empty
+            },
+            |_| {},
+        );
     }
 }

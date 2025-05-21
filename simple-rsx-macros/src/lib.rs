@@ -146,7 +146,7 @@ pub fn component(_attr: TokenStream, input: TokenStream) -> TokenStream {
             _ => panic!("Only typed inputs are supported"),
         })
         .next()
-        .unwrap_or_else(|| quote! {type Props = ();});
+        .unwrap_or_else(|| quote! {type Props = simple_rsx::PropWithChildren;});
 
     if inputs.is_empty() {
         inputs.push(FnArg::Typed(PatType {
@@ -514,8 +514,16 @@ impl RsxNode {
                 close_tag,
             } => {
                 let is_element = name.to_string().starts_with(|c: char| !c.is_uppercase());
+
+                let key = props
+                    .iter()
+                    .filter(|(name, _)| name.to_string() == "key")
+                    .next()
+                    .map(|(name, value)| quote! {let #name = #value;});
+
                 let attrs = props
                     .iter() // filter out data- attributes for elements
+                    .filter(|(name, _)| name.to_string() != "key")
                     .map(|(name, value)| {
                         let value = value
                             .as_ref()
@@ -523,6 +531,7 @@ impl RsxNode {
                             .or_else(|| Some(quote! {true}));
                         (name, value)
                     });
+
                 let data_props = (is_element
                     && props
                         .iter()
@@ -563,13 +572,15 @@ impl RsxNode {
                     children: vec![#(#child_tokens),*],
                 };
 
+                let use_element = is_element.then(|| quote! {use simple_rsx::elements::#name;});
                 let close_tag = close_tag.as_ref().map(|close_tag| {
                     quote! {
-                        let #close_tag = #name;
+                        {
+                            #use_element
+                            let #close_tag = #name;
+                        };
                     }
                 });
-
-                let use_element = is_element.then(|| quote! {use simple_rsx::elements::#name;});
                 let default_props = is_element.then(|| quote! {..Default::default()});
 
                 let component = if !is_element {
@@ -581,18 +592,20 @@ impl RsxNode {
                 quote! {
                     {
                         type Props = <#component as simple_rsx::Component>::Props;
-                        let props = Props {
-                            #(#props_tokens)*
-                            #children_tokens
-                            #data_props
-                            #default_props
-                        };
-                        let render = {
-                            #use_element
+                        {
                             #close_tag
-                            <#name as simple_rsx::Component>::render(props)
-                        };
-                        render
+                            simple_rsx::dom::render_component::<#component>(
+                                move || Props {
+                                    #(#props_tokens)*
+                                    #children_tokens
+                                    #data_props
+                                    #default_props
+                                },
+                                move |_| {
+                                    #key
+                                },
+                            )
+                        }.unwrap()
                     }
                 }
             }
