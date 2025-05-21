@@ -334,32 +334,19 @@ impl Parse for RsxNode {
                 input.parse::<Token![-]>()?;
                 input.parse::<Token![-]>()?;
 
-                let mut last_end = 0;
-
                 let mut nodes = Vec::new();
                 while !(input.is_empty()
                     || input.peek(Token![-]) && input.peek2(Token![-]) && input.peek3(Token![>]))
                 {
                     let mut comment = String::new();
                     let token = input.parse::<proc_macro2::TokenTree>()?;
-                    let span_info = format!("{:?}", token.span());
-                    let (start, end) = parse_range(&span_info).unwrap_or((0, 0));
-                    let gap_size = start - last_end;
-                    if gap_size > 0 && last_end > 0 {
-                        last_end = end;
-                        comment.push_str(&" ".repeat(gap_size as usize));
-                    }
+                    comment.push(' ');
                     comment.push_str(&token.to_string());
-
                     nodes.push(LitStr::new(&comment, token.span()));
                 }
 
                 let token = input.parse::<Token![-]>()?;
-                let span_info = format!("{:?}", token.span());
-                let (start, _) = parse_range(&span_info).unwrap_or((0, 0));
-                if start > last_end {
-                    nodes.push(LitStr::new(" ", token.span()));
-                }
+                nodes.push(LitStr::new(" ", token.span()));
                 input.parse::<Token![-]>()?;
                 input.parse::<Token![>]>()?;
 

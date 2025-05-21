@@ -13,11 +13,16 @@ fn main() {
         let increment = move |_| {
             count.set(count.get() + 1);
         };
+        let decrement = move |_| {
+            count.set(count.get() - 1);
+        };
         rsx! {
             <div>
+                <!-- Counter header -->
                 <h1>Counter</h1>
                 <p>Count: {count.get()}</p>
                 <button on_click={increment}>Increment</button>
+                <button on_click={decrement}>Decrement</button>
             </div>
         }
     }
@@ -236,7 +241,7 @@ mod tests {
 
         let rsx = rsx!(
             <div>
-                <MyComponent message="">
+                <MyComponent message="Hello from mars">
                     <p>Some component</p>
                 </MyComponent>
             </div>
