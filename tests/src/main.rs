@@ -37,7 +37,7 @@ fn main() {
             println!("Effect running with value: {}", value);
 
             // This will cause the effect to keep running until stable
-            if value != 5 {
+            if value < 5 {
                 signal.set(value + 1); // Triggers re-run
             }
         });
@@ -133,7 +133,7 @@ mod tests {
             <div class="mixed">
                 <h1>Count: {count}</h1>
                 <p>Static text</p>
-                <>"Fragment inside"</>
+                <>Fragment inside</>
             </div>
         );
         assert_eq!(
@@ -157,13 +157,10 @@ mod tests {
     #[test]
     fn test_rsx_looping() {
         use simple_rsx::*;
-        let items = ["Item 1", "Item 2", "Item 3"];
+        let items = &["Item 1", "Item 2", "Item 3"];
         let list = rsx!(
             <ul>
-                {items.iter().map(|item| {
-                    let item = item.to_string();
-                    rsx!(<li>{item}</li>)
-                })}
+                {items.iter().map(|item| rsx!(<li>{item}</li>))}
             </ul>
         );
         assert_eq!(
@@ -175,11 +172,10 @@ mod tests {
     #[test]
     fn test_rsx_looping_with_index() {
         use simple_rsx::*;
-        let items = ["Item 1", "Item 2", "Item 3"];
+        let items = &["Item 1", "Item 2", "Item 3"];
         let list = rsx!(
             <ul>
                 {items.iter().enumerate().map(|(index, item)| {
-                    let item = item.to_string();
                     rsx!(<li key={index.to_string()}>{item}</li>)
                 })}
             </ul>

@@ -502,15 +502,8 @@ impl RsxNode {
             } => {
                 let is_element = name.to_string().starts_with(|c: char| !c.is_uppercase());
 
-                let key = props
-                    .iter()
-                    .filter(|(name, _)| name.to_string() == "key")
-                    .next()
-                    .map(|(name, value)| quote! {let #name = #value;});
-
                 let attrs = props
                     .iter() // filter out data- attributes for elements
-                    .filter(|(name, _)| name.to_string() != "key")
                     .map(|(name, value)| {
                         let value = value
                             .as_ref()
@@ -588,9 +581,7 @@ impl RsxNode {
                                     #data_props
                                     #default_props
                                 },
-                                move |_| {
-                                    #key
-                                },
+                                move |_| {},
                             )
                         }.unwrap()
                     }

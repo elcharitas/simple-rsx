@@ -92,7 +92,7 @@ let conditional = rsx!(
 );
 
 // List rendering
-let items = vec!["Item 1", "Item 2", "Item 3"];
+let items = &["Item 1", "Item 2", "Item 3"];
 let list = rsx!(
     <ul>
         {items.iter().map(|item| rsx!(<li>{item}</li>))}

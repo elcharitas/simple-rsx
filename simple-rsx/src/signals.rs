@@ -12,7 +12,7 @@ thread_local! {
     static CURRENT_SCOPE: RefCell<Option<usize>> = RefCell::new(None);
 
     // Track if we're currently inside a scope render
-    static RENDERING_SCOPE: RefCell<bool> = RefCell::new(false);
+    static RENDERING_SCOPE: RefCell<usize> = RefCell::new(0);
 
     // Store next scope ID
     static NEXT_SCOPE_ID: RefCell<usize> = RefCell::new(1);
@@ -196,8 +196,10 @@ impl<T: DynamicValue + PartialEq + Clone + 'static> Signal<T> {
         });
 
         if changed {
+            // Just collect the signal change, don't trigger re-renders yet
             SCOPE_SIGNAL_CHANGES.with(|changes| {
-                changes.borrow_mut().insert(self.id);
+                let mut changes = changes.borrow_mut();
+                changes.insert(self.id);
             });
         }
     }
@@ -214,13 +216,11 @@ impl<T: DynamicValue + PartialEq + Clone + 'static> Signal<T> {
         SIGNALS
             .with(|signals| {
                 if let Some(stored) = signals.borrow().get(&self.id) {
-                    if let Some(parsed) = stored
+                    return stored
                         .value
                         .as_any()
                         .and_then(|any| any.downcast_ref::<T>())
-                    {
-                        return Some(parsed.clone());
-                    }
+                        .map(|val| val.clone());
                 }
                 None
             })
@@ -297,27 +297,25 @@ fn schedule_dependent_scopes_for_rerender(signal_id: (usize, usize)) {
 }
 
 fn process_pending_renders() {
-    loop {
-        let scopes_to_render = PENDING_SCOPE_RENDERS.with(|pending| {
-            if let Ok(mut pending) = pending.try_borrow_mut() {
-                if pending.is_empty() {
-                    return Vec::new();
-                }
-                let scopes = pending.iter().copied().collect::<Vec<_>>();
-                pending.clear();
-                scopes
-            } else {
-                Vec::new()
+    let scopes_to_render = PENDING_SCOPE_RENDERS.with(|pending| {
+        if let Ok(mut pending) = pending.try_borrow_mut() {
+            if pending.is_empty() {
+                return Vec::new();
             }
-        });
-
-        if scopes_to_render.is_empty() {
-            break;
+            let scopes = pending.iter().copied().collect::<Vec<_>>();
+            pending.clear();
+            scopes
+        } else {
+            Vec::new()
         }
+    });
 
-        for scope_id in scopes_to_render {
-            render_scope(scope_id);
-        }
+    if scopes_to_render.is_empty() {
+        return;
+    }
+
+    for scope_id in scopes_to_render {
+        render_scope(scope_id);
     }
 }
 
@@ -366,7 +364,7 @@ fn render_scope(scope_id: usize) -> Option<Node> {
     // Set rendering flag and clear changes
     RENDERING_SCOPE.with(|flag| {
         if let Ok(mut flag) = flag.try_borrow_mut() {
-            *flag = true;
+            *flag = scope_id;
         }
     });
 
@@ -377,17 +375,12 @@ fn render_scope(scope_id: usize) -> Option<Node> {
     });
 
     // Execute the scope function
-    let node = SCOPE_FUNCTIONS.with(|scope_functions| {
+    let scope_fn = SCOPE_FUNCTIONS.with(|scope_functions| {
         let mut scope_functions = scope_functions.borrow_mut();
-        if let Some(fn_box) = scope_functions.remove(&scope_id) {
-            // Take and call the function
-            Some(fn_box)
-        } else {
-            None
-        }
+        scope_functions.remove(&scope_id)
     });
 
-    let node = node.and_then(|mut fn_box| {
+    let node = scope_fn.and_then(|mut fn_box| {
         let node = fn_box.call();
         // re insert the function
         SCOPE_FUNCTIONS.with(|scope_functions| {
@@ -423,7 +416,7 @@ fn render_scope(scope_id: usize) -> Option<Node> {
 
     RENDERING_SCOPE.with(|flag| {
         if let Ok(mut flag) = flag.try_borrow_mut() {
-            *flag = false;
+            *flag = 0;
         }
     });
 
@@ -431,6 +424,9 @@ fn render_scope(scope_id: usize) -> Option<Node> {
     for signal_id in signal_changes {
         schedule_dependent_scopes_for_rerender(signal_id);
     }
+
+    // Process any pending renders that might have been triggered
+    process_pending_renders();
 
     node
     // Guard will automatically restore previous scope when dropped
@@ -536,12 +532,7 @@ pub(crate) fn run_scope(
     });
 
     // Initial render of the scope
-    let node = render_scope(scope_id);
-
-    // Process any pending renders that might have been triggered
-    process_pending_renders();
-
-    node
+    render_scope(scope_id)
 }
 
 // Helper function to manually trigger all scopes to re-render (useful for debugging)

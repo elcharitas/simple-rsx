@@ -100,7 +100,10 @@
 //! let items = vec!["A", "B", "C"];
 //! let list = rsx!(
 //!     <ul>
-//!         {items.iter().map(|item| rsx!(<li>{item}</li>))}
+//!         {items.iter().map(|item| {
+//!             let item = item.to_string();
+//!             rsx!(<li>{item}</li>)
+//!         })}
 //!     </ul>
 //! );
 //! ```
@@ -159,7 +162,7 @@ pub mod signals;
 
 use indexmap::IndexMap;
 pub use simple_rsx_macros::{component, either, rsx};
-use std::fmt::Display;
+use std::{borrow::Cow, fmt::Display};
 
 /// A trait for converting values into HTML attribute strings.
 ///
@@ -209,7 +212,6 @@ impl<T: ToString> OptionAttribute for Option<T> {
     }
 }
 
-#[derive(Debug)]
 /// Represents an HTML element with its tag name, attributes, and children.
 ///
 /// Elements are the building blocks of the RSX tree structure. Each element
@@ -228,7 +230,8 @@ impl<T: ToString> OptionAttribute for Option<T> {
 /// );
 /// ```
 pub struct Element {
-    tag: String,
+    key: String,
+    tag: Cow<'static, str>,
     attributes: IndexMap<String, String>,
     children: Vec<Node>,
 }
@@ -244,11 +247,26 @@ impl Element {
     /// let element = Element::parse_tag("div");
     /// assert!(matches!(element, Node::Element(_)));
     /// ```
-    pub fn parse_tag(tag: &str) -> Node {
+    pub fn parse_tag(tag: &'static str) -> Node {
         Node::Element(Element {
-            tag: tag.to_string(),
+            tag: std::borrow::Cow::Borrowed(tag),
+            key: String::new(),
             attributes: IndexMap::new(),
             children: Vec::new(),
+        })
+    }
+
+    pub fn parse_tag_with_attributes(
+        key: &str,
+        tag: &'static str,
+        attributes: IndexMap<String, String>,
+        children: Vec<Node>,
+    ) -> Node {
+        Node::Element(Element {
+            tag: std::borrow::Cow::Borrowed(tag),
+            key: key.to_string(),
+            attributes,
+            children,
         })
     }
 
@@ -281,26 +299,9 @@ impl Element {
     pub fn append_child(&mut self, node: Node) {
         self.children.push(node);
     }
-}
 
-impl Node {
-    /// Attempts to get a mutable reference to the underlying Element if this node is an Element.
-    ///
-    /// Returns None if the node is not an Element (e.g., if it's Text or Fragment).
-    pub fn as_element_mut(&mut self) -> Option<&mut Element> {
-        match self {
-            Node::Element(el) => Some(el),
-            _ => None,
-        }
-    }
-
-    /// Adds a child node if this node is an Element.
-    ///
-    /// This method has no effect if the node is not an Element.
-    pub fn append_child(&mut self, node: Node) {
-        if let Node::Element(el) = self {
-            el.children.push(node);
-        }
+    pub fn key(&self) -> &str {
+        &self.key
     }
 }
 
@@ -346,7 +347,6 @@ pub struct PropWithChildren {
     pub children: Vec<Node>,
 }
 
-#[derive(Debug)]
 /// Represents a node in the RSX tree.
 ///
 /// Nodes are the fundamental building blocks of RSX. They can be:
@@ -374,6 +374,41 @@ pub enum Node {
     /// An HTML comment
     Comment(String),
     Empty,
+}
+
+impl Node {
+    /// Attempts to get a mutable reference to the underlying Element if this node is an Element.
+    ///
+    /// Returns None if the node is not an Element (e.g., if it's Text or Fragment).
+    pub fn as_element_mut(&mut self) -> Option<&mut Element> {
+        match self {
+            Node::Element(el) => Some(el),
+            _ => None,
+        }
+    }
+
+    pub fn as_element(&self) -> Option<&Element> {
+        match self {
+            Node::Element(el) => Some(el),
+            _ => None,
+        }
+    }
+
+    pub fn as_text(&self) -> Option<&str> {
+        match self {
+            Node::Text(text) => Some(text),
+            _ => None,
+        }
+    }
+
+    /// Adds a child node if this node is an Element.
+    ///
+    /// This method has no effect if the node is not an Element.
+    pub fn append_child(&mut self, node: Node) {
+        if let Node::Element(el) = self {
+            el.children.push(node);
+        }
+    }
 }
 
 impl From<String> for Node {
@@ -413,7 +448,7 @@ impl<T: ToString> From<Option<T>> for Node {
     fn from(value: Option<T>) -> Self {
         match value {
             Some(t) => Node::Text(t.to_string()),
-            _ => Node::Text("".to_string()),
+            _ => Node::Empty,
         }
     }
 }
@@ -502,20 +537,16 @@ where
     }
 }
 
-#[cfg(feature = "wasm")]
-pub struct EventCallback(Box<dyn FnMut(web_sys::EventTarget)>);
-
-#[cfg(feature = "wasm")]
-impl Default for EventCallback {
-    fn default() -> Self {
-        Self(Box::new(|_| {}))
-    }
-}
-
-#[cfg(feature = "wasm")]
-impl<T: Fn(web_sys::EventTarget) + 'static> From<T> for EventCallback {
-    fn from(value: T) -> Self {
-        Self(Box::new(value))
+impl<I, F, R> From<&std::iter::Map<I, F>> for Node
+where
+    I: Iterator + std::clone::Clone,
+    F: FnMut(I::Item) -> R + std::clone::Clone,
+    R: Into<Node>,
+    Vec<Node>: FromIterator<R>,
+{
+    fn from(iter: &std::iter::Map<I, F>) -> Self {
+        let nodes: Vec<Node> = <std::iter::Map<I, F> as Clone>::clone(&iter).collect();
+        Node::from(nodes)
     }
 }
 
@@ -584,6 +615,41 @@ fn sanitize_html(input: &str) -> String {
         };
     }
     result
+}
+
+#[cfg(feature = "wasm")]
+pub struct EventCallback(Box<dyn FnMut(web_sys::Event)>);
+
+#[cfg(feature = "wasm")]
+impl Default for EventCallback {
+    fn default() -> Self {
+        Self(Box::new(|_| {}))
+    }
+}
+
+#[cfg(feature = "wasm")]
+impl EventCallback {
+    pub fn new<F>(callback: F) -> Self
+    where
+        F: FnMut(web_sys::Event) + 'static,
+    {
+        Self(Box::new(callback))
+    }
+
+    pub fn call(&mut self, event: web_sys::Event) {
+        (self.0)(event)
+    }
+}
+
+// For convenience with Fn closures
+#[cfg(feature = "wasm")]
+impl<F> From<F> for EventCallback
+where
+    F: FnMut(web_sys::Event) + 'static,
+{
+    fn from(callback: F) -> Self {
+        Self::new(callback)
+    }
 }
 
 macro_rules! derive_elements {
@@ -873,11 +939,12 @@ macro_rules! derive_elements {
                     type Props = [<HTML $tag:camel Element Props>];
 
                     fn render(props: Self::Props) -> Node {
-                        Node::Element(Element {
-                            tag: stringify!($tag).to_string(),
-                            attributes: props.to_attributes(),
-                            children: props.children,
-                        })
+                        Element::parse_tag_with_attributes(
+                            &props.key,
+                            stringify!($tag),
+                            props.to_attributes(),
+                            props.children,
+                        )
                     }
                 }
             }
