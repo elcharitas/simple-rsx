@@ -15,7 +15,7 @@ impl WasmRender for crate::Element {
             let _ = mount.append_child(&element);
             for child in &self.children {
                 if let Some(el) = child.as_element() {
-                    if !el.key.is_empty() {
+                    if !el.key().is_empty() {
                         // cache by key
                     }
                     el.render(&element);
@@ -24,6 +24,10 @@ impl WasmRender for crate::Element {
                     let current_text = element.text_content().unwrap_or_default();
                     let _ = element.set_text_content(Some(&(current_text + text)));
                 }
+            }
+            // attach events
+            for (event_type, callback) in &self.events {
+                attach_event_handler(&element, event_type, callback.clone());
             }
             return Some(element);
         }

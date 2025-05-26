@@ -235,70 +235,29 @@ pub struct Element {
     tag: Cow<'static, str>,
     attributes: IndexMap<String, String>,
     children: Vec<Node>,
+    #[cfg(feature = "wasm")]
+    events: IndexMap<String, EventCallback>,
+    #[cfg(not(feature = "wasm"))]
+    #[allow(unused)]
+    events: IndexMap<String, String>,
 }
 
 impl Element {
-    /// Creates a new Element node with the specified tag name.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use simple_rsx::*;
-    ///
-    /// let element = Element::parse_tag("div");
-    /// assert!(matches!(element, Node::Element(_)));
-    /// ```
-    pub fn parse_tag(tag: &'static str) -> Node {
-        Node::Element(Element {
-            tag: std::borrow::Cow::Borrowed(tag),
-            key: String::new(),
-            attributes: IndexMap::new(),
-            children: Vec::new(),
-        })
-    }
-
     pub fn parse_tag_with_attributes(
         key: &str,
         tag: &'static str,
         attributes: IndexMap<String, String>,
+        #[cfg(feature = "wasm")] events: IndexMap<String, EventCallback>,
+        #[cfg(not(feature = "wasm"))] events: IndexMap<String, String>,
         children: Vec<Node>,
     ) -> Node {
         Node::Element(Element {
             tag: std::borrow::Cow::Borrowed(tag),
             key: key.to_string(),
             attributes,
+            events,
             children,
         })
-    }
-
-    /// Sets an attribute on the element.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use simple_rsx::*;
-    ///
-    /// let mut node = Element::parse_tag("div");
-    /// let mut element = node.as_element_mut().unwrap();
-    /// element.set_attribute("class", "container");
-    /// ```
-    pub fn set_attribute(&mut self, name: &str, value: impl Attribute) {
-        self.attributes.insert(name.to_string(), value.value());
-    }
-
-    /// Adds a child node to this element.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use simple_rsx::*;
-    ///
-    /// let mut parent_node = Element::parse_tag("div");
-    /// let mut parent = parent_node.as_element_mut().unwrap();
-    /// parent.append_child(Element::parse_tag("p"));
-    /// ```
-    pub fn append_child(&mut self, node: Node) {
-        self.children.push(node);
     }
 
     pub fn key(&self) -> &str {
@@ -618,7 +577,7 @@ fn sanitize_html(input: &str) -> String {
 }
 
 #[cfg(feature = "wasm")]
-pub struct EventCallback(Option<Box<dyn FnMut(web_sys::Event)>>);
+pub struct EventCallback(Option<std::rc::Rc<std::cell::RefCell<Box<dyn FnMut(web_sys::Event)>>>>);
 
 #[cfg(feature = "wasm")]
 impl Default for EventCallback {
@@ -633,7 +592,9 @@ impl EventCallback {
     where
         F: FnMut(web_sys::Event) + 'static,
     {
-        Self(Some(Box::new(callback)))
+        Self(Some(std::rc::Rc::new(std::cell::RefCell::new(Box::new(
+            callback,
+        )))))
     }
 
     pub fn has_callback(&self) -> bool {
@@ -642,8 +603,16 @@ impl EventCallback {
 
     pub fn call(&mut self, event: web_sys::Event) {
         if let Some(cb) = &mut self.0 {
+            let mut cb = cb.borrow_mut();
             cb(event);
         }
+    }
+}
+
+#[cfg(feature = "wasm")]
+impl Clone for EventCallback {
+    fn clone(&self) -> Self {
+        Self(self.0.clone())
     }
 }
 
@@ -939,6 +908,49 @@ macro_rules! derive_elements {
 
                         attributes
                     }
+                    #[cfg(feature = "wasm")]
+                    fn get_events(&self) -> IndexMap<String, EventCallback> {
+                        let mut events = IndexMap::new();
+                        if self.on_click.has_callback() {
+                            events.insert("click".to_string(), self.on_click.clone());
+                        }
+                        if self.on_keydown.has_callback() {
+                            events.insert("keydown".to_string(), self.on_keydown.clone());
+                        }
+                        if self.on_keyup.has_callback() {
+                            events.insert("keyup".to_string(), self.on_keyup.clone());
+                        }
+                        if self.on_keypress.has_callback() {
+                            events.insert("keypress".to_string(), self.on_keypress.clone());
+                        }
+                        if self.on_focus.has_callback() {
+                            events.insert("focus".to_string(), self.on_focus.clone());
+                        }
+                        if self.on_blur.has_callback() {
+                            events.insert("blur".to_string(), self.on_blur.clone());
+                        }
+                        if self.on_change.has_callback() {
+                            events.insert("change".to_string(), self.on_change.clone());
+                        }
+                        if self.on_input.has_callback() {
+                            events.insert("input".to_string(), self.on_input.clone());
+                        }
+                        if self.on_submit.has_callback() {
+                            events.insert("submit".to_string(), self.on_submit.clone());
+                        }
+                        if self.on_reset.has_callback() {
+                            events.insert("reset".to_string(), self.on_reset.clone());
+                        }
+                        if self.on_mouseover.has_callback() {
+                            events.insert("mouseover".to_string(), self.on_mouseover.clone());
+                        }
+                        events
+                    }
+                    #[cfg(not(feature = "wasm"))]
+                    fn get_events(&self) -> IndexMap<String, String> {
+                        IndexMap::new()
+                    }
+
                 }
 
                 impl Component for $tag {
@@ -949,6 +961,7 @@ macro_rules! derive_elements {
                             &props.key,
                             stringify!($tag),
                             props.to_attributes(),
+                            props.get_events(),
                             props.children.clone(),
                         )
                     }
