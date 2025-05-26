@@ -11,19 +11,19 @@ struct CounterProps {
 
 #[component]
 fn Counter(CounterProps { count, .. }: &CounterProps) -> Node {
-    // let increment = move |_| {
-    //     count.set(count.get() + 1);
-    // };
-    // let decrement = move |_| {
-    //     count.set(count.get() - 1);
-    // };
+    let increment = move |_| {
+        count.set(count.get() + 1);
+    };
+    let decrement = move |_| {
+        count.set(count.get() - 1);
+    };
     rsx! {
         <div>
             <!-- Counter header -->
             <h1>Counter</h1>
             <p>Count: {count.get()}</p>
-            <button>Increment</button>
-            <button>Decrement</button>
+            <button on_click={increment}>Increment</button>
+            <button on_click={decrement}>Decrement</button>
         </div>
     }
 }

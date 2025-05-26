@@ -139,17 +139,22 @@ pub fn component(_attr: TokenStream, input: TokenStream) -> TokenStream {
         panic!("Components can only take a single prop as input");
     }
 
-    let prop_type = inputs
+    let prop_ty = inputs
         .iter()
         .map(|input| match input {
             FnArg::Typed(PatType { ty, .. }) => match &**ty {
-                Type::Reference(TypeReference { elem, .. }) => quote! {type Props = #elem;},
-                _ => quote! {type Props = #ty;},
+                Type::Reference(TypeReference { elem, .. }) => elem,
+                _ => ty,
             },
             _ => panic!("Only typed inputs are supported"),
         })
-        .next()
-        .unwrap_or_else(|| quote! {type Props = simple_rsx::PropWithChildren;});
+        .next();
+
+    let prop_type = if let Some(prop_ty) = prop_ty {
+        quote! {type Props = #prop_ty;}
+    } else {
+        quote! {type Props = simple_rsx::PropWithChildren;}
+    };
 
     if inputs.is_empty() {
         inputs.push(FnArg::Typed(PatType {
