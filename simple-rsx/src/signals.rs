@@ -23,7 +23,7 @@ thread_local! {
     // Track signals that changed during current scope execution (for batching)
     static SCOPE_SIGNAL_CHANGES: RefCell<HashSet<(usize, usize)>> = RefCell::new(HashSet::new());
 
-    static SIGNALS: RefCell<HashMap<(usize, usize), SignalValue>> = RefCell::new(HashMap::new());
+    static SIGNALS: RefCell<HashMap<(usize, usize), StoredValue>> = RefCell::new(HashMap::new());
 
     // Store scope functions that can be re-executed
     static SCOPE_FUNCTIONS: RefCell<HashMap<usize, Box<dyn FnMut() -> Node>>> = RefCell::new(HashMap::new());
@@ -46,135 +46,141 @@ thread_local! {
     static PENDING_SCOPE_RENDERS: RefCell<HashSet<usize>> = RefCell::new(HashSet::new());
 }
 
-pub trait DynamicValue {
+pub trait SignalValue {
     fn as_any(&self) -> Option<&dyn std::any::Any>;
 }
 
-impl DynamicValue for String {
+impl SignalValue for String {
     fn as_any(&self) -> Option<&dyn std::any::Any> {
         Some(self)
     }
 }
 
-impl DynamicValue for &'static str {
+impl SignalValue for &'static str {
     fn as_any(&self) -> Option<&dyn std::any::Any> {
         Some(self)
     }
 }
 
-impl DynamicValue for i64 {
+impl SignalValue for i64 {
     fn as_any(&self) -> Option<&dyn std::any::Any> {
         Some(self)
     }
 }
 
-impl DynamicValue for i128 {
+impl SignalValue for i128 {
     fn as_any(&self) -> Option<&dyn std::any::Any> {
         Some(self)
     }
 }
 
-impl DynamicValue for i16 {
+impl SignalValue for i16 {
     fn as_any(&self) -> Option<&dyn std::any::Any> {
         Some(self)
     }
 }
 
-impl DynamicValue for i32 {
+impl SignalValue for i32 {
     fn as_any(&self) -> Option<&dyn std::any::Any> {
         Some(self)
     }
 }
 
-impl DynamicValue for i8 {
+impl SignalValue for i8 {
     fn as_any(&self) -> Option<&dyn std::any::Any> {
         Some(self)
     }
 }
 
-impl DynamicValue for usize {
+impl SignalValue for usize {
     fn as_any(&self) -> Option<&dyn std::any::Any> {
         Some(self)
     }
 }
 
-impl DynamicValue for u64 {
+impl SignalValue for u64 {
     fn as_any(&self) -> Option<&dyn std::any::Any> {
         Some(self)
     }
 }
 
-impl DynamicValue for u128 {
+impl SignalValue for u128 {
     fn as_any(&self) -> Option<&dyn std::any::Any> {
         Some(self)
     }
 }
 
-impl DynamicValue for u16 {
+impl SignalValue for u16 {
     fn as_any(&self) -> Option<&dyn std::any::Any> {
         Some(self)
     }
 }
 
-impl DynamicValue for u32 {
+impl SignalValue for u32 {
     fn as_any(&self) -> Option<&dyn std::any::Any> {
         Some(self)
     }
 }
 
-impl DynamicValue for u8 {
+impl SignalValue for u8 {
     fn as_any(&self) -> Option<&dyn std::any::Any> {
         Some(self)
     }
 }
 
-impl DynamicValue for f64 {
+impl SignalValue for f64 {
     fn as_any(&self) -> Option<&dyn std::any::Any> {
         Some(self)
     }
 }
 
-impl DynamicValue for f32 {
+impl SignalValue for f32 {
     fn as_any(&self) -> Option<&dyn std::any::Any> {
         Some(self)
     }
 }
 
-impl DynamicValue for bool {
+impl SignalValue for bool {
     fn as_any(&self) -> Option<&dyn std::any::Any> {
         Some(self)
     }
 }
 
-impl DynamicValue for char {
+impl SignalValue for char {
     fn as_any(&self) -> Option<&dyn std::any::Any> {
         Some(self)
     }
 }
 
-impl DynamicValue for () {
+impl SignalValue for () {
     fn as_any(&self) -> Option<&dyn std::any::Any> {
         Some(self)
     }
 }
 
-impl<T: DynamicValue + 'static> DynamicValue for Option<T> {
+impl<T: SignalValue + 'static> SignalValue for Option<T> {
     fn as_any(&self) -> Option<&dyn std::any::Any> {
         Some(self)
     }
 }
 
 #[derive(Clone, Copy, Debug)]
+/// A signal that can be used to store and update values
+/// 
+/// Signals are used to store and update values that can be used in the render function.
+/// Signals are created with the [`create_signal`] function.
+/// Signals can be updated with the `set` function.
+/// Signals can be read with the `get` function.
 pub struct Signal<T> {
     id: (usize, usize),
     _marker: std::marker::PhantomData<T>,
 }
 
-struct SignalValue {
-    value: Box<dyn DynamicValue>,
+struct StoredValue {
+    value: Box<dyn SignalValue>,
 }
 
-impl<T: DynamicValue + PartialEq + Clone + 'static> Signal<T> {
+impl<T: SignalValue + PartialEq + Clone + 'static> Signal<T> {
     pub fn set(&self, value: T) {
         let mut changed = false;
         // Update the signal value
@@ -188,7 +194,7 @@ impl<T: DynamicValue + PartialEq + Clone + 'static> Signal<T> {
                     .or(Some(false))
                 {
                     if should_update {
-                        *stored = SignalValue {
+                        *stored = StoredValue {
                             value: Box::new(value),
                         };
                         changed = true;
@@ -207,7 +213,7 @@ impl<T: DynamicValue + PartialEq + Clone + 'static> Signal<T> {
     }
 }
 
-impl<T: DynamicValue + PartialEq + Clone + 'static> Signal<T> {
+impl<T: SignalValue + PartialEq + Clone + 'static> Signal<T> {
     pub fn get(&self) -> T {
         if let Some(current_scope) = get_current_scope() {
             // Track both signal->scope and scope->signal dependencies
@@ -439,7 +445,24 @@ fn run_scope_effects(scope_id: usize) {
     });
 }
 
-pub fn create_signal<T: DynamicValue + PartialEq + 'static>(initial_value: T) -> Signal<T> {
+/// Create a new signal
+///
+/// # Example
+///
+/// ```rust
+/// use simple_rsx::*;
+///
+/// fn main() {
+///     let count = create_signal(0);
+///
+///     println!("{:?}", count.get());
+/// }
+/// ```
+///
+/// # Panics
+///
+/// Panics if called outside of a rendering scope
+pub fn create_signal<T: SignalValue + PartialEq + 'static>(initial_value: T) -> Signal<T> {
     let scope_id = get_current_scope()
         .ok_or(SignalCreationError::OutsideScope)
         .unwrap();
@@ -454,7 +477,7 @@ pub fn create_signal<T: DynamicValue + PartialEq + 'static>(initial_value: T) ->
         if signals.borrow_mut().get_mut(&signal.id).is_none() {
             signals.borrow_mut().insert(
                 signal.id,
-                SignalValue {
+                StoredValue {
                     value: Box::new(initial_value),
                 },
             );
