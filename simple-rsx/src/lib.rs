@@ -451,7 +451,7 @@ where
     Node: From<T>,
 {
     fn from(value: &Vec<T>) -> Self {
-        Node::from(value.clone())
+        Node::Fragment(value.clone().into_iter().map(|t| Node::from(t)).collect())
     }
 }
 

@@ -10,7 +10,8 @@ struct CounterProps {
 }
 
 #[component]
-fn Counter(CounterProps { count, .. }: &CounterProps) -> Node {
+fn Counter(CounterProps { count, children }: &CounterProps) -> Node {
+    let count = count.clone(); // this is zero-copy because it's a signal
     let increment = move |_| {
         count.set(count.get() + 1);
     };
@@ -24,6 +25,7 @@ fn Counter(CounterProps { count, .. }: &CounterProps) -> Node {
             <p>Count: {count.get()}</p>
             <button on_click={increment}>Increment</button>
             <button on_click={decrement}>Decrement</button>
+            {children}
         </div>
     }
 }
