@@ -5,9 +5,6 @@ use std::sync::Arc;
 use crate::Node;
 
 thread_local! {
-    // Track the stack of active scopes
-    static SCOPE_STACK: RefCell<Vec<usize>> = RefCell::new(Vec::new());
-
     // Track the current scope being executed
     static CURRENT_SCOPE: RefCell<Option<usize>> = RefCell::new(None);
 
@@ -274,14 +271,6 @@ fn set_current_scope(scope_id: Option<usize>) {
     CURRENT_SCOPE.with(|scope| {
         *scope.borrow_mut() = scope_id;
     });
-    if let Some(id) = scope_id {
-        SCOPE_STACK.with(|stack| {
-            let mut stack = stack.borrow_mut();
-            if !stack.contains(&id) {
-                stack.push(id);
-            }
-        });
-    }
 }
 
 fn get_next_signal_id_for_scope(scope_id: usize) -> usize {

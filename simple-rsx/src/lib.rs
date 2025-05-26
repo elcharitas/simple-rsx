@@ -1093,7 +1093,7 @@ pub mod elements {
             /// Example: hreflang="en" (English)
             hreflang: String,
             /// The type attribute specifies the media type of the linked document
-            /// Example: type="text/html"
+            /// Example: type_="text/html"
             type_: String,
             /// The media attribute specifies what media/device the linked document is optimized for
             /// Example: media="print" (for print stylesheets)
@@ -1193,7 +1193,7 @@ pub mod elements {
         /// ```<ul><li>Item 1</li><li>Item 2</li></ul>```
         ul {
             /// The type attribute specifies the bullet style (disc, circle, square)
-            /// Example: type="square"
+            /// Example: type_="square"
             type_: String,
         }
 
@@ -1212,10 +1212,10 @@ pub mod elements {
         ///
         /// Example:
         ///
-        /// ```<ol start="5" type="A"><li>Item E</li><li>Item F</li></ol>```
+        /// ```<ol start="5" type_="A"><li>Item E</li><li>Item F</li></ol>```
         ol {
             /// The type attribute specifies the numbering type (1, A, a, I, i)
-            /// Example: type="A" (uses capital letters)
+            /// Example: type_="A" (uses capital letters)
             type_: String,
             /// The start attribute specifies the start value of the list
             /// Example: start="5" (starts counting from 5)
@@ -1318,7 +1318,7 @@ pub mod elements {
         ///
         /// Example:
         ///
-        /// ```<form action="/submit" method="post"><input type="text"><button type="submit">Submit</button></form>```
+        /// ```<form action="/submit" method="post"><input type_="text"><button type_="submit">Submit</button></form>```
         form {
             /// The action attribute specifies where to send form data when submitted
             ///
@@ -1356,11 +1356,11 @@ pub mod elements {
         ///
         /// Example:
         ///
-        /// ```<input type="text" placeholder="Enter your name" required>```
+        /// ```<input type_="text" placeholder="Enter your name" required>```
         input {
             /// The type attribute specifies the input type (text, password, email, etc.)
             ///
-            /// Example: type="email" (validates as email address)
+            /// Example: type_="email" (validates as email address)
             type_: String,
             /// The placeholder attribute shows hint text when field is empty
             ///
@@ -1443,10 +1443,10 @@ pub mod elements {
         ///
         /// Example:
         ///
-        /// ```<button type="submit">Click Me</button>```
+        /// ```<button type_="submit">Click Me</button>```
         button {
             /// The type attribute specifies button function (submit, reset, button)
-            /// Example: type="submit" (submits the form)
+            /// Example: type_="submit" (submits the form)
             type_: String,
             /// The value attribute specifies the value associated with the button
             /// Example: value="btn1" (for form processing)
@@ -1512,10 +1512,10 @@ pub mod elements {
         ///
         /// Example:
         ///
-        /// ```<label for="username">Username:</label><input id="username">```
+        /// ```<label for_="username">Username:</label><input id="username">```
         label {
             /// The for attribute connects the label to a form control by ID
-            /// Example: for="email" (associates with input having id="email")
+            /// Example: for_="email" (associates with input having id="email")
             for_: String,
         }
 
@@ -1558,7 +1558,7 @@ pub mod elements {
             /// Example: autoplay (video plays when page loads)
             autoplay: Option<bool>,
             /// The loop attribute makes the video replay when finished
-            /// Example: loop (continuously replays)
+            /// Example: loop_ (continuously replays)
             loop_: Option<bool>,
             /// The poster attribute specifies an image shown before video plays
             /// Example: poster="thumbnail.jpg"
@@ -1604,13 +1604,13 @@ pub mod elements {
         ///
         /// Example:
         ///
-        /// ```<video><source src="movie.mp4" type="video/mp4"><source src="movie.webm" type="video/webm"></video>```
+        /// ```<video><source src="movie.mp4" type_="video/mp4"><source src="movie.webm" type_="video/webm"></video>```
         source {
             /// The src attribute specifies URL/path of the media resource
             /// Example: src="audio/song.ogg"
             src: String,
             /// The type attribute specifies the MIME type of the resource
-            /// Example: type="video/webm" (defines file format)
+            /// Example: type_="video/webm" (defines file format)
             type_: String,
             /// The media attribute specifies for which media the resource is intended
             /// Example: media="(min-width: 600px)" (responsive resources)
@@ -2237,7 +2237,7 @@ pub mod elements {
         ///
         /// Example:
         ///
-        /// ```<form><input type="number" id="num1" /><input type="number" id="num2" /><button>Calculate</button><output id="result"></output></form>```
+        /// ```<form><input type_="number" id="num1" /><input type_="number" id="num2" /><button>Calculate</button><output id="result"></output></form>```
         output {
         }
 
@@ -2371,7 +2371,7 @@ pub mod elements {
         ///
         /// Example:
         ///
-        /// ```<fieldset><legend>Personal Information</legend><input type="text" name="name" /><input type="email" name="email" /></fieldset>```
+        /// ```<fieldset><legend>Personal Information</legend><input type_="text" name="name" /><input type_="email" name="email" /></fieldset>```
         legend {
         }
 
