@@ -302,7 +302,7 @@ pub trait Component {
     fn render(props: &Self::Props) -> Node;
 }
 
-#[derive(Default, Clone)]
+#[derive(Default)]
 pub struct PropWithChildren {
     pub children: Vec<Node>,
 }

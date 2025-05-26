@@ -35,17 +35,6 @@ fn Counter(CounterProps { count, children }: &CounterProps) -> Node {
 fn App() -> Node {
     let count = create_signal(0);
 
-    // Create effect directly - no run_scope wrapper needed
-    create_effect(move || {
-        let value = count.get();
-        println!("Effect running with value: {}", value);
-
-        // This will cause the effect to keep running until stable
-        if value < 5 {
-            count.set(value + 1); // Triggers re-run
-        }
-    });
-
     rsx! {
         <div>
             <h1>Hello World</h1>

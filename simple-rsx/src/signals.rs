@@ -209,6 +209,10 @@ impl<T: SignalValue + PartialEq + Clone + 'static> Signal<T> {
                 let mut changes = changes.borrow_mut();
                 changes.insert(self.id);
             });
+            let current_scope = get_current_scope();
+            if current_scope.is_none() {
+                render_scope(self.id.0);
+            }
         }
     }
 
