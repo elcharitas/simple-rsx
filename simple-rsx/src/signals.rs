@@ -166,11 +166,11 @@ impl<T: SignalValue + 'static> SignalValue for Option<T> {
 
 #[derive(Clone, Copy, Debug)]
 /// A signal that can be used to store and update values
-/// 
+///
 /// Signals are used to store and update values that can be used in the render function.
 /// Signals are created with the [`create_signal`] function.
-/// Signals can be updated with the `set` function.
-/// Signals can be read with the `get` function.
+/// Signals can be updated with the [`Signal::set`] function.
+/// Signals can be read with the [`Signal::get`] function.
 pub struct Signal<T> {
     id: (usize, usize),
     _marker: std::marker::PhantomData<T>,
@@ -181,6 +181,9 @@ struct StoredValue {
 }
 
 impl<T: SignalValue + PartialEq + Clone + 'static> Signal<T> {
+    /// Set the value of the signal
+    ///
+    /// The signal will be updated if there's a change in the value and a re-render will be triggered.
     pub fn set(&self, value: T) {
         let mut changed = false;
         // Update the signal value
@@ -211,9 +214,7 @@ impl<T: SignalValue + PartialEq + Clone + 'static> Signal<T> {
             });
         }
     }
-}
 
-impl<T: SignalValue + PartialEq + Clone + 'static> Signal<T> {
     pub fn get(&self) -> T {
         if let Some(current_scope) = get_current_scope() {
             // Track both signal->scope and scope->signal dependencies
