@@ -30,7 +30,7 @@ A lightweight and intuitive JSX-like syntax implementation for Rust, enabling HT
 - [x] Props binding
 - [x] State management (powered by signals)
 - [x] Lifecycle hooks (create_effect to handle side effects)
-- [ ] Event handling
+- [x] Event handling
 - [x] Server-side rendering
 
 ## Installation

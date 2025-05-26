@@ -93,7 +93,7 @@ where
 }
 
 #[cfg(feature = "wasm")]
-pub fn attach_event_handler(
+fn attach_event_handler(
     element: &web_sys::Element,
     event_type: &str,
     mut callback: crate::EventCallback,

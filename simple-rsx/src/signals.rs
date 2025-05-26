@@ -439,7 +439,18 @@ fn run_scope_effects(scope_id: usize) {
     });
 }
 
-/// Create a new signal
+pub enum SignalInit<T> {
+    Value(T),
+    InitFn(Box<dyn Fn() -> T + 'static>),
+}
+
+impl<T: SignalValue> From<T> for SignalInit<T> {
+    fn from(value: T) -> Self {
+        SignalInit::Value(value)
+    }
+}
+
+/// Create a new signal with either a value or an initializer function
 ///
 /// # Example
 ///
@@ -447,16 +458,21 @@ fn run_scope_effects(scope_id: usize) {
 /// use simple_rsx::*;
 ///
 /// fn main() {
+///     // Direct value
 ///     let count = create_signal(0);
-///
-///     println!("{:?}", count.get());
+///     
+///     // Using an initializer function
+///     let expensive = create_signal(|| {
+///         println!("Computing...");
+///         42
+///     });
 /// }
 /// ```
-///
-/// # Panics
-///
-/// Panics if called outside of a rendering scope
-pub fn create_signal<T: SignalValue + PartialEq + 'static>(initial_value: T) -> Signal<T> {
+pub fn create_signal<T, I>(init: I) -> Signal<T>
+where
+    T: SignalValue + PartialEq + 'static,
+    I: Into<SignalInit<T>>,
+{
     let scope_id = get_current_scope()
         .ok_or(SignalCreationError::OutsideScope)
         .unwrap();
@@ -469,6 +485,10 @@ pub fn create_signal<T: SignalValue + PartialEq + 'static>(initial_value: T) -> 
 
     SIGNALS.with(|signals| {
         if signals.borrow_mut().get_mut(&signal.id).is_none() {
+            let initial_value = match init.into() {
+                SignalInit::Value(v) => v,
+                SignalInit::InitFn(f) => f(),
+            };
             signals.borrow_mut().insert(
                 signal.id,
                 StoredValue {
