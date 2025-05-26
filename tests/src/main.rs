@@ -4,14 +4,13 @@ use simple_rsx::rsx;
 use simple_rsx::signals::*;
 use simple_rsx::{Node, component, dom::render_component};
 
-#[derive(Clone)]
 struct CounterProps {
     count: Signal<i32>,
     children: Vec<Node>,
 }
 
 #[component]
-fn Counter(CounterProps { count, .. }: CounterProps) -> Node {
+fn Counter(CounterProps { count, .. }: &CounterProps) -> Node {
     // let increment = move |_| {
     //     count.set(count.get() + 1);
     // };
@@ -59,7 +58,7 @@ fn main() {
         message: String,
     }
     #[component]
-    fn MyComponent(Props { children, message }: Props) -> Node {
+    fn MyComponent(Props { children, message }: &Props) -> Node {
         println!("{}", message);
         rsx!(<div>{children}</div>)
     }
@@ -232,7 +231,6 @@ mod tests {
 
         struct MyComponent;
 
-        #[derive(Clone)]
         struct Props {
             message: String,
             children: Vec<Node>, // always required in components
@@ -240,9 +238,9 @@ mod tests {
 
         impl Component for MyComponent {
             type Props = Props;
-            fn render(props: Self::Props) -> Node {
+            fn render(props: &Self::Props) -> Node {
                 println!("{}", props.message);
-                rsx!(<div>{props.children}</div>)
+                rsx!(<div>{props.children.clone()}</div>)
             }
         }
 
@@ -263,14 +261,13 @@ mod tests {
     fn test_fn_component_rendering_with_props() {
         use simple_rsx::*;
 
-        #[derive(Clone)]
         struct Props {
             message: String,
             children: Vec<Node>, // always required in components
         }
 
         #[component]
-        fn MyComponent(Props { children, message }: Props) -> Node {
+        fn MyComponent(Props { children, message }: &Props) -> Node {
             println!("{}", message);
             rsx!(<div>{children}</div>)
         }

@@ -82,7 +82,7 @@ pub fn render_component<C: Component>(
     callback: impl Fn(&Node) + 'static,
 ) -> Option<Node>
 where
-    <C as Component>::Props: Clone + 'static,
+    <C as Component>::Props: 'static,
 {
-    run_scope(move || C::render(props.clone()), callback)
+    run_scope(move || C::render(&props), callback)
 }

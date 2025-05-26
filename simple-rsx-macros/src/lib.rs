@@ -9,7 +9,7 @@ use syn::{
     parse_macro_input, parse_quote,
     token::{Brace, Not},
 };
-use syn::{FnArg, PatType, Signature, Stmt};
+use syn::{FnArg, PatType, Signature, Stmt, Type, TypeReference};
 
 /// A procedural macro that provides JSX-like syntax for creating HTML elements in Rust.
 ///
@@ -142,7 +142,10 @@ pub fn component(_attr: TokenStream, input: TokenStream) -> TokenStream {
     let prop_type = inputs
         .iter()
         .map(|input| match input {
-            FnArg::Typed(PatType { ty, .. }) => quote! {type Props = #ty;},
+            FnArg::Typed(PatType { ty, .. }) => match &**ty {
+                Type::Reference(TypeReference { elem, .. }) => quote! {type Props = #elem;},
+                _ => quote! {type Props = #ty;},
+            },
             _ => panic!("Only typed inputs are supported"),
         })
         .next()
@@ -153,7 +156,7 @@ pub fn component(_attr: TokenStream, input: TokenStream) -> TokenStream {
             attrs: Vec::new(),
             pat: parse_quote!(_),
             colon_token: Colon::default(),
-            ty: parse_quote!(Self::Props),
+            ty: parse_quote!(&Self::Props),
         }));
     }
 
