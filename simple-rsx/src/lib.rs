@@ -1084,6 +1084,28 @@ pub mod elements {
         span {
         }
 
+        /// HTML `<b>` element - Represents bold text
+        ///
+        /// Example:
+        ///
+        /// ```<b>Bold text</b>```
+        b {}
+        /// HTML `<pre>` element - Represents preformatted text
+        ///
+        /// Example:
+        ///
+        /// ```<pre>
+        ///     This is
+        ///     preformatted
+        ///     text.
+        /// </pre>```
+        pre {}
+        /// HTML `<code>` element - Represents a piece of computer code
+        ///
+        /// Example:
+        ///
+        /// ```<code>let x = 5;</code>```
+        code {}
         /// HTML `<a>` element - Creates a hyperlink to other web pages or resources
         ///
         /// Example:

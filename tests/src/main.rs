@@ -24,8 +24,8 @@ fn Counter(CounterProps { count, children }: &CounterProps) -> Node {
             <!-- Counter header -->
             <h1>Counter</h1>
             <p>Count: {count.get()}</p>
-            <button on_click={increment}>Increment</button>
-            <button on_click={decrement}>Decrement</button>
+            <button type_="button" on_click={increment}>Increment</button>
+            <button type_="button" on_click={decrement}>Decrement</button>
             {children}
         </div>
     }

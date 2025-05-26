@@ -25,6 +25,10 @@ impl WasmRender for crate::Element {
                     let _ = element.set_text_content(Some(&(current_text + text)));
                 }
             }
+            // add attributes
+            for (key, value) in &self.attributes {
+                let _ = element.set_attribute(key, value);
+            }
             // attach events
             for (event_type, callback) in &self.events {
                 attach_event_handler(&element, event_type, callback.clone());

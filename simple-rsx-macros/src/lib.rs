@@ -87,7 +87,7 @@ impl Either {
             .false_value
             .as_ref()
             .map(|v| v.to_tokens())
-            .or_else(|| Some(quote! {simple_rsx::Node::Fragment(vec![])}));
+            .or_else(|| Some(quote! {::simple_rsx::Node::Fragment(vec![])}));
         let true_value = self.true_value.to_tokens();
 
         quote! {
@@ -153,7 +153,7 @@ pub fn component(_attr: TokenStream, input: TokenStream) -> TokenStream {
     let prop_type = if let Some(prop_ty) = prop_ty {
         quote! {type Props = #prop_ty;}
     } else {
-        quote! {type Props = simple_rsx::PropWithChildren;}
+        quote! {type Props = ::simple_rsx::PropWithChildren;}
     };
 
     if inputs.is_empty() {
@@ -168,7 +168,7 @@ pub fn component(_attr: TokenStream, input: TokenStream) -> TokenStream {
     let expanded = quote! {
         #vis #(#attrs)* struct #ident;
 
-        impl simple_rsx::Component for #ident {
+        impl ::simple_rsx::Component for #ident {
             #prop_type
             #fn_token render(#inputs) #output #block
         }
@@ -560,7 +560,7 @@ impl RsxNode {
                     children: vec![#(#child_tokens),*],
                 };
 
-                let use_element = is_element.then(|| quote! {use simple_rsx::elements::#name;});
+                let use_element = is_element.then(|| quote! {use ::simple_rsx::elements::#name;});
                 let close_tag = close_tag.as_ref().map(|close_tag| {
                     quote! {
                         {
@@ -574,15 +574,15 @@ impl RsxNode {
                 let component = if !is_element {
                     quote! { #name }
                 } else {
-                    quote! { simple_rsx::elements::#name }
+                    quote! { ::simple_rsx::elements::#name }
                 };
 
                 quote! {
                     {
-                        type Props = <#component as simple_rsx::Component>::Props;
+                        type Props = <#component as ::simple_rsx::Component>::Props;
                         {
                             #close_tag
-                            simple_rsx::dom::render_component::<#component>(
+                            ::simple_rsx::dom::render_component::<#component>(
                                 Props {
                                     #(#props_tokens)*
                                     #children_tokens
@@ -600,30 +600,30 @@ impl RsxNode {
 
                 quote! {
                     {
-                        simple_rsx::Node::Fragment(vec![#(#children_tokens),*])
+                        ::simple_rsx::Node::Fragment(vec![#(#children_tokens),*])
                     }
                 }
             }
             RsxNode::Text(expr) => {
                 quote! {
                     {
-                        simple_rsx::Node::from(#expr)
+                        ::simple_rsx::Node::from(#expr)
                     }
                 }
             }
             RsxNode::Empty => {
                 quote! {
-                    simple_rsx::Node::Empty
+                    ::simple_rsx::Node::Empty
                 }
             }
             RsxNode::Comment(expr) => {
                 quote! {
-                    simple_rsx::Node::Comment(#expr)
+                    ::simple_rsx::Node::Comment(#expr)
                 }
             }
             RsxNode::Block(block) => {
                 quote! {
-                    simple_rsx::Node::from(#block)
+                    ::simple_rsx::Node::from(#block)
                 }
             }
         }
