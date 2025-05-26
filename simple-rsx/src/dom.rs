@@ -20,9 +20,10 @@ impl WasmRender for crate::Element {
                     }
                     el.render(&element);
                 }
-                // if let Some(text) = child.as_text() {
-                //     let _ = element.set_text_content(Some(text));
-                // }
+                if let Some(text) = child.as_text() {
+                    let current_text = element.text_content().unwrap_or_default();
+                    let _ = element.set_text_content(Some(&(current_text + text)));
+                }
             }
             return Some(element);
         }
@@ -46,16 +47,18 @@ where
     <C as Component>::Props: Default,
     <C as Component>::Props: Clone + 'static,
 {
-    loop {
-        render_component::<C>(Default::default(), move |node| {
-            let window = web_sys::window().expect("no global `window` exists");
-            let document = window.document().expect("should have a document on window");
-            let mount_point = document
-                .get_element_by_id(&element_id)
-                .expect("couldn't find element");
-            node.render(&mount_point);
-        });
-    }
+    render_component::<C>(Default::default(), move |node| {
+        let window = web_sys::window().expect("no global `window` exists");
+        let document = window.document().expect("should have a document on window");
+        let mount_point = document
+            .get_element_by_id(&element_id)
+            .expect("couldn't find element");
+        // clear mount point
+        while let Some(child) = mount_point.first_child() {
+            mount_point.remove_child(&child).ok();
+        }
+        node.render(&mount_point);
+    });
 }
 
 #[cfg(feature = "wasm")]

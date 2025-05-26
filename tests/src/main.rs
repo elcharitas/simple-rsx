@@ -1,8 +1,9 @@
 #![allow(unused_braces)]
 
+use simple_rsx::dom::render_root;
 use simple_rsx::rsx;
 use simple_rsx::signals::*;
-use simple_rsx::{Node, component, dom::render_component};
+use simple_rsx::{Node, component};
 
 struct CounterProps {
     count: Signal<i32>,
@@ -55,18 +56,7 @@ fn App() -> Node {
 
 // Example Usage
 fn main() {
-    struct Props {
-        children: Vec<Node>,
-        message: String,
-    }
-    #[component]
-    fn MyComponent(Props { children, message }: &Props) -> Node {
-        println!("{}", message);
-        rsx!(<div>{children}</div>)
-    }
-    render_component::<App>(Default::default(), |node| {
-        println!("{}", node.to_string());
-    });
+    render_root::<App>("app");
 }
 
 #[cfg(test)]

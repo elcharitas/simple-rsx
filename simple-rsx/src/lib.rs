@@ -618,12 +618,12 @@ fn sanitize_html(input: &str) -> String {
 }
 
 #[cfg(feature = "wasm")]
-pub struct EventCallback(Box<dyn FnMut(web_sys::Event)>);
+pub struct EventCallback(Option<Box<dyn FnMut(web_sys::Event)>>);
 
 #[cfg(feature = "wasm")]
 impl Default for EventCallback {
     fn default() -> Self {
-        Self(Box::new(|_| {}))
+        Self(None)
     }
 }
 
@@ -633,11 +633,17 @@ impl EventCallback {
     where
         F: FnMut(web_sys::Event) + 'static,
     {
-        Self(Box::new(callback))
+        Self(Some(Box::new(callback)))
+    }
+
+    pub fn has_callback(&self) -> bool {
+        self.0.is_some()
     }
 
     pub fn call(&mut self, event: web_sys::Event) {
-        (self.0)(event)
+        if let Some(cb) = &mut self.0 {
+            cb(event);
+        }
     }
 }
 
