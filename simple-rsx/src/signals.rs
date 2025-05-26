@@ -26,7 +26,9 @@ thread_local! {
     static SIGNALS: RefCell<HashMap<(usize, usize), SignalValue>> = RefCell::new(HashMap::new());
 
     // Store scope functions that can be re-executed
-    static SCOPE_FUNCTIONS: RefCell<HashMap<usize, ScopeFn>> = RefCell::new(HashMap::new());
+    static SCOPE_FUNCTIONS: RefCell<HashMap<usize, Box<dyn FnMut() -> Node>>> = RefCell::new(HashMap::new());
+
+    static SCOPE_DEPENDENCIES: RefCell<HashMap<usize, HashSet<(usize, usize)>>> = RefCell::new(HashMap::new());
 
     // Store scope functions that can be re-executed
     static SCOPE_CALLBACKS: RefCell<HashMap<usize, Arc<dyn Fn(&Node)>>> = RefCell::new(HashMap::new());
@@ -203,28 +205,40 @@ impl<T: DynamicValue + PartialEq + Clone + 'static> Signal<T> {
             });
         }
     }
+}
 
+impl<T: DynamicValue + PartialEq + Clone + 'static> Signal<T> {
     pub fn get(&self) -> T {
         if let Some(current_scope) = get_current_scope() {
+            // Track both signal->scope and scope->signal dependencies
             SIGNAL_DEPENDENCIES.with(|deps| {
-                let mut deps = deps.borrow_mut();
-                let scopes = deps.entry(self.id).or_insert_with(HashSet::new);
-                scopes.insert(current_scope);
+                deps.borrow_mut()
+                    .entry(self.id)
+                    .or_insert_with(HashSet::new)
+                    .insert(current_scope);
+            });
+
+            SCOPE_DEPENDENCIES.with(|deps| {
+                deps.borrow_mut()
+                    .entry(current_scope)
+                    .or_insert_with(HashSet::new)
+                    .insert(self.id);
             });
         }
 
-        SIGNALS
-            .with(|signals| {
-                if let Some(stored) = signals.borrow().get(&self.id) {
-                    return stored
+        SIGNALS.with(|signals| {
+            signals
+                .borrow()
+                .get(&self.id)
+                .and_then(|stored| {
+                    stored
                         .value
                         .as_any()
                         .and_then(|any| any.downcast_ref::<T>())
-                        .map(|val| val.clone());
-                }
-                None
-            })
-            .unwrap()
+                        .map(|val| val.clone())
+                })
+                .unwrap()
+        })
     }
 }
 
@@ -278,44 +292,25 @@ fn reset_signal_counters(scope_id: usize) {
     });
 }
 
-fn schedule_dependent_scopes_for_rerender(signal_id: (usize, usize)) {
-    let dependent_scopes = SIGNAL_DEPENDENCIES.with(|deps| {
-        if let Ok(deps) = deps.try_borrow() {
-            deps.get(&signal_id).cloned().unwrap_or_default()
-        } else {
-            HashSet::new()
-        }
-    });
-
-    PENDING_SCOPE_RENDERS.with(|pending| {
-        if let Ok(mut pending) = pending.try_borrow_mut() {
-            for scope_id in dependent_scopes {
-                pending.insert(scope_id);
-            }
-        }
-    });
-}
-
 fn process_pending_renders() {
-    let scopes_to_render = PENDING_SCOPE_RENDERS.with(|pending| {
-        if let Ok(mut pending) = pending.try_borrow_mut() {
+    loop {
+        let scope_to_render = PENDING_SCOPE_RENDERS.with(|pending| {
+            let mut pending = pending.borrow_mut();
             if pending.is_empty() {
-                return Vec::new();
+                None
+            } else {
+                // Take one scope at a time to avoid holding the borrow
+                pending.iter().next().copied().map(|scope_id| {
+                    pending.remove(&scope_id);
+                    scope_id
+                })
             }
-            let scopes = pending.iter().copied().collect::<Vec<_>>();
-            pending.clear();
-            scopes
-        } else {
-            Vec::new()
-        }
-    });
+        });
 
-    if scopes_to_render.is_empty() {
-        return;
-    }
-
-    for scope_id in scopes_to_render {
-        render_scope(scope_id);
+        match scope_to_render {
+            Some(scope_id) => render_scope(scope_id),
+            None => break,
+        };
     }
 }
 
@@ -329,20 +324,6 @@ impl Drop for ScopeGuard {
     }
 }
 
-struct ScopeFn {
-    inner: Option<Box<dyn FnOnce() -> Node>>,
-}
-
-impl ScopeFn {
-    fn new(inner: Box<dyn FnOnce() -> Node>) -> Self {
-        Self { inner: Some(inner) }
-    }
-
-    fn call(&mut self) -> Option<Node> {
-        self.inner.take().map(|inner| inner())
-    }
-}
-
 fn render_scope(scope_id: usize) -> Option<Node> {
     // Create a scope guard that will restore the previous scope when dropped
     let _guard = ScopeGuard {
@@ -352,94 +333,109 @@ fn render_scope(scope_id: usize) -> Option<Node> {
     // Set the current scope for rendering
     set_current_scope(Some(scope_id));
 
-    // Clear dependencies for this scope
-    SIGNAL_DEPENDENCIES.with(|deps| {
-        if let Ok(mut deps) = deps.try_borrow_mut() {
-            for (_, scopes) in deps.iter_mut() {
-                scopes.remove(&scope_id);
-            }
-        }
-    });
-
-    // Set rendering flag and clear changes
-    RENDERING_SCOPE.with(|flag| {
-        if let Ok(mut flag) = flag.try_borrow_mut() {
+    // Batch all pre-render operations
+    let (should_clear_deps, was_rendering) = RENDERING_SCOPE.with(|flag| {
+        SCOPE_SIGNAL_CHANGES.with(|changes| {
+            let mut flag = flag.borrow_mut();
+            let was_rendering = *flag;
             *flag = scope_id;
-        }
-    });
 
-    SCOPE_SIGNAL_CHANGES.with(|changes| {
-        if let Ok(mut changes) = changes.try_borrow_mut() {
+            let mut changes = changes.borrow_mut();
             changes.clear();
-        }
+
+            (was_rendering == 0, was_rendering)
+        })
     });
 
-    // Execute the scope function
+    // Only clear dependencies if this is not a nested render
+    if should_clear_deps {
+        // Clear only this scope's dependencies efficiently
+        SCOPE_DEPENDENCIES.with(|scope_deps| {
+            if let Some(signal_ids) = scope_deps.borrow_mut().remove(&scope_id) {
+                // Remove this scope from each signal's dependency list
+                SIGNAL_DEPENDENCIES.with(|signal_deps| {
+                    let mut signal_deps = signal_deps.borrow_mut();
+                    for signal_id in signal_ids {
+                        if let Some(scopes) = signal_deps.get_mut(&signal_id) {
+                            scopes.remove(&scope_id);
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    // Execute the scope function without removing it
     let scope_fn = SCOPE_FUNCTIONS.with(|scope_functions| {
         let mut scope_functions = scope_functions.borrow_mut();
         scope_functions.remove(&scope_id)
     });
 
-    let node = scope_fn.and_then(|mut fn_box| {
-        let node = fn_box.call();
-        // re insert the function
-        SCOPE_FUNCTIONS.with(|scope_functions| {
-            let mut scope_functions = scope_functions.borrow_mut();
-            scope_functions.insert(scope_id, fn_box);
+    let node = scope_fn.map(|mut fnc| {
+        let node = fnc();
+        SCOPE_FUNCTIONS.with_borrow_mut(|scope_functions| {
+            scope_functions.insert(scope_id, fnc);
         });
         node
     });
 
-    let callback = SCOPE_CALLBACKS.with(|scope_callbacks| {
-        let scope_callbacks = scope_callbacks.borrow();
-        scope_callbacks.get(&scope_id).map(|fn_ptr| fn_ptr.clone())
-    });
-
-    node.as_ref().map(|node| {
-        callback.map(|callback| callback(node));
-    });
+    if let Some(ref node) = node {
+        SCOPE_CALLBACKS.with(|scope_callbacks| {
+            scope_callbacks
+                .borrow()
+                .get(&scope_id)
+                .and_then(|callback| Some(callback(node)));
+        });
+    }
 
     reset_signal_counters(scope_id);
     run_scope_effects(scope_id);
     reset_effect_counters(scope_id);
 
-    // Collect signal changes
     let signal_changes = SCOPE_SIGNAL_CHANGES.with(|stored_changes| {
-        if let Ok(mut changes) = stored_changes.try_borrow_mut() {
-            let collected = changes.clone();
-            changes.clear();
-            collected
-        } else {
-            HashSet::new()
-        }
+        RENDERING_SCOPE.with(|flag| {
+            let mut changes = stored_changes.borrow_mut();
+            let mut flag = flag.borrow_mut();
+
+            let result = if !changes.is_empty() {
+                let collected = std::mem::take(&mut *changes);
+                Some(collected)
+            } else {
+                None
+            };
+
+            *flag = was_rendering;
+            result
+        })
     });
 
-    RENDERING_SCOPE.with(|flag| {
-        if let Ok(mut flag) = flag.try_borrow_mut() {
-            *flag = 0;
-        }
-    });
+    if let Some(changes) = signal_changes {
+        PENDING_SCOPE_RENDERS.with(|pending| {
+            let mut pending = pending.borrow_mut();
+            for signal_id in changes {
+                if let Some(dependent_scopes) =
+                    SIGNAL_DEPENDENCIES.with(|deps| deps.borrow().get(&signal_id).cloned())
+                {
+                    pending.extend(dependent_scopes);
+                }
+            }
+        });
 
-    // Schedule dependent scopes for rerender
-    for signal_id in signal_changes {
-        schedule_dependent_scopes_for_rerender(signal_id);
+        if was_rendering == 0 {
+            process_pending_renders();
+        }
     }
 
-    // Process any pending renders that might have been triggered
-    process_pending_renders();
-
     node
-    // Guard will automatically restore previous scope when dropped
 }
 
 fn run_scope_effects(scope_id: usize) {
     SCOPE_EFFECTS.with(|effects| {
         let effects = effects.borrow();
-        for (&(effect_scope_id, _), effect) in effects.iter() {
-            if effect_scope_id == scope_id {
-                effect();
-            }
-        }
+        effects
+            .iter()
+            .filter(|((effect_scope_id, _), _)| *effect_scope_id == scope_id)
+            .for_each(|(_, effect)| effect());
     });
 }
 
@@ -506,7 +502,7 @@ pub fn create_effect(effect: impl Fn() + 'static) {
 }
 
 pub(crate) fn run_scope(
-    scope_fn: impl FnOnce() -> Node + 'static,
+    scope_fn: impl FnMut() -> Node + 'static,
     callback: impl Fn(&Node) + 'static,
 ) -> Option<Node> {
     // Get next scope ID
@@ -523,7 +519,7 @@ pub(crate) fn run_scope(
     // Store the scope function so it can be re-executed
     SCOPE_FUNCTIONS.with(|scope_functions| {
         let mut scope_functions = scope_functions.borrow_mut();
-        scope_functions.insert(scope_id, ScopeFn::new(Box::new(scope_fn)));
+        scope_functions.insert(scope_id, Box::new(scope_fn));
     });
 
     SCOPE_CALLBACKS.with(|scope_callbacks| {

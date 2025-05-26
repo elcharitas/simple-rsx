@@ -44,20 +44,17 @@ impl WasmRender for Node {
 pub fn render_root<C: Component>(element_id: &'static str)
 where
     <C as Component>::Props: Default,
-    <C as Component>::Props: 'static,
+    <C as Component>::Props: Clone + 'static,
 {
     loop {
-        render_component::<C>(
-            || Default::default(),
-            move |node| {
-                let window = web_sys::window().expect("no global `window` exists");
-                let document = window.document().expect("should have a document on window");
-                let mount_point = document
-                    .get_element_by_id(&element_id)
-                    .expect("couldn't find element");
-                node.render(&mount_point);
-            },
-        );
+        render_component::<C>(Default::default(), move |node| {
+            let window = web_sys::window().expect("no global `window` exists");
+            let document = window.document().expect("should have a document on window");
+            let mount_point = document
+                .get_element_by_id(&element_id)
+                .expect("couldn't find element");
+            node.render(&mount_point);
+        });
     }
 }
 
@@ -81,11 +78,11 @@ pub fn attach_event_handler(
 }
 
 pub fn render_component<C: Component>(
-    props_fn: impl FnOnce() -> C::Props + 'static,
+    props: C::Props,
     callback: impl Fn(&Node) + 'static,
 ) -> Option<Node>
 where
-    <C as Component>::Props: 'static,
+    <C as Component>::Props: Clone + 'static,
 {
-    run_scope(move || C::render(props_fn()), callback)
+    run_scope(move || C::render(props.clone()), callback)
 }

@@ -1,61 +1,71 @@
 #![allow(unused_braces)]
 
+use simple_rsx::rsx;
+use simple_rsx::signals::*;
 use simple_rsx::{Node, component, dom::render_component};
+
+#[derive(Clone)]
+struct CounterProps {
+    count: Signal<i32>,
+    children: Vec<Node>,
+}
+
+#[component]
+fn Counter(CounterProps { count, .. }: CounterProps) -> Node {
+    // let increment = move |_| {
+    //     count.set(count.get() + 1);
+    // };
+    // let decrement = move |_| {
+    //     count.set(count.get() - 1);
+    // };
+    rsx! {
+        <div>
+            <!-- Counter header -->
+            <h1>Counter</h1>
+            <p>Count: {count.get()}</p>
+            <button>Increment</button>
+            <button>Decrement</button>
+        </div>
+    }
+}
+
+#[component]
+fn App() -> Node {
+    let count = create_signal(0);
+
+    // Create effect directly - no run_scope wrapper needed
+    create_effect(move || {
+        let value = count.get();
+        println!("Effect running with value: {}", value);
+
+        // This will cause the effect to keep running until stable
+        if value < 5 {
+            count.set(value + 1); // Triggers re-run
+        }
+    });
+
+    rsx! {
+        <div>
+            <h1>Hello World</h1>
+            <Counter count={count} />
+        </div>
+    }
+}
 
 // Example Usage
 fn main() {
-    use simple_rsx::rsx;
-    use simple_rsx::signals::*;
-
-    #[component]
-    fn Counter() -> Node {
-        let count = create_signal(0);
-        let increment = move |_| {
-            count.set(count.get() + 1);
-        };
-        let decrement = move |_| {
-            count.set(count.get() - 1);
-        };
-        rsx! {
-            <div>
-                <!-- Counter header -->
-                <h1>Counter</h1>
-                <p>Count: {count.get()}</p>
-                <button on_click={increment}>Increment</button>
-                <button on_click={decrement}>Decrement</button>
-            </div>
-        }
+    struct Props {
+        children: Vec<Node>,
+        message: String,
     }
-
     #[component]
-    fn App() -> Node {
-        let signal = create_signal(0);
-
-        // Create effect directly - no run_scope wrapper needed
-        create_effect(move || {
-            let value = signal.get();
-            println!("Effect running with value: {}", value);
-
-            // This will cause the effect to keep running until stable
-            if value < 5 {
-                signal.set(value + 1); // Triggers re-run
-            }
-        });
-
-        rsx! {
-            <div>
-                <h1>Hello World</h1>
-                <Counter />
-            </div>
-        }
+    fn MyComponent(Props { children, message }: Props) -> Node {
+        println!("{}", message);
+        rsx!(<div>{children}</div>)
     }
-
-    render_component::<App>(
-        || Default::default(),
-        |node| {
-            println!("{}", node.to_string());
-        },
-    );
+    render_component::<App>(Default::default(), |node| {
+        println!("{}", node.to_string());
+    });
 }
 
 #[cfg(test)]
@@ -222,6 +232,7 @@ mod tests {
 
         struct MyComponent;
 
+        #[derive(Clone)]
         struct Props {
             message: String,
             children: Vec<Node>, // always required in components
@@ -252,6 +263,7 @@ mod tests {
     fn test_fn_component_rendering_with_props() {
         use simple_rsx::*;
 
+        #[derive(Clone)]
         struct Props {
             message: String,
             children: Vec<Node>, // always required in components

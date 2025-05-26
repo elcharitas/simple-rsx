@@ -212,6 +212,7 @@ impl<T: ToString> OptionAttribute for Option<T> {
     }
 }
 
+#[derive(Clone)]
 /// Represents an HTML element with its tag name, attributes, and children.
 ///
 /// Elements are the building blocks of the RSX tree structure. Each element
@@ -342,11 +343,12 @@ pub trait Component {
     fn render(props: Self::Props) -> Node;
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct PropWithChildren {
     pub children: Vec<Node>,
 }
 
+#[derive(Clone)]
 /// Represents a node in the RSX tree.
 ///
 /// Nodes are the fundamental building blocks of RSX. They can be:
@@ -670,7 +672,7 @@ macro_rules! derive_elements {
             pub struct $tag;
 
             paste::paste! {
-                #[derive(Default)]
+                #[derive(Default, Clone)]
                 #[allow(non_snake_case)]
                 pub struct [<HTML $tag:camel Element Props>] {
                     // Global HTML attributes
@@ -765,66 +767,66 @@ macro_rules! derive_elements {
                     /// Defines an element's role
                     pub aria_role: String,
 
-                    #[cfg(feature = "wasm")]
-                    pub on_click: EventCallback,
-                    #[cfg(feature = "wasm")]
-                    pub on_keydown: EventCallback,
-                    #[cfg(feature = "wasm")]
-                    pub on_keyup: EventCallback,
-                    #[cfg(feature = "wasm")]
-                    pub on_keypress: EventCallback,
-                    #[cfg(feature = "wasm")]
-                    pub on_focus: EventCallback,
-                    #[cfg(feature = "wasm")]
-                    pub on_blur: EventCallback,
-                    #[cfg(feature = "wasm")]
-                    pub on_change: EventCallback,
-                    #[cfg(feature = "wasm")]
-                    pub on_input: EventCallback,
-                    #[cfg(feature = "wasm")]
-                    pub on_submit: EventCallback,
-                    #[cfg(feature = "wasm")]
-                    pub on_reset: EventCallback,
-                    #[cfg(feature = "wasm")]
-                    pub on_mouseover: EventCallback,
-                    #[cfg(feature = "wasm")]
-                    pub on_mouseout: EventCallback,
-                    #[cfg(feature = "wasm")]
-                    pub on_mousedown: EventCallback,
-                    #[cfg(feature = "wasm")]
-                    pub on_mouseup: EventCallback,
-                    #[cfg(feature = "wasm")]
-                    pub on_mousemove: EventCallback,
-                    #[cfg(feature = "wasm")]
-                    pub on_mouseenter: EventCallback,
-                    #[cfg(feature = "wasm")]
-                    pub on_mouseleave: EventCallback,
-                    #[cfg(feature = "wasm")]
-                    pub on_mousewheel: EventCallback,
-                    #[cfg(feature = "wasm")]
-                    pub on_scroll: EventCallback,
-                    #[cfg(feature = "wasm")]
-                    pub on_load: EventCallback,
-                    #[cfg(feature = "wasm")]
-                    pub on_unload: EventCallback,
-                    #[cfg(feature = "wasm")]
-                    pub on_abort: EventCallback,
-                    #[cfg(feature = "wasm")]
-                    pub on_error: EventCallback,
-                    #[cfg(feature = "wasm")]
-                    pub on_resize: EventCallback,
-                    #[cfg(feature = "wasm")]
-                    pub on_cut: EventCallback,
-                    #[cfg(feature = "wasm")]
-                    pub on_copy: EventCallback,
-                    #[cfg(feature = "wasm")]
-                    pub on_paste: EventCallback,
-                    #[cfg(feature = "wasm")]
-                    pub on_contextmenu: EventCallback,
-                    #[cfg(feature = "wasm")]
-                    pub on_dblclick: EventCallback,
-                    #[cfg(feature = "wasm")]
-                    pub on_drop: EventCallback,
+                    // #[cfg(feature = "wasm")]
+                    // pub on_click: EventCallback,
+                    // #[cfg(feature = "wasm")]
+                    // pub on_keydown: EventCallback,
+                    // #[cfg(feature = "wasm")]
+                    // pub on_keyup: EventCallback,
+                    // #[cfg(feature = "wasm")]
+                    // pub on_keypress: EventCallback,
+                    // #[cfg(feature = "wasm")]
+                    // pub on_focus: EventCallback,
+                    // #[cfg(feature = "wasm")]
+                    // pub on_blur: EventCallback,
+                    // #[cfg(feature = "wasm")]
+                    // pub on_change: EventCallback,
+                    // #[cfg(feature = "wasm")]
+                    // pub on_input: EventCallback,
+                    // #[cfg(feature = "wasm")]
+                    // pub on_submit: EventCallback,
+                    // #[cfg(feature = "wasm")]
+                    // pub on_reset: EventCallback,
+                    // #[cfg(feature = "wasm")]
+                    // pub on_mouseover: EventCallback,
+                    // #[cfg(feature = "wasm")]
+                    // pub on_mouseout: EventCallback,
+                    // #[cfg(feature = "wasm")]
+                    // pub on_mousedown: EventCallback,
+                    // #[cfg(feature = "wasm")]
+                    // pub on_mouseup: EventCallback,
+                    // #[cfg(feature = "wasm")]
+                    // pub on_mousemove: EventCallback,
+                    // #[cfg(feature = "wasm")]
+                    // pub on_mouseenter: EventCallback,
+                    // #[cfg(feature = "wasm")]
+                    // pub on_mouseleave: EventCallback,
+                    // #[cfg(feature = "wasm")]
+                    // pub on_mousewheel: EventCallback,
+                    // #[cfg(feature = "wasm")]
+                    // pub on_scroll: EventCallback,
+                    // #[cfg(feature = "wasm")]
+                    // pub on_load: EventCallback,
+                    // #[cfg(feature = "wasm")]
+                    // pub on_unload: EventCallback,
+                    // #[cfg(feature = "wasm")]
+                    // pub on_abort: EventCallback,
+                    // #[cfg(feature = "wasm")]
+                    // pub on_error: EventCallback,
+                    // #[cfg(feature = "wasm")]
+                    // pub on_resize: EventCallback,
+                    // #[cfg(feature = "wasm")]
+                    // pub on_cut: EventCallback,
+                    // #[cfg(feature = "wasm")]
+                    // pub on_copy: EventCallback,
+                    // #[cfg(feature = "wasm")]
+                    // pub on_paste: EventCallback,
+                    // #[cfg(feature = "wasm")]
+                    // pub on_contextmenu: EventCallback,
+                    // #[cfg(feature = "wasm")]
+                    // pub on_dblclick: EventCallback,
+                    // #[cfg(feature = "wasm")]
+                    // pub on_drop: EventCallback,
 
                     // Element specific attributes
                     $(

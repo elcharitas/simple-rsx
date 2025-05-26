@@ -575,13 +575,13 @@ impl RsxNode {
                         {
                             #close_tag
                             simple_rsx::dom::render_component::<#component>(
-                                move || Props {
+                                Props {
                                     #(#props_tokens)*
                                     #children_tokens
                                     #data_props
                                     #default_props
                                 },
-                                move |_| {},
+                                |_| {},
                             )
                         }.unwrap()
                     }
