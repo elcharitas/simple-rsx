@@ -1,7 +1,13 @@
+#![no_std]
 #![allow(unused_braces)]
+
+extern crate alloc;
+use alloc::vec;
+
 use simple_rsx::Node;
 use simple_rsx::component;
 use simple_rsx::dom::render_root;
+use simple_rsx::either;
 use simple_rsx::rsx;
 use simple_rsx::signals::SignalValue;
 use simple_rsx::signals::create_signal;
@@ -16,9 +22,13 @@ enum Page {
 }
 
 impl SignalValue for Page {
-    fn as_any(&self) -> Option<&dyn std::any::Any> {
+    fn as_any(&self) -> Option<&dyn core::any::Any> {
         Some(self)
     }
+}
+
+fn navbar_class(is_active: bool) -> &'static str {
+    either!(is_active => "navbar-item has-text-grey-dark {}" else "navbar-item has-text-weight-semibold")
 }
 
 #[component]
@@ -49,19 +59,19 @@ fn App() -> Node {
                     </div>
                     <div class="navbar-menu">
                         <div class="navbar-start">
-                            <a class={format!("navbar-item has-text-grey-dark {}", if current_page.get() == Page::Installation { "has-text-weight-semibold" } else { "" })}
+                            <a class={navbar_class(current_page.get() == Page::Installation)}
                                href="#" on_click={nav(Page::Installation)} style="font-size: 0.9rem;">
                                 Installation
                             </a>
-                            <a class={format!("navbar-item has-text-grey-dark {}", if current_page.get() == Page::GetStarted { "has-text-weight-semibold" } else { "" })}
+                            <a class={navbar_class(current_page.get() == Page::GetStarted)}
                                href="#" on_click={nav(Page::GetStarted)} style="font-size: 0.9rem;">
                                 Get Started
                             </a>
-                            <a class={format!("navbar-item has-text-grey-dark {}", if current_page.get() == Page::Counter { "has-text-weight-semibold" } else { "" })}
+                            <a class={navbar_class(current_page.get() == Page::Counter)}
                                href="#" on_click={nav(Page::Counter)} style="font-size: 0.9rem;">
                                 Examples
                             </a>
-                            <a class={format!("navbar-item has-text-grey-dark {}", if current_page.get() == Page::Concepts { "has-text-weight-semibold" } else { "" })}
+                            <a class={navbar_class(current_page.get() == Page::Concepts)}
                                href="#" on_click={nav(Page::Concepts)} style="font-size: 0.9rem;">
                                 Concepts
                             </a>
@@ -242,17 +252,17 @@ fn InstallationPage() -> Node {
                                 <div style="border: 1px solid #e5e7eb; border-radius: 0.5rem; overflow: hidden;" class="mb-4">
                                     <div style="background-color: #1e293b; padding: 1rem;">
                                         <pre style="background: transparent; color: #e2e8f0; font-size: 0.9rem; line-height: 1.5;">
-                                            <div style="color: #f472b6; display: block">[dependencies]</div>
+                                            <div style="color: #f472b6; display: block">"[dependencies]"</div>
                                             <span style="color: #34d399;">simple-rsx</span> = <span style="color: #fbbf24;">"0.1.0"</span>
                                         </pre>
                                     </div>
                                 </div>
 
-                                <p class="has-text-grey-dark mb-3" style="line-height: 1.6;">Or use cargo add:</p>
+                                <p class="has-text-grey-dark mb-3" style="line-height: 1.6;">"Or use cargo add:"</p>
                                 <div style="border: 1px solid #e5e7eb; border-radius: 0.5rem; overflow: hidden;">
                                     <div style="background-color: #1e293b; padding: 1rem;">
                                         <pre style="background: transparent; color: #e2e8f0; font-size: 0.9rem;">
-                                            <span style="color: #34d399;">$ cargo add simple-rsx</span>
+                                            <span style="color: #34d399;">"$ cargo add simple-rsx"</span>
                                         </pre>
                                     </div>
                                 </div>

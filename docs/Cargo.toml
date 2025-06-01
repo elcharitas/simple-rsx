@@ -7,5 +7,27 @@ metadata.workspace = true
 [dependencies]
 simple-rsx = { path = "../simple-rsx", features = ["wasm"] }
 
+# Build script for wasm-opt
 [package.metadata.wasm-pack.profile.release]
-wasm-opt = false
+wasm-opt = [
+    "-Oz",                      # Aggressive size optimization
+    "--enable-bulk-memory",     # Enable bulk memory operations
+    "--enable-sign-ext",        # Enable sign extension
+    "--enable-mutable-globals",
+    "--zero-filled-memory",     # Zero-filled memory optimization
+    "--strip-debug",            # Remove debug info
+    "--strip-producers",        # Remove producers section
+]
+
+[profile.release]
+# Maximum size optimization
+opt-level = "z"         # Optimize for size
+lto = true              # Link-time optimization
+codegen-units = 1       # Single codegen unit for better optimization
+panic = "abort"         # Remove panic handling code
+strip = true            # Strip debug symbols
+overflow-checks = false # Remove overflow checks in release
+
+# Additional size optimizations
+[profile.release.package."*"]
+opt-level = "z"

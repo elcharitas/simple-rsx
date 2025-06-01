@@ -4,10 +4,10 @@ use quote::quote;
 use syn::spanned::Spanned;
 use syn::token::Colon;
 use syn::{
-    Block, Expr, ExprLit, Ident, ItemFn, Lit, LitStr, Macro, Result, Token,
+    Block, Expr, ExprLit, Ident, ItemFn, Lit, LitStr, Result, Token,
     parse::{Parse, ParseStream},
     parse_macro_input, parse_quote,
-    token::{Brace, Not},
+    token::Brace,
 };
 use syn::{FnArg, PatType, Signature, Stmt, Type, TypeReference};
 
@@ -39,14 +39,26 @@ pub fn rsx(input: TokenStream) -> TokenStream {
     let expanded = input.to_tokens();
     expanded.into()
 }
+
 /// A procedural macro that transforms a conditional expression into a JSX-like syntax.
+/// Supports both RSX nodes and literals.
 ///
 /// # Examples
 /// ```rust
 /// use simple_rsx::*;
-/// // Fragment
+///
 /// let show = true;
+///
+/// // With RSX nodes
 /// either!(show => <p>"Show me"</p>);
+/// either!(show => <p>"Show me"</p> else <p>"Hidden"</p>);
+///
+/// // With literals
+/// either!(show => "Visible text");
+/// either!(show => "Visible" else "Hidden");
+///
+/// // Mixed usage
+/// either!(show => <div>"Complex"</div> else "Simple text");
 /// ```
 #[proc_macro]
 pub fn either(input: TokenStream) -> TokenStream {
@@ -55,10 +67,39 @@ pub fn either(input: TokenStream) -> TokenStream {
     expanded.into()
 }
 
+enum EitherValue {
+    RsxNode(RsxNode),
+    Literal(Lit),
+}
+
+impl Parse for EitherValue {
+    fn parse(input: ParseStream) -> Result<Self> {
+        // Try to parse as a literal first (simpler case)
+        if let Ok(lit) = input.parse::<Lit>() {
+            Ok(EitherValue::Literal(lit))
+        } else {
+            // If not a literal, parse as RsxNode
+            let rsx_node = input.parse::<RsxNode>()?;
+            Ok(EitherValue::RsxNode(rsx_node))
+        }
+    }
+}
+
+impl EitherValue {
+    fn to_tokens(&self) -> TokenStream2 {
+        match self {
+            EitherValue::RsxNode(node) => node.to_tokens(),
+            EitherValue::Literal(lit) => {
+                quote! { #lit }
+            }
+        }
+    }
+}
+
 struct Either {
     condition: Expr,
-    true_value: RsxNode,
-    false_value: Option<RsxNode>,
+    true_value: EitherValue,
+    false_value: Option<EitherValue>,
 }
 
 impl Parse for Either {
@@ -66,12 +107,14 @@ impl Parse for Either {
         let condition = input.parse()?;
         input.parse::<Token![=>]>()?;
         let true_value = input.parse()?;
+
         let false_value = if input.peek(Token![else]) {
             input.parse::<Token![else]>()?;
             Some(input.parse()?)
         } else {
             None
         };
+
         Ok(Either {
             condition,
             true_value,
@@ -83,16 +126,17 @@ impl Parse for Either {
 impl Either {
     fn to_tokens(&self) -> TokenStream2 {
         let condition = &self.condition;
-        let false_value = &self
+        let true_value = self.true_value.to_tokens();
+
+        let false_value = self
             .false_value
             .as_ref()
             .map(|v| v.to_tokens())
-            .or_else(|| Some(quote! {::simple_rsx::Node::Fragment(vec![])}));
-        let true_value = self.true_value.to_tokens();
+            .unwrap_or_else(|| quote! { ::simple_rsx::Node::Fragment(vec![]) });
 
         quote! {
             if #condition {
-                #true_value.into()
+                #true_value
             } else {
                 #false_value
             }
@@ -183,7 +227,7 @@ enum RsxNode {
     Fragment(Vec<RsxNode>),
     Component {
         name: Ident,
-        props: Vec<(Ident, Option<Block>)>,
+        props: Vec<(Ident, Option<Expr>)>,
         children: Vec<RsxNode>,
         close_tag: Option<Ident>,
     },
@@ -204,14 +248,9 @@ impl Parse for NodeBlock {
             let parsed: LitStr = input.parse()?;
             return Ok(NodeBlock {
                 value: None,
-                expr: Some(syn::Expr::Macro(syn::ExprMacro {
+                expr: Some(syn::Expr::Lit(ExprLit {
                     attrs: Vec::new(),
-                    mac: Macro {
-                        path: parse_quote!(format),
-                        bang_token: Not::default(),
-                        delimiter: syn::MacroDelimiter::Paren(syn::token::Paren::default()),
-                        tokens: quote::quote!(#parsed),
-                    },
+                    lit: Lit::Str(parsed),
                 })),
             });
         }
@@ -406,18 +445,12 @@ impl Parse for RsxNode {
                 if input.to_string().trim().starts_with('{') {
                     let expr = input.parse::<Block>()?;
                     // check if expr matches {Ident} pattern
-                    if let Some(Stmt::Expr(expr, token)) = expr.stmts.first() {
+                    if let Some(Stmt::Expr(expr, ..)) = expr.stmts.first() {
                         if let Expr::Path(expr_path) = expr {
                             match expr_path.path.segments.first() {
                                 Some(segment) => {
                                     let ident = segment.ident.clone();
-                                    attributes.push((
-                                        ident,
-                                        Some(Block {
-                                            brace_token: Brace::default(),
-                                            stmts: vec![syn::Stmt::Expr(expr.clone(), *token)],
-                                        }),
-                                    ));
+                                    attributes.push((ident, Some(expr.clone())));
                                 }
                                 _ => {
                                     return Err(syn::Error::new(
@@ -430,7 +463,20 @@ impl Parse for RsxNode {
                     }
                 } else {
                     match input.parse::<NodeValue>() {
-                        Ok(attr) => attributes.push((attr.name, attr.value)),
+                        Ok(attr) => attributes.push((
+                            attr.name,
+                            attr.value.map(|v| match v.stmts.first() {
+                                Some(Stmt::Expr(expr, ..)) => {
+                                    return expr.clone();
+                                }
+                                _ => {
+                                    return Expr::Lit(syn::ExprLit {
+                                        attrs: vec![],
+                                        lit: syn::Lit::Str(LitStr::new("true", input.span())),
+                                    });
+                                }
+                            }),
+                        )),
                         Err(e) => return Err(e),
                     }
                 }

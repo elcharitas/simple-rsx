@@ -11,11 +11,18 @@ categories = ["template-engine", "web-programming"]
 documentation = "https://docs.rs/simple-rsx"
 
 [dependencies]
-indexmap = "2.9"
 paste = "1.0"
+thread_local = { version = "1.1", default-features = false }
 simple-rsx-macros = { path = "../simple-rsx-macros", version = "0.1.9" }
+spin = { version = "0.10" }
 wasm-bindgen = { version = "0.2", optional = true }
-web-sys = { version = "0.3", optional = true, features = ["Document", "Element", "HtmlElement", "Window", "Event"] }
+web-sys = { version = "0.3", optional = true, features = [
+    "Document",
+    "Element",
+    "HtmlElement",
+    "Window",
+    "Event",
+] }
 js-sys = { version = "0.3", optional = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
