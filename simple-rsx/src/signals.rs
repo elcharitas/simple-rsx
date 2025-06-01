@@ -1,199 +1,194 @@
-use std::cell::RefCell;
-use std::collections::{HashMap, HashSet};
-use std::sync::Arc;
-
 use crate::Node;
+use alloc::{
+    boxed::Box,
+    collections::{BTreeMap, BTreeSet},
+    string::String,
+    sync::Arc,
+    vec::Vec,
+};
+use core::{
+    any::Any,
+    marker::PhantomData,
+    ops::{AddAssign, DivAssign, MulAssign, SubAssign},
+};
+use spin::Mutex;
 
-thread_local! {
-    // Track the current scope being executed
-    static CURRENT_SCOPE: RefCell<Option<usize>> = RefCell::new(None);
+//==============================================================================
+// GLOBAL STATE
+//==============================================================================
 
-    // Track if we're currently inside a scope render
-    static RENDERING_SCOPE: RefCell<usize> = RefCell::new(0);
+/// Current scope being executed
+static CURRENT_SCOPE: Mutex<Option<usize>> = Mutex::new(None);
+/// Scope currently being rendered (0 = none)
+static RENDERING_SCOPE: Mutex<usize> = Mutex::new(0);
+/// Next available scope ID
+static NEXT_SCOPE_ID: Mutex<usize> = Mutex::new(1);
 
-    // Store next scope ID
-    static NEXT_SCOPE_ID: RefCell<usize> = RefCell::new(1);
+/// Signal counter per scope
+static SCOPE_SIGNAL_COUNTERS: Mutex<BTreeMap<usize, usize>> = Mutex::new(BTreeMap::new());
+/// Effect counter per scope
+static SCOPE_EFFECT_COUNTERS: Mutex<BTreeMap<usize, usize>> = Mutex::new(BTreeMap::new());
 
-    // Store signal counter for each scope
-    static SCOPE_SIGNAL_COUNTERS: RefCell<HashMap<usize, usize>> = RefCell::new(HashMap::new());
+/// All signal values by (scope_id, signal_id)
+static SIGNALS: Mutex<BTreeMap<(usize, usize), StoredValue>> = Mutex::new(BTreeMap::new());
+/// Signals that changed during current scope execution
+static SCOPE_SIGNAL_CHANGES: Mutex<BTreeSet<(usize, usize)>> = Mutex::new(BTreeSet::new());
 
-    // Track signals that changed during current scope execution (for batching)
-    static SCOPE_SIGNAL_CHANGES: RefCell<HashSet<(usize, usize)>> = RefCell::new(HashSet::new());
+/// Functions that can be re-executed per scope
+static SCOPE_FUNCTIONS: Mutex<BTreeMap<usize, Box<dyn FnMut() -> Node + Send>>> =
+    Mutex::new(BTreeMap::new());
+/// Callbacks to run after scope renders
+static SCOPE_CALLBACKS: Mutex<BTreeMap<usize, Arc<dyn Fn(&Node) + Send + Sync>>> =
+    Mutex::new(BTreeMap::new());
+/// Effects by (scope_id, effect_id)
+static SCOPE_EFFECTS: Mutex<BTreeMap<(usize, usize), Box<dyn Fn() + Send>>> =
+    Mutex::new(BTreeMap::new());
 
-    static SIGNALS: RefCell<HashMap<(usize, usize), StoredValue>> = RefCell::new(HashMap::new());
+/// Which signals each scope depends on
+static SCOPE_DEPENDENCIES: Mutex<BTreeMap<usize, BTreeSet<(usize, usize)>>> =
+    Mutex::new(BTreeMap::new());
+/// Which scopes depend on each signal
+static SIGNAL_DEPENDENCIES: Mutex<BTreeMap<(usize, usize), BTreeSet<usize>>> =
+    Mutex::new(BTreeMap::new());
+/// Scopes waiting to re-render
+static PENDING_SCOPE_RENDERS: Mutex<BTreeSet<usize>> = Mutex::new(BTreeSet::new());
 
-    // Store scope functions that can be re-executed
-    static SCOPE_FUNCTIONS: RefCell<HashMap<usize, Box<dyn FnMut() -> Node>>> = RefCell::new(HashMap::new());
+//==============================================================================
+// TRAITS
+//==============================================================================
 
-    static SCOPE_DEPENDENCIES: RefCell<HashMap<usize, HashSet<(usize, usize)>>> = RefCell::new(HashMap::new());
-
-    // Store scope functions that can be re-executed
-    static SCOPE_CALLBACKS: RefCell<HashMap<usize, Arc<dyn Fn(&Node)>>> = RefCell::new(HashMap::new());
-
-    // Store next effect ID for each scope
-    static SCOPE_EFFECT_COUNTERS: RefCell<HashMap<usize, usize>> = RefCell::new(HashMap::new());
-
-    // Store effects with their IDs
-    static SCOPE_EFFECTS: RefCell<HashMap<(usize, usize), Box<dyn Fn()>>> = RefCell::new(HashMap::new());
-
-    // Track which scopes depend on which signals
-    static SIGNAL_DEPENDENCIES: RefCell<HashMap<(usize, usize), HashSet<usize>>> = RefCell::new(HashMap::new());
-
-    // Queue for scopes that need to re-render
-    static PENDING_SCOPE_RENDERS: RefCell<HashSet<usize>> = RefCell::new(HashSet::new());
+/// Values that can be stored in signals
+pub trait SignalValue: Send {
+    fn as_any(&self) -> Option<&dyn Any>;
 }
 
-pub trait SignalValue {
-    fn as_any(&self) -> Option<&dyn std::any::Any>;
+macro_rules! impl_signal_value {
+    ($($t:ty),*) => {
+        $(
+            impl SignalValue for $t {
+                fn as_any(&self) -> Option<&dyn Any> {
+                    Some(self)
+                }
+            }
+        )*
+    };
 }
 
-impl SignalValue for String {
-    fn as_any(&self) -> Option<&dyn std::any::Any> {
-        Some(self)
-    }
-}
-
-impl SignalValue for &'static str {
-    fn as_any(&self) -> Option<&dyn std::any::Any> {
-        Some(self)
-    }
-}
-
-impl SignalValue for i64 {
-    fn as_any(&self) -> Option<&dyn std::any::Any> {
-        Some(self)
-    }
-}
-
-impl SignalValue for i128 {
-    fn as_any(&self) -> Option<&dyn std::any::Any> {
-        Some(self)
-    }
-}
-
-impl SignalValue for i16 {
-    fn as_any(&self) -> Option<&dyn std::any::Any> {
-        Some(self)
-    }
-}
-
-impl SignalValue for i32 {
-    fn as_any(&self) -> Option<&dyn std::any::Any> {
-        Some(self)
-    }
-}
-
-impl SignalValue for i8 {
-    fn as_any(&self) -> Option<&dyn std::any::Any> {
-        Some(self)
-    }
-}
-
-impl SignalValue for usize {
-    fn as_any(&self) -> Option<&dyn std::any::Any> {
-        Some(self)
-    }
-}
-
-impl SignalValue for u64 {
-    fn as_any(&self) -> Option<&dyn std::any::Any> {
-        Some(self)
-    }
-}
-
-impl SignalValue for u128 {
-    fn as_any(&self) -> Option<&dyn std::any::Any> {
-        Some(self)
-    }
-}
-
-impl SignalValue for u16 {
-    fn as_any(&self) -> Option<&dyn std::any::Any> {
-        Some(self)
-    }
-}
-
-impl SignalValue for u32 {
-    fn as_any(&self) -> Option<&dyn std::any::Any> {
-        Some(self)
-    }
-}
-
-impl SignalValue for u8 {
-    fn as_any(&self) -> Option<&dyn std::any::Any> {
-        Some(self)
-    }
-}
-
-impl SignalValue for f64 {
-    fn as_any(&self) -> Option<&dyn std::any::Any> {
-        Some(self)
-    }
-}
-
-impl SignalValue for f32 {
-    fn as_any(&self) -> Option<&dyn std::any::Any> {
-        Some(self)
-    }
-}
-
-impl SignalValue for bool {
-    fn as_any(&self) -> Option<&dyn std::any::Any> {
-        Some(self)
-    }
-}
-
-impl SignalValue for char {
-    fn as_any(&self) -> Option<&dyn std::any::Any> {
-        Some(self)
-    }
-}
-
-impl SignalValue for () {
-    fn as_any(&self) -> Option<&dyn std::any::Any> {
-        Some(self)
-    }
-}
+impl_signal_value!(
+    String,
+    &'static str,
+    i8,
+    i16,
+    i32,
+    i64,
+    i128,
+    u8,
+    u16,
+    u32,
+    u64,
+    u128,
+    usize,
+    f32,
+    f64,
+    bool,
+    char,
+    ()
+);
 
 impl<T: SignalValue + 'static> SignalValue for Option<T> {
-    fn as_any(&self) -> Option<&dyn std::any::Any> {
+    fn as_any(&self) -> Option<&dyn Any> {
         Some(self)
     }
 }
 
+//==============================================================================
+// SIGNAL TYPE
+//==============================================================================
+
+/// Reactive value that triggers re-renders when changed
 #[derive(Clone, Copy, Debug)]
-/// A signal that can be used to store and update values
-///
-/// Signals are used to store and update values that can be used in the render function.
-/// Signals are created with the [`create_signal`] function.
-/// Signals can be updated with the [`Signal::set`] function.
-/// Signals can be read with the [`Signal::get`] function.
 pub struct Signal<T> {
     id: (usize, usize),
-    _marker: std::marker::PhantomData<T>,
+    _marker: PhantomData<T>,
 }
 
-struct StoredValue {
-    value: Box<dyn SignalValue>,
+impl<T: SignalValue + PartialEq + Clone + core::ops::Add<Output = T> + 'static> AddAssign<T>
+    for Signal<T>
+{
+    fn add_assign(&mut self, rhs: T) {
+        self.set(self.get() + rhs);
+    }
 }
 
-impl<T: SignalValue + PartialEq + Clone + 'static> Signal<T> {
-    /// Set the value of the signal
-    ///
-    /// The signal will be updated if there's a change in the value and a re-render will be triggered.
-    pub fn set(&self, value: T) {
-        let mut changed = false;
-        // Update the signal value
-        SIGNALS.with(|signals| {
-            if let Some(stored) = signals.borrow_mut().get_mut(&self.id) {
-                // Only update if the value actually changed
-                if let Some(should_update) = stored
+impl<T: SignalValue + PartialEq + Clone + core::ops::Sub<Output = T> + 'static> SubAssign<T>
+    for Signal<T>
+{
+    fn sub_assign(&mut self, rhs: T) {
+        self.set(self.get() - rhs);
+    }
+}
+
+impl<T: SignalValue + PartialEq + Clone + core::ops::Mul<Output = T> + 'static> MulAssign<T>
+    for Signal<T>
+{
+    fn mul_assign(&mut self, rhs: T) {
+        self.set(self.get() * rhs);
+    }
+}
+
+impl<T: SignalValue + PartialEq + Clone + core::ops::Div<Output = T> + 'static> DivAssign<T>
+    for Signal<T>
+{
+    fn div_assign(&mut self, rhs: T) {
+        self.set(self.get() / rhs);
+    }
+}
+
+impl<T: SignalValue + PartialEq + 'static> Signal<T> {
+    /// Access signal value immutably
+    pub fn with<R>(&self, f: impl FnOnce(&T) -> R) -> Option<R> {
+        if let Some(current_scope) = get_current_scope() {
+            {
+                let mut signal_deps = SIGNAL_DEPENDENCIES.lock();
+                signal_deps
+                    .entry(self.id)
+                    .or_insert_with(BTreeSet::new)
+                    .insert(current_scope);
+            }
+            {
+                let mut scope_deps = SCOPE_DEPENDENCIES.lock();
+                scope_deps
+                    .entry(current_scope)
+                    .or_insert_with(BTreeSet::new)
+                    .insert(self.id);
+            }
+        }
+
+        let signals = SIGNALS.lock();
+        signals
+            .get(&self.id)
+            .and_then(|stored| {
+                stored
                     .value
                     .as_any()
-                    .and_then(|any| any.downcast_ref::<T>().and_then(|val| Some(val != &value)))
-                    .or(Some(false))
+                    .and_then(|any| any.downcast_ref::<T>())
+            })
+            .map(|val| f(val))
+    }
+
+    /// Update signal value and trigger re-renders if changed
+    pub fn set(&self, value: T) {
+        let mut changed = false;
+
+        {
+            let mut signals = SIGNALS.lock();
+            if let Some(stored) = signals.get_mut(&self.id) {
+                if let Some(current_val) = stored
+                    .value
+                    .as_any()
+                    .and_then(|any| any.downcast_ref::<T>())
                 {
-                    if should_update {
+                    if current_val != &value {
                         *stored = StoredValue {
                             value: Box::new(value),
                         };
@@ -201,52 +196,46 @@ impl<T: SignalValue + PartialEq + Clone + 'static> Signal<T> {
                     }
                 }
             }
-        });
+        }
 
         if changed {
-            // Just collect the signal change, don't trigger re-renders yet
-            SCOPE_SIGNAL_CHANGES.with(|changes| {
-                let mut changes = changes.borrow_mut();
+            {
+                let mut changes = SCOPE_SIGNAL_CHANGES.lock();
                 changes.insert(self.id);
-            });
-            let current_scope = get_current_scope();
-            if current_scope.is_none() {
+            }
+
+            if get_current_scope().is_none() {
                 render_scope(self.id.0);
             }
         }
     }
 
-    pub fn get(&self) -> T {
-        if let Some(current_scope) = get_current_scope() {
-            // Track both signal->scope and scope->signal dependencies
-            SIGNAL_DEPENDENCIES.with(|deps| {
-                deps.borrow_mut()
-                    .entry(self.id)
-                    .or_insert_with(HashSet::new)
-                    .insert(current_scope);
-            });
+    /// Get cloned value
+    pub fn get(&self) -> T
+    where
+        T: Clone,
+    {
+        self.with(|val| val.clone()).unwrap()
+    }
+}
 
-            SCOPE_DEPENDENCIES.with(|deps| {
-                deps.borrow_mut()
-                    .entry(current_scope)
-                    .or_insert_with(HashSet::new)
-                    .insert(self.id);
-            });
-        }
+struct StoredValue {
+    value: Box<dyn SignalValue>,
+}
 
-        SIGNALS.with(|signals| {
-            signals
-                .borrow()
-                .get(&self.id)
-                .and_then(|stored| {
-                    stored
-                        .value
-                        .as_any()
-                        .and_then(|any| any.downcast_ref::<T>())
-                        .map(|val| val.clone())
-                })
-                .unwrap()
-        })
+//==============================================================================
+// SIGNAL CREATION
+//==============================================================================
+
+/// Signal initialization options
+pub enum SignalInit<T> {
+    Value(T),
+    InitFn(Box<dyn Fn() -> T + Send + 'static>),
+}
+
+impl<T: SignalValue> From<T> for SignalInit<T> {
+    fn from(value: T) -> Self {
+        SignalInit::Value(value)
     }
 }
 
@@ -255,63 +244,146 @@ pub enum SignalCreationError {
     OutsideScope,
 }
 
-impl std::fmt::Display for SignalCreationError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            SignalCreationError::OutsideScope => {
-                write!(f, "Signals can only be created within a scope context")
-            }
-        }
+impl core::fmt::Display for SignalCreationError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "Signals can only be created within a scope context")
     }
 }
 
-impl std::error::Error for SignalCreationError {}
+/// Create new signal within current scope
+pub fn create_signal<T, I>(init: I) -> Signal<T>
+where
+    T: SignalValue + PartialEq + 'static,
+    I: Into<SignalInit<T>>,
+{
+    let scope_id = get_current_scope()
+        .ok_or(SignalCreationError::OutsideScope)
+        .unwrap();
+    let signal_id = get_next_signal_id_for_scope(scope_id);
+    let signal = Signal {
+        id: (scope_id, signal_id),
+        _marker: PhantomData,
+    };
+
+    {
+        let mut signals = SIGNALS.lock();
+        if signals.get(&signal.id).is_none() {
+            let initial_value = match init.into() {
+                SignalInit::Value(v) => v,
+                SignalInit::InitFn(f) => f(),
+            };
+            signals.insert(
+                signal.id,
+                StoredValue {
+                    value: Box::new(initial_value),
+                },
+            );
+        }
+    }
+
+    signal
+}
+
+//==============================================================================
+// EFFECTS
+//==============================================================================
+
+#[derive(Clone, Copy, Debug)]
+struct Effect {
+    id: (usize, usize),
+}
+
+/// Create effect that runs when dependencies change
+pub fn create_effect(effect: impl Fn() + Send + 'static) {
+    let scope_id = get_current_scope()
+        .ok_or(SignalCreationError::OutsideScope)
+        .unwrap();
+    let effect_id = get_next_effect_id_for_scope(scope_id);
+    let effect_struct = Effect {
+        id: (scope_id, effect_id),
+    };
+
+    {
+        let mut effects = SCOPE_EFFECTS.lock();
+        effects.insert(effect_struct.id, Box::new(effect));
+    }
+}
+
+//==============================================================================
+// SCOPE MANAGEMENT
+//==============================================================================
+
+/// Run function within new reactive scope
+pub(crate) fn run_scope(
+    scope_fn: impl FnMut() -> Node + Send + 'static,
+    callback: impl Fn(&Node) + Send + Sync + 'static,
+) -> Option<Node> {
+    let scope_id = {
+        let mut next_id = NEXT_SCOPE_ID.lock();
+        let current = *next_id;
+        *next_id = current + 1;
+        current
+    };
+
+    {
+        let mut scope_functions = SCOPE_FUNCTIONS.lock();
+        scope_functions.insert(scope_id, Box::new(scope_fn));
+    }
+
+    {
+        let mut scope_callbacks = SCOPE_CALLBACKS.lock();
+        scope_callbacks.insert(scope_id, Arc::new(callback));
+    }
+
+    render_scope(scope_id)
+}
+
+/// Trigger re-render of all scopes
+pub fn rerender_all_scopes() {
+    let scope_ids: Vec<usize> = {
+        let scope_functions = SCOPE_FUNCTIONS.lock();
+        scope_functions.keys().cloned().collect()
+    };
+
+    for scope_id in scope_ids {
+        render_scope(scope_id);
+    }
+
+    process_pending_renders();
+}
+
+//==============================================================================
+// INTERNAL FUNCTIONS
+//==============================================================================
 
 fn get_current_scope() -> Option<usize> {
-    CURRENT_SCOPE.with(|scope| *scope.borrow())
+    *CURRENT_SCOPE.lock()
 }
 
 fn set_current_scope(scope_id: Option<usize>) {
-    CURRENT_SCOPE.with(|scope| {
-        *scope.borrow_mut() = scope_id;
-    });
+    *CURRENT_SCOPE.lock() = scope_id;
 }
 
 fn get_next_signal_id_for_scope(scope_id: usize) -> usize {
-    SCOPE_SIGNAL_COUNTERS.with(|counters| {
-        let mut counters = counters.borrow_mut();
-        let counter = counters.entry(scope_id).or_insert(0);
-        *counter += 1;
-        *counter
-    })
+    let mut counters = SCOPE_SIGNAL_COUNTERS.lock();
+    let counter = counters.entry(scope_id).or_insert(0);
+    *counter += 1;
+    *counter
+}
+
+fn get_next_effect_id_for_scope(scope_id: usize) -> usize {
+    let mut counters = SCOPE_EFFECT_COUNTERS.lock();
+    let counter = counters.entry(scope_id).or_insert(0);
+    *counter += 1;
+    *counter
 }
 
 fn reset_signal_counters(scope_id: usize) {
-    SCOPE_SIGNAL_COUNTERS.with(|counters| {
-        counters.borrow_mut().remove(&scope_id);
-    });
+    SCOPE_SIGNAL_COUNTERS.lock().remove(&scope_id);
 }
 
-fn process_pending_renders() {
-    loop {
-        let scope_to_render = PENDING_SCOPE_RENDERS.with(|pending| {
-            let mut pending = pending.borrow_mut();
-            if pending.is_empty() {
-                None
-            } else {
-                // Take one scope at a time to avoid holding the borrow
-                pending.iter().next().copied().map(|scope_id| {
-                    pending.remove(&scope_id);
-                    scope_id
-                })
-            }
-        });
-
-        match scope_to_render {
-            Some(scope_id) => render_scope(scope_id),
-            None => break,
-        };
-    }
+fn reset_effect_counters(scope_id: usize) {
+    SCOPE_EFFECT_COUNTERS.lock().remove(&scope_id);
 }
 
 struct ScopeGuard {
@@ -325,101 +397,83 @@ impl Drop for ScopeGuard {
 }
 
 fn render_scope(scope_id: usize) -> Option<Node> {
-    // Create a scope guard that will restore the previous scope when dropped
     let _guard = ScopeGuard {
         previous_scope: get_current_scope(),
     };
-
-    // Set the current scope for rendering
     set_current_scope(Some(scope_id));
 
-    // Batch all pre-render operations
-    let (should_clear_deps, was_rendering) = RENDERING_SCOPE.with(|flag| {
-        SCOPE_SIGNAL_CHANGES.with(|changes| {
-            let mut flag = flag.borrow_mut();
-            let was_rendering = *flag;
-            *flag = scope_id;
+    let (should_clear_deps, was_rendering) = {
+        let mut rendering_flag = RENDERING_SCOPE.lock();
+        let mut changes = SCOPE_SIGNAL_CHANGES.lock();
+        let was_rendering = *rendering_flag;
+        *rendering_flag = scope_id;
+        changes.clear();
+        (was_rendering == 0, was_rendering)
+    };
 
-            let mut changes = changes.borrow_mut();
-            changes.clear();
-
-            (was_rendering == 0, was_rendering)
-        })
-    });
-
-    // Only clear dependencies if this is not a nested render
     if should_clear_deps {
-        // Clear only this scope's dependencies efficiently
-        SCOPE_DEPENDENCIES.with(|scope_deps| {
-            if let Some(signal_ids) = scope_deps.borrow_mut().remove(&scope_id) {
-                // Remove this scope from each signal's dependency list
-                SIGNAL_DEPENDENCIES.with(|signal_deps| {
-                    let mut signal_deps = signal_deps.borrow_mut();
-                    for signal_id in signal_ids {
-                        if let Some(scopes) = signal_deps.get_mut(&signal_id) {
-                            scopes.remove(&scope_id);
-                        }
-                    }
-                });
+        let signal_ids = {
+            let mut scope_deps = SCOPE_DEPENDENCIES.lock();
+            scope_deps.remove(&scope_id)
+        };
+
+        if let Some(signal_ids) = signal_ids {
+            let mut signal_deps = SIGNAL_DEPENDENCIES.lock();
+            for signal_id in signal_ids {
+                if let Some(scopes) = signal_deps.get_mut(&signal_id) {
+                    scopes.remove(&scope_id);
+                }
             }
-        });
+        }
     }
 
-    // Execute the scope function without removing it
-    let scope_fn = SCOPE_FUNCTIONS.with(|scope_functions| {
-        let mut scope_functions = scope_functions.borrow_mut();
+    let scope_fn = {
+        let mut scope_functions = SCOPE_FUNCTIONS.lock();
         scope_functions.remove(&scope_id)
-    });
+    };
 
     let node = scope_fn.map(|mut fnc| {
         let node = fnc();
-        SCOPE_FUNCTIONS.with_borrow_mut(|scope_functions| {
+        {
+            let mut scope_functions = SCOPE_FUNCTIONS.lock();
             scope_functions.insert(scope_id, fnc);
-        });
+        }
         node
     });
 
     if let Some(ref node) = node {
-        SCOPE_CALLBACKS.with(|scope_callbacks| {
-            scope_callbacks
-                .borrow()
-                .get(&scope_id)
-                .and_then(|callback| Some(callback(node)));
-        });
+        let scope_callbacks = SCOPE_CALLBACKS.lock();
+        if let Some(callback) = scope_callbacks.get(&scope_id) {
+            callback(node);
+        }
     }
 
     reset_signal_counters(scope_id);
     run_scope_effects(scope_id);
     reset_effect_counters(scope_id);
 
-    let signal_changes = SCOPE_SIGNAL_CHANGES.with(|stored_changes| {
-        RENDERING_SCOPE.with(|flag| {
-            let mut changes = stored_changes.borrow_mut();
-            let mut flag = flag.borrow_mut();
-
-            let result = if !changes.is_empty() {
-                let collected = std::mem::take(&mut *changes);
-                Some(collected)
-            } else {
-                None
-            };
-
-            *flag = was_rendering;
-            result
-        })
-    });
+    let signal_changes = {
+        let mut changes = SCOPE_SIGNAL_CHANGES.lock();
+        let mut rendering_flag = RENDERING_SCOPE.lock();
+        let result = if !changes.is_empty() {
+            Some(core::mem::take(&mut *changes))
+        } else {
+            None
+        };
+        *rendering_flag = was_rendering;
+        result
+    };
 
     if let Some(changes) = signal_changes {
-        PENDING_SCOPE_RENDERS.with(|pending| {
-            let mut pending = pending.borrow_mut();
+        {
+            let mut pending = PENDING_SCOPE_RENDERS.lock();
+            let signal_deps = SIGNAL_DEPENDENCIES.lock();
             for signal_id in changes {
-                if let Some(dependent_scopes) =
-                    SIGNAL_DEPENDENCIES.with(|deps| deps.borrow().get(&signal_id).cloned())
-                {
-                    pending.extend(dependent_scopes);
+                if let Some(dependent_scopes) = signal_deps.get(&signal_id) {
+                    pending.extend(dependent_scopes.clone());
                 }
             }
-        });
+        }
 
         if was_rendering == 0 {
             process_pending_renders();
@@ -430,161 +484,43 @@ fn render_scope(scope_id: usize) -> Option<Node> {
 }
 
 fn run_scope_effects(scope_id: usize) {
-    SCOPE_EFFECTS.with(|effects| {
-        let effects = effects.borrow();
-        effects
-            .iter()
-            .filter(|((effect_scope_id, _), _)| *effect_scope_id == scope_id)
-            .for_each(|(_, effect)| effect());
-    });
+    let effects = SCOPE_EFFECTS.lock();
+    effects
+        .iter()
+        .filter(|((effect_scope_id, _), _)| *effect_scope_id == scope_id)
+        .for_each(|(_, effect)| effect());
 }
 
-pub enum SignalInit<T> {
-    Value(T),
-    InitFn(Box<dyn Fn() -> T + 'static>),
-}
+fn process_pending_renders() {
+    loop {
+        let scope_to_render = {
+            let mut pending = PENDING_SCOPE_RENDERS.lock();
+            if pending.is_empty() {
+                None
+            } else {
+                pending.iter().next().copied().map(|scope_id| {
+                    pending.remove(&scope_id);
+                    scope_id
+                })
+            }
+        };
 
-impl<T: SignalValue> From<T> for SignalInit<T> {
-    fn from(value: T) -> Self {
-        SignalInit::Value(value)
+        match scope_to_render {
+            Some(scope_id) => render_scope(scope_id),
+            None => break,
+        };
     }
 }
 
-/// Create a new signal with either a value or an initializer function
-///
-/// # Example
-///
-/// ```rust
-/// use simple_rsx::*;
-///
-/// fn main() {
-///     // Direct value
-///     let count = create_signal(0);
-///     
-///     // Using an initializer function
-///     let expensive = create_signal(|| {
-///         println!("Computing...");
-///         42
-///     });
-/// }
-/// ```
-pub fn create_signal<T, I>(init: I) -> Signal<T>
-where
-    T: SignalValue + PartialEq + 'static,
-    I: Into<SignalInit<T>>,
-{
-    let scope_id = get_current_scope()
-        .ok_or(SignalCreationError::OutsideScope)
-        .unwrap();
-
-    let signal_id = get_next_signal_id_for_scope(scope_id);
-    let signal = Signal {
-        id: (scope_id, signal_id),
-        _marker: std::marker::PhantomData,
-    };
-
-    SIGNALS.with(|signals| {
-        if signals.borrow_mut().get_mut(&signal.id).is_none() {
-            let initial_value = match init.into() {
-                SignalInit::Value(v) => v,
-                SignalInit::InitFn(f) => f(),
-            };
-            signals.borrow_mut().insert(
-                signal.id,
-                StoredValue {
-                    value: Box::new(initial_value),
-                },
-            );
-        }
-    });
-
-    signal
-}
-
-#[derive(Clone, Copy, Debug)]
-struct Effect {
-    id: (usize, usize),
-}
-
-fn get_next_effect_id_for_scope(scope_id: usize) -> usize {
-    SCOPE_EFFECT_COUNTERS.with(|counters| {
-        let mut counters = counters.borrow_mut();
-        let counter = counters.entry(scope_id).or_insert(0);
-        *counter += 1;
-        *counter
-    })
-}
-
-fn reset_effect_counters(scope_id: usize) {
-    SCOPE_EFFECT_COUNTERS.with(|counters| {
-        counters.borrow_mut().remove(&scope_id);
-    });
-}
-
-pub fn create_effect(effect: impl Fn() + 'static) {
-    let scope_id = get_current_scope()
-        .ok_or(SignalCreationError::OutsideScope)
-        .unwrap();
-
-    let effect_id = get_next_effect_id_for_scope(scope_id);
-    let effect_struct = Effect {
-        id: (scope_id, effect_id),
-    };
-
-    SCOPE_EFFECTS.with(|effects| {
-        effects
-            .borrow_mut()
-            .insert(effect_struct.id, Box::new(effect));
-    });
-}
-
-pub(crate) fn run_scope(
-    scope_fn: impl FnMut() -> Node + 'static,
-    callback: impl Fn(&Node) + 'static,
-) -> Option<Node> {
-    // Get next scope ID
-    let scope_id = NEXT_SCOPE_ID.with(|id| {
-        if let Ok(mut id) = id.try_borrow_mut() {
-            let current = *id;
-            *id = current + 1;
-            current
-        } else {
-            panic!("Failed to get next scope ID")
-        }
-    });
-
-    // Store the scope function so it can be re-executed
-    SCOPE_FUNCTIONS.with(|scope_functions| {
-        let mut scope_functions = scope_functions.borrow_mut();
-        scope_functions.insert(scope_id, Box::new(scope_fn));
-    });
-
-    SCOPE_CALLBACKS.with(|scope_callbacks| {
-        let mut scope_callbacks = scope_callbacks.borrow_mut();
-        scope_callbacks.insert(scope_id, Arc::new(callback));
-    });
-
-    // Initial render of the scope
-    render_scope(scope_id)
-}
-
-// Helper function to manually trigger all scopes to re-render (useful for debugging)
-pub fn rerender_all_scopes() {
-    SCOPE_FUNCTIONS.with(|scope_functions| {
-        let scope_functions = scope_functions.borrow();
-        for scope_id in scope_functions.keys().cloned() {
-            render_scope(scope_id);
-        }
-    });
-
-    process_pending_renders();
-}
+//==============================================================================
+// TESTS
+//==============================================================================
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::Arc;
-    use std::sync::atomic::{AtomicUsize, Ordering};
+    use alloc::sync::Arc;
+    use core::sync::atomic::{AtomicUsize, Ordering};
 
     #[test]
     fn test_nested_scopes() {
@@ -596,15 +532,13 @@ mod tests {
                     move || {
                         let inner_signal = create_signal("hello");
                         assert!(inner_signal.get() == "hello");
-                        outer_signal.set(42); // Can access outer scope's signals
+                        outer_signal.set(42);
                         Node::Empty
                     },
                     |_| {},
                 );
 
-                // assert_ne!(outer_scope_id, inner_scope_id);
                 assert_eq!(outer_signal.get(), 42);
-
                 Node::Empty
             },
             |_| {},
@@ -622,9 +556,7 @@ mod tests {
                 create_effect(move || {
                     let _ = signal.get();
                     effect_count_clone.fetch_add(1, Ordering::SeqCst);
-                    // Effect should run once initially
                     assert!(effect_count.load(Ordering::SeqCst) > 0);
-                    // Update signal value
                     signal.set(1);
                 });
 
@@ -642,16 +574,13 @@ mod tests {
                 let signal2 = create_signal(0);
 
                 create_effect(move || {
-                    let str_val = signal1.get();
-                    let num_val = signal2.get();
-
-                    println!("Effect running with values: {}, {}", str_val, num_val);
+                    let _str_val = signal1.get();
+                    let _num_val = signal2.get();
                 });
 
                 signal1.set("world");
                 signal2.set(42);
 
-                // Verify final values
                 assert_eq!(signal1.get(), "world");
                 assert_eq!(signal2.get(), 42);
 

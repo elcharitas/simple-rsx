@@ -1,4 +1,4 @@
-//! Simple RSX - A React-inspired JSX Library for Rust
+//! Simple RSX - A React-inspired JSX Library for Rust (no_std)
 //!
 //! I created Simple RSX to bring the familiar feel of React's JSX to Rust projects. If you're coming
 //! from a React background, you'll feel right at home. And if you're new to both, don't worry - I've made
@@ -17,6 +17,7 @@
 //! - **Type Safety**: Get compile-time checks for your components and props
 //! - **Zero Runtime Overhead**: All the magic happens at compile time
 //! - **Familiar Patterns**: Components, props, fragments - all the React concepts you love
+//! - **No-std Support**: Works in embedded and resource-constrained environments
 //!
 //! # Let's Get Started!
 //!
@@ -157,12 +158,28 @@
 //! );
 //! ```
 //!
+
+#![no_std]
+
+extern crate alloc;
+
 pub mod dom;
 pub mod signals;
 
-use indexmap::IndexMap;
+// For no_std, we need to use alloc collections instead of std
+use alloc::{
+    borrow::Cow,
+    collections::BTreeMap,
+    format,
+    string::{String, ToString},
+    vec::Vec,
+};
+use core::{fmt::Display, iter::FromIterator};
+
 pub use simple_rsx_macros::{component, either, rsx};
-use std::{borrow::Cow, fmt::Display};
+
+#[cfg(feature = "wasm")]
+use alloc::{boxed::Box, sync::Arc};
 
 /// A trait for converting values into HTML attribute strings.
 ///
@@ -233,26 +250,26 @@ impl<T: ToString> OptionAttribute for Option<T> {
 pub struct Element {
     key: String,
     tag: Cow<'static, str>,
-    attributes: IndexMap<String, String>,
+    attributes: BTreeMap<String, String>,
     children: Vec<Node>,
     #[cfg(feature = "wasm")]
-    events: IndexMap<String, EventCallback>,
+    events: BTreeMap<String, EventCallback>,
     #[cfg(not(feature = "wasm"))]
     #[allow(unused)]
-    events: IndexMap<String, String>,
+    events: BTreeMap<String, String>,
 }
 
 impl Element {
     pub fn parse_tag_with_attributes(
         key: &str,
         tag: &'static str,
-        attributes: IndexMap<String, String>,
-        #[cfg(feature = "wasm")] events: IndexMap<String, EventCallback>,
-        #[cfg(not(feature = "wasm"))] events: IndexMap<String, String>,
+        attributes: BTreeMap<String, String>,
+        #[cfg(feature = "wasm")] events: BTreeMap<String, EventCallback>,
+        #[cfg(not(feature = "wasm"))] events: BTreeMap<String, String>,
         children: Vec<Node>,
     ) -> Node {
         Node::Element(Element {
-            tag: std::borrow::Cow::Borrowed(tag),
+            tag: Cow::Borrowed(tag),
             key: key.to_string(),
             attributes,
             events,
@@ -483,34 +500,34 @@ impl From<bool> for Node {
     }
 }
 
-impl<I, F, R> From<std::iter::Map<I, F>> for Node
+impl<I, F, R> From<core::iter::Map<I, F>> for Node
 where
     I: Iterator,
     F: FnMut(I::Item) -> R,
     R: Into<Node>,
     Vec<Node>: FromIterator<R>,
 {
-    fn from(iter: std::iter::Map<I, F>) -> Self {
+    fn from(iter: core::iter::Map<I, F>) -> Self {
         let nodes: Vec<Node> = iter.collect();
         Node::from(nodes)
     }
 }
 
-impl<I, F, R> From<&std::iter::Map<I, F>> for Node
+impl<I, F, R> From<&core::iter::Map<I, F>> for Node
 where
-    I: Iterator + std::clone::Clone,
-    F: FnMut(I::Item) -> R + std::clone::Clone,
+    I: Iterator + Clone,
+    F: FnMut(I::Item) -> R + Clone,
     R: Into<Node>,
     Vec<Node>: FromIterator<R>,
 {
-    fn from(iter: &std::iter::Map<I, F>) -> Self {
-        let nodes: Vec<Node> = <std::iter::Map<I, F> as Clone>::clone(&iter).collect();
+    fn from(iter: &core::iter::Map<I, F>) -> Self {
+        let nodes: Vec<Node> = iter.clone().collect();
         Node::from(nodes)
     }
 }
 
 impl Display for Node {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
             Node::Element(el) => {
                 write!(f, "<{}", el.tag)?;
@@ -577,7 +594,7 @@ fn sanitize_html(input: &str) -> String {
 }
 
 #[cfg(feature = "wasm")]
-pub struct EventCallback(Option<std::rc::Rc<std::cell::RefCell<Box<dyn FnMut(web_sys::Event)>>>>);
+pub struct EventCallback(Option<Arc<spin::Mutex<Box<dyn FnMut(web_sys::Event) + Send + Sync>>>>);
 
 #[cfg(feature = "wasm")]
 impl Default for EventCallback {
@@ -590,11 +607,9 @@ impl Default for EventCallback {
 impl EventCallback {
     pub fn new<F>(callback: F) -> Self
     where
-        F: FnMut(web_sys::Event) + 'static,
+        F: FnMut(web_sys::Event) + Send + Sync + 'static,
     {
-        Self(Some(std::rc::Rc::new(std::cell::RefCell::new(Box::new(
-            callback,
-        )))))
+        Self(Some(Arc::new(spin::Mutex::new(Box::new(callback)))))
     }
 
     pub fn has_callback(&self) -> bool {
@@ -603,7 +618,7 @@ impl EventCallback {
 
     pub fn call(&mut self, event: web_sys::Event) {
         if let Some(cb) = &mut self.0 {
-            let mut cb = cb.borrow_mut();
+            let mut cb = cb.lock();
             cb(event);
         }
     }
@@ -620,7 +635,7 @@ impl Clone for EventCallback {
 #[cfg(feature = "wasm")]
 impl<F> From<F> for EventCallback
 where
-    F: FnMut(web_sys::Event) + 'static,
+    F: FnMut(web_sys::Event) + Send + Sync + 'static,
 {
     fn from(callback: F) -> Self {
         Self::new(callback)
@@ -706,7 +721,7 @@ macro_rules! derive_elements {
                     pub role: String,
 
                     /// Custom data attributes (data-*)
-                    pub r#data: std::collections::HashMap<String, String>,
+                    pub r#data: BTreeMap<String, String>,
 
                     // ARIA Accessibility attributes
 
@@ -808,9 +823,9 @@ macro_rules! derive_elements {
                 }
 
                 impl [<HTML $tag:camel Element Props>] {
-                    fn to_attributes(&self) -> IndexMap<String, String> {
+                    fn to_attributes(&self) -> BTreeMap<String, String> {
                         #[allow(unused_mut)]
-                        let mut attributes = IndexMap::new();
+                        let mut attributes = BTreeMap::new();
                         $(
                             if !self.$attr_name.value().is_empty() {
                                 let mut key = stringify!($attr_name);
@@ -909,8 +924,8 @@ macro_rules! derive_elements {
                         attributes
                     }
                     #[cfg(feature = "wasm")]
-                    fn get_events(&self) -> IndexMap<String, EventCallback> {
-                        let mut events = IndexMap::new();
+                    fn get_events(&self) -> BTreeMap<String, EventCallback> {
+                        let mut events = BTreeMap::new();
                         if self.on_click.has_callback() {
                             events.insert("click".to_string(), self.on_click.clone());
                         }
@@ -947,8 +962,8 @@ macro_rules! derive_elements {
                         events
                     }
                     #[cfg(not(feature = "wasm"))]
-                    fn get_events(&self) -> IndexMap<String, String> {
-                        IndexMap::new()
+                    fn get_events(&self) -> BTreeMap<String, String> {
+                        BTreeMap::new()
                     }
 
                 }

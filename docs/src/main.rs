@@ -1,4 +1,3 @@
-#![allow(unused_braces)]
 use simple_rsx::Node;
 use simple_rsx::component;
 use simple_rsx::dom::render_root;

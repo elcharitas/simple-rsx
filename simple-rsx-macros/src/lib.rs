@@ -183,7 +183,7 @@ enum RsxNode {
     Fragment(Vec<RsxNode>),
     Component {
         name: Ident,
-        props: Vec<(Ident, Option<Block>)>,
+        props: Vec<(Ident, Option<Expr>)>,
         children: Vec<RsxNode>,
         close_tag: Option<Ident>,
     },
@@ -406,18 +406,12 @@ impl Parse for RsxNode {
                 if input.to_string().trim().starts_with('{') {
                     let expr = input.parse::<Block>()?;
                     // check if expr matches {Ident} pattern
-                    if let Some(Stmt::Expr(expr, token)) = expr.stmts.first() {
+                    if let Some(Stmt::Expr(expr, ..)) = expr.stmts.first() {
                         if let Expr::Path(expr_path) = expr {
                             match expr_path.path.segments.first() {
                                 Some(segment) => {
                                     let ident = segment.ident.clone();
-                                    attributes.push((
-                                        ident,
-                                        Some(Block {
-                                            brace_token: Brace::default(),
-                                            stmts: vec![syn::Stmt::Expr(expr.clone(), *token)],
-                                        }),
-                                    ));
+                                    attributes.push((ident, Some(expr.clone())));
                                 }
                                 _ => {
                                     return Err(syn::Error::new(
@@ -430,7 +424,20 @@ impl Parse for RsxNode {
                     }
                 } else {
                     match input.parse::<NodeValue>() {
-                        Ok(attr) => attributes.push((attr.name, attr.value)),
+                        Ok(attr) => attributes.push((
+                            attr.name,
+                            attr.value.map(|v| match v.stmts.first() {
+                                Some(Stmt::Expr(expr, ..)) => {
+                                    return expr.clone();
+                                }
+                                _ => {
+                                    return Expr::Lit(syn::ExprLit {
+                                        attrs: vec![],
+                                        lit: syn::Lit::Str(LitStr::new("true", input.span())),
+                                    });
+                                }
+                            }),
+                        )),
                         Err(e) => return Err(e),
                     }
                 }

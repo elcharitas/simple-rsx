@@ -26,8 +26,8 @@ impl WasmRender for crate::Element {
                 }
             }
             // add attributes
-            for (key, value) in &self.attributes {
-                let _ = element.set_attribute(key, value);
+            for (name, value) in &self.attributes {
+                let _ = element.set_attribute(name, value);
             }
             // attach events
             for (event_type, callback) in &self.events {
@@ -53,7 +53,7 @@ impl WasmRender for Node {
 pub fn render_root<C: Component>(element_id: &'static str)
 where
     <C as Component>::Props: Default,
-    <C as Component>::Props: 'static,
+    <C as Component>::Props: Send + Sync + 'static,
 {
     render_component::<C>(Default::default(), move |node| {
         let window = web_sys::window().expect("no global `window` exists");
@@ -75,6 +75,7 @@ fn attach_event_handler(
     event_type: &str,
     mut callback: crate::EventCallback,
 ) {
+    use alloc::boxed::Box;
     use wasm_bindgen::prelude::*;
 
     let closure = Closure::wrap(Box::new(move |event: web_sys::Event| {
@@ -90,10 +91,10 @@ fn attach_event_handler(
 
 pub fn render_component<C: Component>(
     props: C::Props,
-    callback: impl Fn(&Node) + 'static,
+    callback: impl Fn(&Node) + 'static + Send + Sync,
 ) -> Option<Node>
 where
-    <C as Component>::Props: 'static,
+    <C as Component>::Props: Send + Sync + 'static,
 {
     run_scope(move || C::render(&props), callback)
 }
