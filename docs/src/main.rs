@@ -252,17 +252,17 @@ fn InstallationPage() -> Node {
                                 <div style="border: 1px solid #e5e7eb; border-radius: 0.5rem; overflow: hidden;" class="mb-4">
                                     <div style="background-color: #1e293b; padding: 1rem;">
                                         <pre style="background: transparent; color: #e2e8f0; font-size: 0.9rem; line-height: 1.5;">
-                                            <div style="color: #f472b6; display: block">[dependencies]</div>
+                                            <div style="color: #f472b6; display: block">"[dependencies]"</div>
                                             <span style="color: #34d399;">simple-rsx</span> = <span style="color: #fbbf24;">"0.1.0"</span>
                                         </pre>
                                     </div>
                                 </div>
 
-                                <p class="has-text-grey-dark mb-3" style="line-height: 1.6;">Or use cargo add:</p>
+                                <p class="has-text-grey-dark mb-3" style="line-height: 1.6;">"Or use cargo add:"</p>
                                 <div style="border: 1px solid #e5e7eb; border-radius: 0.5rem; overflow: hidden;">
                                     <div style="background-color: #1e293b; padding: 1rem;">
                                         <pre style="background: transparent; color: #e2e8f0; font-size: 0.9rem;">
-                                            <span style="color: #34d399;">$ cargo add simple-rsx</span>
+                                            <span style="color: #34d399;">"$ cargo add simple-rsx"</span>
                                         </pre>
                                     </div>
                                 </div>

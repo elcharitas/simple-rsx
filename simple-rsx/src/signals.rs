@@ -82,6 +82,7 @@ impl_signal_value!(
     i32,
     i64,
     i128,
+    isize,
     u8,
     u16,
     u32,
