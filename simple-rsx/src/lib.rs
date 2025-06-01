@@ -280,6 +280,18 @@ impl Element {
     pub fn key(&self) -> &str {
         &self.key
     }
+
+    pub fn tag(&self) -> &str {
+        &self.tag
+    }
+
+    pub fn attributes(&self) -> &BTreeMap<String, String> {
+        &self.attributes
+    }
+
+    pub fn children(&self) -> &Vec<Node> {
+        &self.children
+    }
 }
 
 /// A trait for creating reusable components.

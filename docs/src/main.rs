@@ -2,7 +2,7 @@
 #![allow(unused_braces)]
 
 extern crate alloc;
-use alloc::{format, vec};
+use alloc::vec;
 
 use simple_rsx::Node;
 use simple_rsx::component;

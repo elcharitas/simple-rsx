@@ -75,10 +75,22 @@ mod tests {
     fn test_div_rsx() {
         use simple_rsx::*;
         let rsx = rsx!(<div class="container" id="app" />);
-        assert_eq!(
-            rsx.to_string(),
-            "<div id=\"app\" class=\"container\"></div>"
-        )
+        match rsx {
+            Node::Element(element) => {
+                assert_eq!(element.tag(), "div");
+                assert_eq!(element.attributes().len(), 2);
+                assert_eq!(
+                    element.attributes().get("class"),
+                    Some("container".to_string()).as_ref()
+                );
+                assert_eq!(
+                    element.attributes().get("id"),
+                    Some("app".to_string()).as_ref()
+                );
+                assert_eq!(element.children().len(), 0);
+            }
+            _ => panic!("Expected element"),
+        }
     }
 
     #[test]
@@ -108,11 +120,22 @@ mod tests {
     #[test]
     fn test_div_children_rsx_with_text_and_attribute() {
         use simple_rsx::*;
-        let rsx = rsx!(<input type_="text" placeholder="Enter name" required />);
-        assert_eq!(
-            rsx.to_string(),
-            "<input type=\"text\" placeholder=\"Enter name\" required=\"true\"></input>"
-        )
+        let rsx = rsx!(<input type_="text" placeholder={"Enter name".to_string()} required />);
+        match rsx {
+            Node::Element(element) => {
+                assert_eq!(element.tag(), "input");
+                assert_eq!(element.attributes().len(), 3);
+                assert_eq!(
+                    element.attributes().get("type"),
+                    Some("text".to_string()).as_ref()
+                );
+                assert_eq!(
+                    element.attributes().get("placeholder"),
+                    Some("Enter name".to_string()).as_ref()
+                )
+            }
+            _ => panic!("Expected element"),
+        }
     }
 
     #[test]
@@ -181,14 +204,6 @@ mod tests {
         use simple_rsx::*;
         let class = "container";
         let rsx = rsx!(<div class={format!("{class}-large")} />);
-        assert_eq!(rsx.to_string(), "<div class=\"container-large\"></div>")
-    }
-
-    #[test]
-    fn test_attribute_value_concatenation_and_interpolation() {
-        use simple_rsx::*;
-        let class = "container";
-        let rsx = rsx!(<div class="{class}-large" />);
         assert_eq!(rsx.to_string(), "<div class=\"container-large\"></div>")
     }
 

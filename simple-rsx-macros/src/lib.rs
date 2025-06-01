@@ -4,10 +4,10 @@ use quote::quote;
 use syn::spanned::Spanned;
 use syn::token::Colon;
 use syn::{
-    Block, Expr, ExprLit, Ident, ItemFn, Lit, LitStr, Macro, Result, Token,
+    Block, Expr, ExprLit, Ident, ItemFn, Lit, LitStr, Result, Token,
     parse::{Parse, ParseStream},
     parse_macro_input, parse_quote,
-    token::{Brace, Not},
+    token::Brace,
 };
 use syn::{FnArg, PatType, Signature, Stmt, Type, TypeReference};
 
@@ -248,14 +248,9 @@ impl Parse for NodeBlock {
             let parsed: LitStr = input.parse()?;
             return Ok(NodeBlock {
                 value: None,
-                expr: Some(syn::Expr::Macro(syn::ExprMacro {
+                expr: Some(syn::Expr::Lit(ExprLit {
                     attrs: Vec::new(),
-                    mac: Macro {
-                        path: parse_quote!(format),
-                        bang_token: Not::default(),
-                        delimiter: syn::MacroDelimiter::Paren(syn::token::Paren::default()),
-                        tokens: quote::quote!(#parsed),
-                    },
+                    lit: Lit::Str(parsed),
                 })),
             });
         }
