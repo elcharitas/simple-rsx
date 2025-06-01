@@ -39,14 +39,26 @@ pub fn rsx(input: TokenStream) -> TokenStream {
     let expanded = input.to_tokens();
     expanded.into()
 }
+
 /// A procedural macro that transforms a conditional expression into a JSX-like syntax.
+/// Supports both RSX nodes and literals.
 ///
 /// # Examples
 /// ```rust
 /// use simple_rsx::*;
-/// // Fragment
+///
 /// let show = true;
+///
+/// // With RSX nodes
 /// either!(show => <p>"Show me"</p>);
+/// either!(show => <p>"Show me"</p> else <p>"Hidden"</p>);
+///
+/// // With literals
+/// either!(show => "Visible text");
+/// either!(show => "Visible" else "Hidden");
+///
+/// // Mixed usage
+/// either!(show => <div>"Complex"</div> else "Simple text");
 /// ```
 #[proc_macro]
 pub fn either(input: TokenStream) -> TokenStream {
@@ -55,10 +67,39 @@ pub fn either(input: TokenStream) -> TokenStream {
     expanded.into()
 }
 
+enum EitherValue {
+    RsxNode(RsxNode),
+    Literal(Lit),
+}
+
+impl Parse for EitherValue {
+    fn parse(input: ParseStream) -> Result<Self> {
+        // Try to parse as a literal first (simpler case)
+        if let Ok(lit) = input.parse::<Lit>() {
+            Ok(EitherValue::Literal(lit))
+        } else {
+            // If not a literal, parse as RsxNode
+            let rsx_node = input.parse::<RsxNode>()?;
+            Ok(EitherValue::RsxNode(rsx_node))
+        }
+    }
+}
+
+impl EitherValue {
+    fn to_tokens(&self) -> TokenStream2 {
+        match self {
+            EitherValue::RsxNode(node) => node.to_tokens(),
+            EitherValue::Literal(lit) => {
+                quote! { #lit }
+            }
+        }
+    }
+}
+
 struct Either {
     condition: Expr,
-    true_value: RsxNode,
-    false_value: Option<RsxNode>,
+    true_value: EitherValue,
+    false_value: Option<EitherValue>,
 }
 
 impl Parse for Either {
@@ -66,12 +107,14 @@ impl Parse for Either {
         let condition = input.parse()?;
         input.parse::<Token![=>]>()?;
         let true_value = input.parse()?;
+
         let false_value = if input.peek(Token![else]) {
             input.parse::<Token![else]>()?;
             Some(input.parse()?)
         } else {
             None
         };
+
         Ok(Either {
             condition,
             true_value,
@@ -83,16 +126,17 @@ impl Parse for Either {
 impl Either {
     fn to_tokens(&self) -> TokenStream2 {
         let condition = &self.condition;
-        let false_value = &self
+        let true_value = self.true_value.to_tokens();
+
+        let false_value = self
             .false_value
             .as_ref()
             .map(|v| v.to_tokens())
-            .or_else(|| Some(quote! {::simple_rsx::Node::Fragment(vec![])}));
-        let true_value = self.true_value.to_tokens();
+            .unwrap_or_else(|| quote! { ::simple_rsx::Node::Fragment(vec![]) });
 
         quote! {
             if #condition {
-                #true_value.into()
+                #true_value
             } else {
                 #false_value
             }

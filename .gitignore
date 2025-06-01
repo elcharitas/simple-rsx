@@ -1,2 +1,12 @@
 /target
 dist/
+
+.DS_Store
+*.swp
+*.swo
+# Local environment variables
+.env
+.env.local
+# Log files
+logs/
+*.log

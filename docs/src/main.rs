@@ -1,6 +1,13 @@
+#![no_std]
+#![allow(unused_braces)]
+
+extern crate alloc;
+use alloc::{format, vec};
+
 use simple_rsx::Node;
 use simple_rsx::component;
 use simple_rsx::dom::render_root;
+use simple_rsx::either;
 use simple_rsx::rsx;
 use simple_rsx::signals::SignalValue;
 use simple_rsx::signals::create_signal;
@@ -15,9 +22,13 @@ enum Page {
 }
 
 impl SignalValue for Page {
-    fn as_any(&self) -> Option<&dyn std::any::Any> {
+    fn as_any(&self) -> Option<&dyn core::any::Any> {
         Some(self)
     }
+}
+
+fn navbar_class(is_active: bool) -> &'static str {
+    either!(is_active => "navbar-item has-text-grey-dark {}" else "navbar-item has-text-weight-semibold")
 }
 
 #[component]
@@ -48,19 +59,19 @@ fn App() -> Node {
                     </div>
                     <div class="navbar-menu">
                         <div class="navbar-start">
-                            <a class={format!("navbar-item has-text-grey-dark {}", if current_page.get() == Page::Installation { "has-text-weight-semibold" } else { "" })}
+                            <a class={navbar_class(current_page.get() == Page::Installation)}
                                href="#" on_click={nav(Page::Installation)} style="font-size: 0.9rem;">
                                 Installation
                             </a>
-                            <a class={format!("navbar-item has-text-grey-dark {}", if current_page.get() == Page::GetStarted { "has-text-weight-semibold" } else { "" })}
+                            <a class={navbar_class(current_page.get() == Page::GetStarted)}
                                href="#" on_click={nav(Page::GetStarted)} style="font-size: 0.9rem;">
                                 Get Started
                             </a>
-                            <a class={format!("navbar-item has-text-grey-dark {}", if current_page.get() == Page::Counter { "has-text-weight-semibold" } else { "" })}
+                            <a class={navbar_class(current_page.get() == Page::Counter)}
                                href="#" on_click={nav(Page::Counter)} style="font-size: 0.9rem;">
                                 Examples
                             </a>
-                            <a class={format!("navbar-item has-text-grey-dark {}", if current_page.get() == Page::Concepts { "has-text-weight-semibold" } else { "" })}
+                            <a class={navbar_class(current_page.get() == Page::Concepts)}
                                href="#" on_click={nav(Page::Concepts)} style="font-size: 0.9rem;">
                                 Concepts
                             </a>
