@@ -3,8 +3,6 @@ use simple_rsx::{Node, component, either, rsx, signals::Signal};
 
 use crate::Page;
 
-// Props structs for all components
-#[derive(Clone)]
 pub struct CodeBlockProps {
     pub title: &'static str,
     pub code: &'static str,
@@ -12,7 +10,6 @@ pub struct CodeBlockProps {
     pub children: Vec<Node>,
 }
 
-#[derive(Clone)]
 pub struct InfoBoxProps {
     pub icon: &'static str,
     pub title: &'static str,
@@ -21,7 +18,6 @@ pub struct InfoBoxProps {
     pub children: Vec<Node>,
 }
 
-#[derive(Clone)]
 pub struct FeatureCardProps {
     pub icon: &'static str,
     pub title: &'static str,
@@ -29,21 +25,18 @@ pub struct FeatureCardProps {
     pub children: Vec<Node>,
 }
 
-#[derive(Clone)]
 pub struct PageHeaderProps {
     pub title: &'static str,
     pub subtitle: &'static str,
     pub children: Vec<Node>,
 }
 
-#[derive(Clone)]
 pub struct ContentSectionProps {
     pub title: &'static str,
     pub icon: Option<&'static str>,
     pub children: Vec<Node>,
 }
 
-#[derive(Clone)]
 pub struct ButtonProps {
     pub href: &'static str,
     pub text: &'static str,
@@ -52,7 +45,6 @@ pub struct ButtonProps {
     pub children: Vec<Node>,
 }
 
-#[derive(Clone)]
 pub struct TableRowProps {
     pub feature: &'static str,
     pub description: &'static str,
@@ -60,14 +52,12 @@ pub struct TableRowProps {
     pub children: Vec<Node>,
 }
 
-#[derive(Clone)]
 pub struct HeaderProps {
     pub current_page: Signal<Page>,
     pub theme: Signal<&'static str>,
     pub children: Vec<Node>,
 }
 
-#[derive(Clone)]
 pub struct EventTypeCardProps {
     pub title: &'static str,
     pub icon: &'static str,
@@ -76,7 +66,6 @@ pub struct EventTypeCardProps {
     pub children: Vec<Node>,
 }
 
-#[derive(Clone)]
 pub struct ConceptItemProps {
     pub icon: &'static str,
     pub title: &'static str,
@@ -85,7 +74,6 @@ pub struct ConceptItemProps {
     pub children: Vec<Node>,
 }
 
-#[derive(Clone)]
 pub struct ConceptCardProps {
     pub icon: &'static str,
     pub title: &'static str,
@@ -195,6 +183,7 @@ pub fn CodeBlock(props: &CodeBlockProps) -> Node {
             <pre class="bg-code-background p-4 overflow-x-auto">
                 <code class="text-sm text-code-foreground font-mono">{props.code}</code>
             </pre>
+            {&props.children}
         </div>
     }
 }
@@ -237,6 +226,7 @@ pub fn InfoBox(props: &InfoBoxProps) -> Node {
                 <strong>{props.title}</strong>
                 <span>{props.content}</span>
             </p>
+            {&props.children}
         </div>
     }
 }
@@ -250,6 +240,7 @@ pub fn FeatureCard(props: &FeatureCardProps) -> Node {
             </div>
             <h3 class="text-xl font-semibold mb-2">{props.title}</h3>
             <p class="text-muted-foreground">{props.description}</p>
+            {&props.children}
         </div>
     }
 }
@@ -260,17 +251,24 @@ pub fn PageHeader(props: &PageHeaderProps) -> Node {
         <div class="mb-10 text-center">
             <h1 class="text-5xl font-extrabold mb-4 bg-gradient-to-r from-primary-600 via-secondary-500 to-primary-600 bg-clip-text text-transparent drop-shadow-lg">{props.title}</h1>
             <p class="text-2xl text-muted-foreground font-medium">{props.subtitle}</p>
+            {&props.children}
         </div>
     }
 }
 
 #[component]
-pub fn ContentSection(props: &ContentSectionProps) -> Node {
+pub fn ContentSection(
+    ContentSectionProps {
+        children,
+        icon,
+        title,
+    }: &ContentSectionProps,
+) -> Node {
     rsx! {
         <div class="mb-8 border border-border rounded-2xl overflow-hidden shadow-lg bg-card/80">
             <div class="bg-muted/70 px-8 py-6 border-b border-border">
                 <h2 class="text-2xl font-bold flex items-center text-primary-600">
-                    {if let Some(icon_class) = props.icon {
+                    {if let Some(icon_class) = *icon {
                         rsx! {
                             <span class="text-primary-600 mr-3">
                                 <i class={icon_class}></i>
@@ -279,11 +277,11 @@ pub fn ContentSection(props: &ContentSectionProps) -> Node {
                     } else {
                         rsx! { <span></span> }
                     }}
-                    {props.title}
+                    {title}
                 </h2>
             </div>
             <div class="p-8 bg-card/90">
-                {props.children.clone()}
+                {children}
             </div>
         </div>
     }
@@ -318,6 +316,7 @@ pub fn Button(props: &ButtonProps) -> Node {
                 rsx! { <span></span> }
             }}
             <span>{props.text}</span>
+            {&props.children}
         </a>
     }
 }
@@ -329,6 +328,7 @@ pub fn TableRow(props: &TableRowProps) -> Node {
             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">{props.feature}</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{props.description}</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground font-mono text-xs bg-muted/50 rounded mx-2">{props.default}</td>
+            {&props.children}
         </tr>
     }
 }
@@ -359,6 +359,7 @@ pub fn EventTypeCard(props: &EventTypeCardProps) -> Node {
                     }
                 }).collect::<Vec<_>>()}
             </div>
+            {&props.children}
         </div>
     }
 }
@@ -383,6 +384,7 @@ pub fn ConceptItem(props: &ConceptItemProps) -> Node {
                 <p class="font-semibold">{props.title}</p>
                 <p class="text-sm text-muted-foreground">{props.description}</p>
             </div>
+            {&props.children}
         </div>
     }
 }
@@ -461,12 +463,11 @@ pub fn ConceptCard(props: &ConceptCardProps) -> Node {
                     }).collect::<Vec<_>>()}
                 </ul>
             </div>
-            {props.children.clone()}
+            {&props.children}
         </div>
     }
 }
 
-#[derive(Clone)]
 pub struct SidebarProps {
     pub current_page: Signal<Page>,
     pub children: Vec<Node>,
@@ -542,6 +543,7 @@ pub fn Sidebar(props: &SidebarProps) -> Node {
                         <span>GitHub</span>
                     </a>
                 </div>
+                {&props.children}
             </div>
         </div>
     }
@@ -556,9 +558,15 @@ fn navbar_class(is_active: bool) -> &'static str {
 }
 
 #[component]
-pub fn Header(props: &HeaderProps) -> Node {
-    let current_page = props.current_page;
-    let theme = props.theme;
+pub fn Header(
+    HeaderProps {
+        current_page,
+        theme,
+        children,
+    }: &HeaderProps,
+) -> Node {
+    let current_page = current_page.clone();
+    let theme = theme.clone();
 
     let nav = move |page: Page| {
         move |_| {
@@ -635,7 +643,7 @@ pub fn Header(props: &HeaderProps) -> Node {
                     </button>
                 </div>
             </div>
-            {props.children.clone()}
+            {children}
         </header>
     }
 }
