@@ -99,7 +99,7 @@ pub fn EventHandlingSection() -> Node {
                         title="Mouse Events"
                         icon="fas fa-mouse"
                         events={vec!["on_click", "on_mouseenter", "on_mouseleave"]}
-                        color="amber"
+                        color="secondary"
                     />
                     <EventTypeCard
                         title="Keyboard Events"
@@ -148,7 +148,7 @@ pub fn KeyConceptsGrid() -> Node {
                         icon="fas fa-eye"
                         title="Conditional rendering"
                         description="Dynamic UI based on state conditions"
-                        color="amber"
+                        color="secondary"
                     />
                     <ConceptItem
                         icon="fas fa-palette"
@@ -204,10 +204,10 @@ pub fn InfoBox(props: &InfoBoxProps) -> Node {
             "text-green-500",
         ),
         "warning" => (
-            "bg-amber-50",
-            "border-amber-500",
+            "bg-secondary-50",
+            "border-secondary-500",
             "text-slate-700",
-            "text-amber-500",
+            "text-secondary-500",
         ),
         _ => (
             "bg-primary-600/10",
@@ -267,7 +267,7 @@ pub fn ContentSection(
     rsx! {
         <div class="mb-8 border border-border rounded-2xl overflow-hidden shadow-lg bg-card/80">
             <div class="bg-muted/70 px-8 py-6 border-b border-border">
-                <h2 class="text-2xl font-bold flex items-center text-primary-600">
+                <h2 class="text-lg font-bold flex items-center text-primary-600">
                     {if let Some(icon_class) = *icon {
                         rsx! {
                             <span class="text-primary-600 mr-3">
@@ -336,7 +336,11 @@ pub fn TableRow(props: &TableRowProps) -> Node {
 #[component]
 pub fn EventTypeCard(props: &EventTypeCardProps) -> Node {
     let (bg_class, border_class, badge_class) = match props.color {
-        "amber" => ("bg-amber-500/10", "border-amber-500/20", "bg-amber-500"),
+        "secondary" => (
+            "bg-secondary-500/10",
+            "border-secondary-500/20",
+            "bg-secondary-500",
+        ),
         "blue" => ("bg-primary-600/10", "border-primary-600/20", "bg-primary"),
         "green" => ("bg-green-500/10", "border-green-500/20", "bg-green-500"),
         _ => ("bg-muted", "border-border", "bg-muted-foreground"),
@@ -368,7 +372,7 @@ pub fn EventTypeCard(props: &EventTypeCardProps) -> Node {
 pub fn ConceptItem(props: &ConceptItemProps) -> Node {
     let icon_color = match props.color {
         "primary" => "text-primary",
-        "amber" => "text-amber-500",
+        "secondary" => "text-secondary-500",
         "red" => "text-red-500",
         _ => "text-primary",
     };
@@ -395,28 +399,28 @@ pub fn ConceptCard(props: &ConceptCardProps) -> Node {
         "primary" => "text-primary",
         "blue" => "text-primary",
         "green" => "text-green-500",
-        "amber" => "text-amber-500",
+        "secondary" => "text-secondary-500",
         _ => "text-primary",
     };
 
     let benefit_icon = match props.color {
         "blue" => "fas fa-wrench",
         "green" => "fas fa-shield-alt",
-        "amber" => "fas fa-check-double",
+        "secondary" => "fas fa-check-double",
         _ => "fas fa-star",
     };
 
     let benefit_icon_color = match props.color {
         "blue" => "text-primary",
         "green" => "text-green-500",
-        "amber" => "text-amber-500",
+        "secondary" => "text-secondary-500",
         _ => "text-primary",
     };
 
     let check_color = match props.color {
         "blue" => "text-primary",
         "green" => "text-green-500",
-        "amber" => "text-amber-500",
+        "secondary" => "text-secondary-500",
         _ => "text-green-500",
     };
 
@@ -440,7 +444,7 @@ pub fn ConceptCard(props: &ConceptCardProps) -> Node {
                     {match props.color {
                         "blue" => "Use Cases:",
                         "green" => "Features:",
-                        "amber" => "Advantages:",
+                        "secondary" => "Advantages:",
                         _ => "Benefits:"
                     }}
                 </h4>

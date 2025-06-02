@@ -7,6 +7,7 @@ use alloc::vec;
 use simple_rsx::Node;
 use simple_rsx::component;
 use simple_rsx::dom::render_root;
+use simple_rsx::either;
 use simple_rsx::rsx;
 use simple_rsx::signals::SignalValue;
 use simple_rsx::signals::create_signal;
@@ -58,15 +59,14 @@ fn Counter() -> Node {
 }"#;
 
     rsx! {
-        <section class="py-16 bg-background">
+        <section class="py-20 bg-gradient-to-br from-primary-50 via-background to-secondary-50 dark:from-primary-950 dark:via-background dark:to-secondary-950 animate-in">
             <div class="container mx-auto">
-                <div class="max-w-3xl mx-auto">
+                <div class="max-w-4xl mx-auto rounded-2xl shadow-xl glass-effect p-10 md:p-16">
                     <PageHeader title="Examples" subtitle="Learn by example with practical code snippets" />
-
                     <div class="prose prose-slate max-w-none">
                         <ContentSection title="Basic Counter" icon="fas fa-play">
                             <div>
-                                <p class="text-muted-foreground mb-4">
+                                <p class="text-muted-foreground mb-4 text-lg">
                                     A simple counter demonstrating signals and event handling:
                                 </p>
                                 <CodeBlock title="counter.rs" code={counter_example} language="rust" />
@@ -78,15 +78,13 @@ fn Counter() -> Node {
                                 />
                             </div>
                         </ContentSection>
-
                         <KeyConceptsGrid />
-
-                        <div class="mt-10 flex justify-center">
+                        <div class="mt-12 flex justify-center">
                             <a
                                 href="#concepts"
-                                class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background bg-primary-600  text-primary-foreground hover:bg-primary-600/90 h-10 py-2 px-4"
+                                class="inline-flex items-center justify-center rounded-lg text-base font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background bg-primary-600 text-primary-foreground hover:bg-primary-700/90 shadow-lg h-12 py-3 px-6 gap-2 animate-in"
                             >
-                                <i class="fas fa-arrow-right mr-2"></i>
+                                <i class="fas fa-arrow-right"></i>
                                 <span>Explore Core Concepts</span>
                             </a>
                         </div>
@@ -100,13 +98,12 @@ fn Counter() -> Node {
 #[component]
 fn ConceptsPage() -> Node {
     rsx! {
-        <section class="py-16 bg-background">
+        <section class="py-20 bg-gradient-to-br from-secondary-50 via-background to-primary-50 dark:from-secondary-950 dark:via-background dark:to-primary-950 animate-in">
             <div class="container">
-                <div class="max-w-3xl mx-auto">
+                <div class="max-w-4xl mx-auto rounded-2xl shadow-xl glass-effect p-10 md:p-16">
                     <PageHeader title="Core Concepts" subtitle="Master the fundamental building blocks of Momenta" />
-
                     <div class="prose max-w-none">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
                             <ConceptCard
                                 icon="fas fa-broadcast-tower"
                                 title="Signals"
@@ -119,7 +116,6 @@ fn ConceptsPage() -> Node {
                                 ]}
                                 color="primary"
                             />
-
                             <ConceptCard
                                 icon="fas fa-magic"
                                 title="Effects"
@@ -132,20 +128,18 @@ fn ConceptsPage() -> Node {
                                 ]}
                                 color="blue"
                             />
-
                             <ConceptCard
                                 icon="fas fa-layer-group"
                                 title="Rendering Scopes"
                                 description="Isolated rendering contexts that manage component lifecycles and cleanup automatically. Each scope owns its signals and effects."
                                 benefits={vec![
                                     ("Automatic cleanup:", "Memory leaks are prevented"),
-                                    ("Memory safety:", "Rust&apos;s ownership ensures correctness"),
+                                    ("Memory safety:", "Rust's ownership ensures correctness"),
                                     ("Hierarchical structure:", "Parent-child scope relationships"),
                                     ("Performance isolation:", "Scoped optimization boundaries")
                                 ]}
                                 color="green"
                             />
-
                             <ConceptCard
                                 icon="fas fa-puzzle-piece"
                                 title="Components and Props"
@@ -156,7 +150,7 @@ fn ConceptsPage() -> Node {
                                     ("Zero-cost abstractions:", "No runtime overhead"),
                                     ("Easy composition:", "Mix and match components freely")
                                 ]}
-                                color="amber"
+                                color="secondary"
                             />
                         </div>
                     </div>
@@ -164,10 +158,6 @@ fn ConceptsPage() -> Node {
             </div>
         </section>
     }
-}
-
-fn main() {
-    render_root::<App>("app");
 }
 
 // Main App Component
@@ -181,9 +171,8 @@ fn App() -> Node {
             <Header current_page={current_page} theme={theme} />
 
             <div class="flex-grow flex">
-                <Sidebar current_page={current_page} />
 
-                <main class="flex-grow px-4 py-8 md:px-8 lg:px-12">
+                <main class="flex-grow">
                     {
                         match current_page.get() {
                             Page::Landing => rsx! { <LandingPage /> },
@@ -197,8 +186,8 @@ fn App() -> Node {
                         }
                     }
                 </main>
+                {either!(current_page != Page::Landing => <Sidebar current_page={current_page} />)}
             </div>
-
             <Footer />
         </div>
     }
@@ -221,13 +210,13 @@ fn HeroSection() -> Node {
 
 #[component]
 fn Counter() -> Node {
-    let (count, set_count) = create_signal(0);
+    let count = create_signal(0);
     
     rsx! {
         <div class="text-center p-6">
-            <h2 class="text-3xl font-bold mb-4">"Count: {count()}"</h2>
+            <h2 class="text-3xl font-bold mb-4">"Count: {count}"</h2>
             <button 
-                on_click={move |_| set_count(count() + 1)}
+                on_click={move |_| count += 1}
                 class="px-4 py-2 bg-primary-600  text-white rounded-md">
                 "Increment"
             </button>
@@ -300,7 +289,7 @@ fn FeaturesSection() -> Node {
                     <FeatureCard
                         icon="fas fa-shield-alt"
                         title="Type Safe"
-                        description="Leverage Rust&apos;s strong type system to catch errors at compile time rather than runtime."
+                        description="Leverage Rust's strong type system to catch errors at compile time rather than runtime."
                     />
                 </div>
             </div>
@@ -404,7 +393,7 @@ fn main() {
                         <InfoBox
                             icon="fas fa-check-circle"
                             title="Success! "
-                            content="You&apos;re ready to start building with Momenta."
+                            content="You're ready to start building with Momenta."
                             variant="success"
                         />
                     </div>
@@ -520,4 +509,8 @@ fn main() {
             </div>
         </div>
     }
+}
+
+fn main() {
+    render_root::<App>("app");
 }

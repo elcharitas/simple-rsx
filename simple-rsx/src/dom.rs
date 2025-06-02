@@ -14,16 +14,7 @@ impl WasmRender for crate::Element {
         if let Ok(element) = element {
             let _ = mount.append_child(&element);
             for child in &self.children {
-                if let Some(el) = child.as_element() {
-                    if !el.key().is_empty() {
-                        // cache by key
-                    }
-                    el.render(&element);
-                }
-                if let Some(text) = child.as_text() {
-                    let current_text = element.text_content().unwrap_or_default();
-                    let _ = element.set_text_content(Some(&(current_text + text)));
-                }
+                child.render(&element);
             }
             // add attributes
             for (name, value) in &self.attributes {
@@ -42,10 +33,27 @@ impl WasmRender for crate::Element {
 #[cfg(feature = "wasm")]
 impl WasmRender for Node {
     fn render(&self, mount: &web_sys::Element) -> Option<web_sys::Element> {
-        if let Some(el) = self.as_element() {
-            return el.render(mount);
+        match self {
+            Node::Text(text) => {
+                let current_text = mount.text_content().unwrap_or_default();
+                mount.set_text_content(Some(&(current_text + text)));
+                return None;
+            }
+            Node::Element(el) => {
+                return el.render(mount);
+            }
+            Node::Fragment(fragment) => {
+                for child in fragment {
+                    child.render(mount);
+                }
+                return None;
+            }
+            Node::Comment(_) => {
+                // TODO: implement comment rendering
+                return None;
+            }
+            _ => None,
         }
-        None
     }
 }
 

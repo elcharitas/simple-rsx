@@ -434,6 +434,12 @@ where
     }
 }
 
+impl FromIterator<Node> for Node {
+    fn from_iter<T: IntoIterator<Item = Node>>(iter: T) -> Self {
+        Node::Fragment(iter.into_iter().collect())
+    }
+}
+
 impl<T: Clone> From<&Vec<T>> for Node
 where
     Node: From<T>,
@@ -1320,10 +1326,10 @@ pub mod elements {
         td {
             /// The colspan attribute specifies how many columns a cell should span
             /// Example: colspan="3" (cell spans 3 columns)
-            colspan: i32,
+            colspan: Option<i32>,
             /// The rowspan attribute specifies how many rows a cell should span
             /// Example: rowspan="2" (cell spans 2 rows)
-            rowspan: i32,
+            rowspan: Option<i32>,
             /// The headers attribute associates data cells with header cells
             /// Example: headers="col1 row1" (associates with those header IDs)
             headers: String,
@@ -1340,10 +1346,10 @@ pub mod elements {
         th {
             /// The colspan attribute specifies how many columns a cell should span
             /// Example: colspan="3" (header spans 3 columns)
-            colspan: i32,
+            colspan: Option<i32>,
             /// The rowspan attribute specifies how many rows a cell should span
             /// Example: rowspan="2" (header spans 2 rows)
-            rowspan: i32,
+            rowspan: Option<i32>,
             /// The headers attribute associates data cells with header cells
             /// Example: headers="col1 row1" (associates with those header IDs)
             headers: String,
