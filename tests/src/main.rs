@@ -12,12 +12,12 @@ struct CounterProps {
 
 #[component]
 fn Counter(CounterProps { count, children }: &CounterProps) -> Node {
-    let count = count.clone(); // this is zero-copy because it's a signal
+    let mut count = count.clone(); // this is zero-copy because it's a signal
     let increment = move |_| {
-        count.set(count.get() + 1);
+        count += 1;
     };
     let decrement = move |_| {
-        count.set(count.get() - 1);
+        count -= 1;
     };
     rsx! {
         <div>

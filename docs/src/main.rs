@@ -44,13 +44,13 @@ fn CounterAppPage() -> Node {
     let counter_example = r#"use momenta::prelude::*;
 #[component]
 fn Counter() -> Node {
-    let (count, set_count) = create_signal(0);
+    let mut count = create_signal(0);
     
     rsx! {
         <div class="text-center p-6">
             <h2 class="text-3xl font-bold mb-4">"Count: {count()}"</h2>
             <button 
-                on_click={move |_| set_count(count() + 1)}
+                on_click={move |_| count += 1}
                 class="px-4 py-2 bg-primary-600  text-white rounded-md">
                 "Increment"
             </button>
@@ -210,7 +210,7 @@ fn HeroSection() -> Node {
 
 #[component]
 fn Counter() -> Node {
-    let count = create_signal(0);
+    let mut count = create_signal(0);
     
     rsx! {
         <div class="text-center p-6">
@@ -419,10 +419,10 @@ fn GetStartedPage() -> Node {
 
 #[component]
 fn App() -> Node {
-    let count = signal(0);
+    let mut count = signal(0);
     
     let increment = move |_| {
-        count.set(count.get() + 1);
+        count += 1;
     };
     
     rsx! {
