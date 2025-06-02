@@ -7,10 +7,18 @@ use alloc::vec;
 use simple_rsx::Node;
 use simple_rsx::component;
 use simple_rsx::dom::render_root;
-use simple_rsx::either;
 use simple_rsx::rsx;
 use simple_rsx::signals::SignalValue;
 use simple_rsx::signals::create_signal;
+
+mod components;
+mod effects;
+mod resources;
+mod signals;
+use components::*;
+use effects::EffectsPage;
+use resources::ResourcesPage;
+use signals::SignalsPage;
 
 #[derive(Clone, Copy, PartialEq)]
 enum Page {
@@ -19,6 +27,9 @@ enum Page {
     GetStarted,
     Counter,
     Concepts,
+    Signals,
+    Resources,
+    Effects,
 }
 
 impl SignalValue for Page {
@@ -27,598 +38,57 @@ impl SignalValue for Page {
     }
 }
 
-fn navbar_class(is_active: bool) -> &'static str {
-    either!(is_active => "navbar-item has-text-grey-dark {}" else "navbar-item has-text-weight-semibold")
-}
-
-#[component]
-fn App() -> Node {
-    let current_page = create_signal(Page::Landing);
-    let nav = move |page: Page| {
-        move |_| {
-            current_page.set(page);
-        }
-    };
-
-    rsx! {
-        <div class="has-background-white">
-            // Modern header inspired by TailwindCSS docs
-            <header class="navbar is-white is-fixed-top" style="border-bottom: 1px solid #e5e7eb; backdrop-filter: blur(8px);">
-                <div class="container is-fluid">
-                    <div class="navbar-brand">
-                        <div class="navbar-item">
-                            <a class="is-flex is-align-items-center" on_click={nav(Page::Landing)}>
-                                <div class="icon is-medium mr-3" style="color: #06B6D4;">
-                                    <i class="fas fa-code fa-lg"></i>
-                                </div>
-                                <div>
-                                    <h1 class="title is-5 mb-0 has-text-grey-darker">Simple RSX</h1>
-                                </div>
-                            </a>
-                        </div>
-                    </div>
-                    <div class="navbar-menu">
-                        <div class="navbar-start">
-                            <a class={navbar_class(current_page.get() == Page::Installation)}
-                               href="#" on_click={nav(Page::Installation)} style="font-size: 0.9rem;">
-                                Installation
-                            </a>
-                            <a class={navbar_class(current_page.get() == Page::GetStarted)}
-                               href="#" on_click={nav(Page::GetStarted)} style="font-size: 0.9rem;">
-                                Get Started
-                            </a>
-                            <a class={navbar_class(current_page.get() == Page::Counter)}
-                               href="#" on_click={nav(Page::Counter)} style="font-size: 0.9rem;">
-                                Examples
-                            </a>
-                            <a class={navbar_class(current_page.get() == Page::Concepts)}
-                               href="#" on_click={nav(Page::Concepts)} style="font-size: 0.9rem;">
-                                Concepts
-                            </a>
-                        </div>
-                        <div class="navbar-end">
-                            <div class="navbar-item">
-                                <a class="button is-small is-outlined" href="https://github.com/elcharitas/simple-rsx" target="_blank" style="border-color: #d1d5db; color: #6b7280;">
-                                    <span class="icon is-small"><i class="fab fa-github"></i></span>
-                                    <span>GitHub</span>
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </header>
-
-            // Main content area
-            <div style="padding-top: 3.25rem; min-height: 100vh;" class="has-background-white">
-                {
-                    match current_page.get() {
-                        Page::Landing => rsx! { <LandingPage /> },
-                        Page::Installation => rsx! { <InstallationPage /> },
-                        Page::GetStarted => rsx! { <GetStartedPage /> },
-                        Page::Counter => rsx! { <CounterAppPage /> },
-                        Page::Concepts => rsx! { <div /> },
-                    }
-                }
-            </div>
-
-            // Minimal footer
-            <footer class="section py-5 has-background-grey-lighter" style="border-top: 1px solid #e5e7eb;">
-                <div class="container">
-                    <div class="has-text-centered">
-                        <p class="has-text-grey is-size-7">
-                            Built with Simple RSX Open source on <a href="https://github.com/elcharitas/simple-rsx" class="has-text-link">GitHub</a>
-                        </p>
-                    </div>
-                </div>
-            </footer>
-        </div>
-    }
-}
-
-#[component]
-fn LandingPage() -> Node {
-    rsx! {
-        <div>
-            // Hero section - TailwindCSS docs style
-            <section class="section py-6 has-background-white">
-                <div class="container">
-                    <div class="columns is-centered">
-                        <div class="column is-8 has-text-centered">
-                            <div class="mb-6">
-                                <div class="icon is-large mb-4" style="color: #06B6D4;">
-                                    <i class="fas fa-code fa-3x"></i>
-                                </div>
-                                <h1 class="title is-1 has-text-grey-darker mb-4" style="font-weight: 800; letter-spacing: -0.025em;">
-                                    Simple RSX
-                                </h1>
-                                <p class="subtitle is-4 has-text-grey-dark mb-6" style="font-weight: 400; line-height: 1.5;">
-                                    A React-inspired JSX Library for Rust
-                                </p>
-                                <p class="is-size-5 has-text-grey mb-6" style="line-height: 1.75; max-width: 42rem; margin: 0 auto;">
-                                    Build modern, reactive user interfaces in Rust with familiar JSX syntax, reactive signals, and zero-cost abstractions.
-                                </p>
-                                <div class="buttons is-centered">
-                                    <button class="button is-medium mr-3" style="background-color: #06B6D4; color: white; border: 0; font-weight: 600; padding: 0.75rem 1.5rem;">
-                                        Get Started
-                                    </button>
-                                    <button class="button is-medium is-outlined" style="border-color: #d1d5db; color: #6b7280; font-weight: 600; padding: 0.75rem 1.5rem;">
-                                        View on GitHub
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            // Features section
-            <section class="section py-6" style="background-color: #f9fafb;">
-                <div class="container">
-                    <div class="has-text-centered mb-6">
-                        <h2 class="title is-2 has-text-grey-darker mb-4" style="font-weight: 700;">
-                            Why Simple RSX?
-                        </h2>
-                        <p class="subtitle is-5 has-text-grey-dark" style="font-weight: 400;">
-                            Experience the power of Rust with the familiarity of React
-                        </p>
-                    </div>
-                    <div class="columns is-multiline">
-                        <div class="column is-4">
-                            <div class="box has-background-white p-6" style="border: 1px solid #e5e7eb; box-shadow: none; border-radius: 0.75rem;">
-                                <div class="has-text-centered mb-4">
-                                    <div class="icon is-large mb-3" style="color: #06B6D4;">
-                                        <i class="fas fa-bolt fa-2x"></i>
-                                    </div>
-                                    <h3 class="title is-4 has-text-grey-darker mb-3" style="font-weight: 600;">Lightning Fast</h3>
-                                    <p class="has-text-grey-dark" style="line-height: 1.6; font-size: 0.95rem;">
-                                        Zero-cost abstractions with compile-time optimizations. No runtime overhead, just pure Rust performance.
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="column is-4">
-                            <div class="box has-background-white p-6" style="border: 1px solid #e5e7eb; box-shadow: none; border-radius: 0.75rem;">
-                                <div class="has-text-centered mb-4">
-                                    <div class="icon is-large mb-3" style="color: #06B6D4;">
-                                        <i class="fas fa-code fa-2x"></i>
-                                    </div>
-                                    <h3 class="title is-4 has-text-grey-darker mb-3" style="font-weight: 600;">Familiar Syntax</h3>
-                                    <p class="has-text-grey-dark" style="line-height: 1.6; font-size: 0.95rem;">
-                                        JSX-like syntax that feels natural to React developers, with the power and safety of Rusts type system.
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="column is-4">
-                            <div class="box has-background-white p-6" style="border: 1px solid #e5e7eb; box-shadow: none; border-radius: 0.75rem;">
-                                <div class="has-text-centered mb-4">
-                                    <div class="icon is-large mb-3" style="color: #06B6D4;">
-                                        <i class="fas fa-shield-alt fa-2x"></i>
-                                    </div>
-                                    <h3 class="title is-4 has-text-grey-darker mb-3" style="font-weight: 600;">Memory Safe</h3>
-                                    <p class="has-text-grey-dark" style="line-height: 1.6; font-size: 0.95rem;">
-                                        Rusts ownership system ensures memory safety without garbage collection or runtime checks.
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-        </div>
-    }
-}
-
-#[component]
-fn InstallationPage() -> Node {
-    rsx! {
-        <section class="section py-6 has-background-white">
-            <div class="container">
-                <div class="columns">
-                    <div class="column is-8 is-offset-2">
-                        <div class="mb-6">
-                            <h1 class="title is-1 has-text-grey-darker mb-4" style="font-weight: 800;">
-                                Installation
-                            </h1>
-                            <p class="subtitle is-5 has-text-grey-dark" style="font-weight: 400; line-height: 1.6;">
-                                Get Simple RSX up and running in your project
-                            </p>
-                        </div>
-
-                        <div class="content">
-                            <div class="mb-6">
-                                <h2 class="title is-3 has-text-grey-darker mb-4" style="font-weight: 700;">
-                                    Prerequisites
-                                </h2>
-                                <p class="has-text-grey-dark mb-4" style="line-height: 1.6;">
-                                    Make sure you have Rust installed on your system. If not, install it from <a href="https://rustup.rs/" target="_blank" class="has-text-link">rustup.rs</a>.
-                                </p>
-                                <div class="notification is-light" style="background-color: #eff6ff; border: 1px solid #bfdbfe; border-left: 4px solid #3b82f6;">
-                                    <p class="has-text-grey-darker">
-                                        <span class="icon has-text-link"><i class="fas fa-info-circle"></i></span>
-                                        <strong>Minimum Rust version:</strong> 1.70+
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div class="mb-6">
-                                <h2 class="title is-3 has-text-grey-darker mb-4" style="font-weight: 700;">
-                                    Add to Your Project
-                                </h2>
-                                <p class="has-text-grey-dark mb-4" style="line-height: 1.6;">
-                                    Add Simple RSX to your <code class="px-2 py-1" style="background-color: #f3f4f6; border-radius: 0.25rem; color: #1f2937;">Cargo.toml</code>:
-                                </p>
-
-                                <div style="border: 1px solid #e5e7eb; border-radius: 0.5rem; overflow: hidden;" class="mb-4">
-                                    <div style="background-color: #1e293b; padding: 1rem;">
-                                        <pre style="background: transparent; color: #e2e8f0; font-size: 0.9rem; line-height: 1.5;">
-                                            <div style="color: #f472b6; display: block">"[dependencies]"</div>
-                                            <span style="color: #34d399;">simple-rsx</span> = <span style="color: #fbbf24;">"0.1.0"</span>
-                                        </pre>
-                                    </div>
-                                </div>
-
-                                <p class="has-text-grey-dark mb-3" style="line-height: 1.6;">"Or use cargo add:"</p>
-                                <div style="border: 1px solid #e5e7eb; border-radius: 0.5rem; overflow: hidden;">
-                                    <div style="background-color: #1e293b; padding: 1rem;">
-                                        <pre style="background: transparent; color: #e2e8f0; font-size: 0.9rem;">
-                                            <span style="color: #34d399;">"$ cargo add simple-rsx"</span>
-                                        </pre>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="mb-6">
-                                <h2 class="title is-3 has-text-grey-darker mb-4" style="font-weight: 700;">
-                                    Feature Flags
-                                </h2>
-                                <p class="has-text-grey-dark mb-4" style="line-height: 1.6;">
-                                    Simple RSX supports several optional features:
-                                </p>
-
-                                <div class="table-container">
-                                    <table class="table is-fullwidth" style="border: 1px solid #e5e7eb; border-radius: 0.5rem;">
-                                        <thead style="background-color: #f9fafb;">
-                                            <tr>
-                                                <th class="has-text-grey-darker" style="font-weight: 600; border-bottom: 1px solid #e5e7eb;">Feature</th>
-                                                <th class="has-text-grey-darker" style="font-weight: 600; border-bottom: 1px solid #e5e7eb;">Description</th>
-                                                <th class="has-text-grey-darker" style="font-weight: 600; border-bottom: 1px solid #e5e7eb;">Default</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr style="border-bottom: 1px solid #f3f4f6;">
-                                                <td><code class="px-2 py-1" style="background-color: #f3f4f6; border-radius: 0.25rem; color: #06B6D4;">wasm</code></td>
-                                                <td class="has-text-grey-dark">Client rendering support</td>
-                                                <td><span class="tag is-small" style="background-color: #fee2e2; color: #dc2626;">No</span></td>
-                                            </tr>
-                                            <tr style="border-bottom: 1px solid #f3f4f6;">
-                                                <td><code class="px-2 py-1" style="background-color: #f3f4f6; border-radius: 0.25rem; color: #06B6D4;">router</code></td>
-                                                <td class="has-text-grey-dark">Client-side routing utilities</td>
-                                                <td><span class="tag is-small" style="background-color: #fee2e2; color: #dc2626;">No</span></td>
-                                            </tr>
-                                            <tr>
-                                                <td><code class="px-2 py-1" style="background-color: #f3f4f6; border-radius: 0.25rem; color: #06B6D4;">async</code></td>
-                                                <td class="has-text-grey-dark">Async component support</td>
-                                                <td><span class="tag is-small" style="background-color: #fee2e2; color: #dc2626;">No</span></td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-
-                            <div>
-                                <h2 class="title is-3 has-text-grey-darker mb-4" style="font-weight: 700;">
-                                    Verify Installation
-                                </h2>
-                                <p class="has-text-grey-dark mb-4" style="line-height: 1.6;">
-                                    Create a simple test to verify everything works:
-                                </p>
-
-                                <div style="border: 1px solid #e5e7eb; border-radius: 0.5rem; overflow: hidden;" class="mb-4">
-                                    <div style="background-color: #1e293b; padding: 1rem;">
-                                        <pre style="background: transparent; color: #e2e8f0; font-size: 0.9rem; line-height: 1.5;">
-                                            <code>
-                                            // TODO: verification code would go here
-                                            </code>
-                                        </pre>
-                                    </div>
-                                </div>
-
-                                <div class="notification is-light" style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-left: 4px solid #22c55e;">
-                                    <div class="is-flex is-align-items-center">
-                                        <span class="icon has-text-success mr-3"><i class="fas fa-check-circle"></i></span>
-                                        <div>
-                                            <strong class="has-text-grey-darker">Success!</strong>
-                                            <span class="has-text-grey-dark">Youre ready to start building with Simple RSX.</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-    }
-}
-
-#[component]
-fn GetStartedPage() -> Node {
-    rsx! {
-        <section class="section py-6 has-background-white">
-            <div class="container">
-                <div class="columns">
-                    <div class="column is-8 is-offset-2">
-                        <div class="mb-6">
-                            <h1 class="title is-1 has-text-grey-darker mb-4" style="font-weight: 800;">
-                                Get Started
-                            </h1>
-                            <p class="subtitle is-5 has-text-grey-dark" style="font-weight: 400; line-height: 1.6;">
-                                Learn Simple RSX fundamentals step by step
-                            </p>
-                        </div>
-
-                        <div class="content">
-                            <div class="mb-6" style="border: 1px solid #e5e7eb; border-radius: 0.75rem; overflow: hidden;">
-                                <div class="px-5 py-4" style="background-color: #f9fafb; border-bottom: 1px solid #e5e7eb;">
-                                    <h2 class="title is-4 has-text-grey-darker mb-0" style="font-weight: 600;">
-                                        <span class="icon has-text-link mr-2"><i class="fas fa-puzzle-piece"></i></span>
-                                        Your First Component
-                                    </h2>
-                                </div>
-                                <div class="px-5 py-4">
-                                    <p class="has-text-grey-dark mb-4" style="line-height: 1.6;">
-                                        Lets create your first Simple RSX component. Components are the building blocks of your application.
-                                    </p>
-                                    <div style="border: 1px solid #e5e7eb; border-radius: 0.5rem; overflow: hidden;">
-                                        <div style="background-color: #1e293b; padding: 1rem;">
-                                            <pre style="background: transparent; color: #e2e8f0; font-size: 0.9rem; line-height: 1.5;">
-                                                <code>
-                                                    // TODO: component code would go here
-                                                </code>
-                                            </pre>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="mb-6" style="border: 1px solid #e5e7eb; border-radius: 0.75rem; overflow: hidden;">
-                                <div class="px-5 py-4" style="background-color: #f9fafb; border-bottom: 1px solid #e5e7eb;">
-                                    <h2 class="title is-4 has-text-grey-darker mb-0" style="font-weight: 600;">
-                                        <span class="icon mr-2" style="color: #06B6D4;"><i class="fas fa-broadcast-tower"></i></span>
-                                        Using Signals for State
-                                    </h2>
-                                </div>
-                                <div class="px-5 py-4">
-                                    <p class="has-text-grey-dark mb-4" style="line-height: 1.6;">
-                                        Signals provide reactive state management. When a signal changes, components automatically re-render.
-                                    </p>
-                                    <div style="border: 1px solid #e5e7eb; border-radius: 0.5rem; overflow: hidden;" class="mb-4">
-                                        <div style="background-color: #1e293b; padding: 1rem;">
-                                            <pre style="background: transparent; color: #e2e8f0; font-size: 0.9rem; line-height: 1.5;">
-                                                <code>
-                                                    // TODO: signals code would go here
-                                                </code>
-                                            </pre>
-                                        </div>
-                                    </div>
-                                    <div class="notification is-light" style="background-color: #eff6ff; border: 1px solid #bfdbfe; border-left: 4px solid #3b82f6;">
-                                        <p class="has-text-grey-darker">
-                                            <span class="icon has-text-link"><i class="fas fa-lightbulb"></i></span>
-                                            <strong>Pro Tip:</strong> Signals automatically track dependencies and only re-render affected components.
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div style="border: 1px solid #e5e7eb; border-radius: 0.75rem; overflow: hidden;">
-                                <div class="px-5 py-4" style="background-color: #f9fafb; border-bottom: 1px solid #e5e7eb;">
-                                    <h2 class="title is-4 has-text-grey-darker mb-0" style="font-weight: 600;">
-                                        <span class="icon mr-2" style="color: #10b981;"><i class="fas fa-mouse-pointer"></i></span>
-                                        Event Handling
-                                    </h2>
-                                </div>
-                                <div class="px-5 py-4">
-                                    <p class="has-text-grey-dark mb-4" style="line-height: 1.6;">
-                                        Handle user interactions with event handlers. Simple RSX supports all standard DOM events.
-                                    </p>
-
-                                    <div class="columns is-multiline">
-                                        <div class="column is-4">
-                                            <div class="box p-4" style="background-color: #fef3c7; border: 1px solid #fde68a;">
-                                                <h4 class="title is-6 has-text-grey-darker mb-3" style="font-weight: 600;">
-                                                    <span class="icon"><i class="fas fa-mouse"></i></span>
-                                                    <span>Mouse Events</span>
-                                                </h4>
-                                                <div class="tags">
-                                                    <span class="tag is-small" style="background-color: #fbbf24; color: white;"><code>on_click</code></span>
-                                                    <span class="tag is-small" style="background-color: #fbbf24; color: white;"><code>on_mouseenter</code></span>
-                                                    <span class="tag is-small" style="background-color: #fbbf24; color: white;"><code>on_mouseleave</code></span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="column is-4">
-                                            <div class="box p-4" style="background-color: #dbeafe; border: 1px solid #bfdbfe;">
-                                                <h4 class="title is-6 has-text-grey-darker mb-3" style="font-weight: 600;">
-                                                    <span class="icon"><i class="fas fa-keyboard"></i></span>
-                                                    <span>Keyboard Events</span>
-                                                </h4>
-                                                <div class="tags">
-                                                    <span class="tag is-small" style="background-color: #3b82f6; color: white;"><code>on_keydown</code></span>
-                                                    <span class="tag is-small" style="background-color: #3b82f6; color: white;"><code>on_keyup</code></span>
-                                                    <span class="tag is-small" style="background-color: #3b82f6; color: white;"><code>on_keypress</code></span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="column is-4">
-                                            <div class="box p-4" style="background-color: #d1fae5; border: 1px solid #a7f3d0;">
-                                                <h4 class="title is-6 has-text-grey-darker mb-3" style="font-weight: 600;">
-                                                    <span class="icon"><i class="fas fa-edit"></i></span>
-                                                    <span>Form Events</span>
-                                                </h4>
-                                                <div class="tags">
-                                                    <span class="tag is-small" style="background-color: #10b981; color: white;"><code>on_input</code></span>
-                                                    <span class="tag is-small" style="background-color: #10b981; color: white;"><code>on_change</code></span>
-                                                    <span class="tag is-small" style="background-color: #10b981; color: white;"><code>on_submit</code></span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div class="notification is-light" style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-left: 4px solid #22c55e;">
-                                        <p class="has-text-grey-darker">
-                                            <span class="icon has-text-success"><i class="fas fa-info-circle"></i></span>
-                                            <strong>Pro Tip:</strong> Use closures to capture variables from the surrounding scope in your event handlers.
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-    }
-}
-
 #[component]
 fn CounterAppPage() -> Node {
-    let counter_example = r#""#;
-    let advanced_example = r#""#;
+    let counter_example = r#"use momenta::prelude::*;
+#[component]
+fn Counter() -> Node {
+    let (count, set_count) = create_signal(0);
+    
+    rsx! {
+        <div class="text-center p-6">
+            <h2 class="text-3xl font-bold mb-4">"Count: {count()}"</h2>
+            <button 
+                on_click={move |_| set_count(count() + 1)}
+                class="px-4 py-2 bg-primary-600  text-white rounded-md">
+                "Increment"
+            </button>
+        </div>
+    }
+}"#;
 
     rsx! {
-        <section class="section py-6 has-background-white">
-            <div class="container">
-                <div class="columns">
-                    <div class="column is-8 is-offset-2">
-                        <div class="mb-6">
-                            <h1 class="title is-1 has-text-grey-darker mb-4" style="font-weight: 800;">
-                                Examples
-                            </h1>
-                            <p class="subtitle is-5 has-text-grey-dark" style="font-weight: 400; line-height: 1.6;">
-                                Learn by example with practical code snippets
-                            </p>
-                        </div>
+        <section class="py-16 bg-background">
+            <div class="container mx-auto">
+                <div class="max-w-3xl mx-auto">
+                    <PageHeader title="Examples" subtitle="Learn by example with practical code snippets" />
 
-                        <div class="content">
-                            <div class="mb-6" style="border: 1px solid #e5e7eb; border-radius: 0.75rem; overflow: hidden;">
-                                <div class="px-5 py-4" style="background-color: #06B6D4; color: white;">
-                                    <h2 class="title is-4 has-text-white mb-0" style="font-weight: 600;">
-                                        <span class="icon has-text-white mr-2"><i class="fas fa-play"></i></span>
-                                        Basic Counter
-                                    </h2>
-                                </div>
-                                <div class="px-5 py-4">
-                                    <p class="has-text-grey-dark mb-4" style="line-height: 1.6;">
-                                        A simple counter demonstrating signals and event handling:
-                                    </p>
-
-                                    <div style="border: 1px solid #e5e7eb; border-radius: 0.5rem; overflow: hidden;" class="mb-4">
-                                        <div style="background-color: #1e293b; padding: 1rem;">
-                                            <pre style="background: transparent; color: #e2e8f0; font-size: 0.85rem; line-height: 1.5;">
-                                                <code>{counter_example}</code>
-                                            </pre>
-                                        </div>
-                                    </div>
-
-                                    <div class="notification is-light" style="background-color: #eff6ff; border: 1px solid #bfdbfe; border-left: 4px solid #3b82f6;">
-                                        <p class="has-text-grey-darker">
-                                            <span class="icon has-text-link"><i class="fas fa-lightbulb"></i></span>
-                                            <strong>Key Features:</strong> Signal creation, event handlers, reactive updates
-                                        </p>
-                                    </div>
-                                </div>
+                    <div class="prose prose-slate max-w-none">
+                        <ContentSection title="Basic Counter" icon="fas fa-play">
+                            <div>
+                                <p class="text-muted-foreground mb-4">
+                                    A simple counter demonstrating signals and event handling:
+                                </p>
+                                <CodeBlock title="counter.rs" code={counter_example} language="rust" />
+                                <InfoBox
+                                    icon="fas fa-lightbulb"
+                                    title="Key Features: "
+                                    content="Signal creation, event handlers, reactive updates"
+                                    variant="info"
+                                />
                             </div>
+                        </ContentSection>
 
-                            <div class="mb-6" style="border: 1px solid #e5e7eb; border-radius: 0.75rem; overflow: hidden;">
-                                <div class="px-5 py-4" style="background-color: #3b82f6; color: white;">
-                                    <h2 class="title is-4 has-text-white mb-0" style="font-weight: 600;">
-                                        <span class="icon has-text-white mr-2"><i class="fas fa-cogs"></i></span>
-                                        Advanced Counter
-                                    </h2>
-                                </div>
-                                <div class="px-5 py-4">
-                                    <p class="has-text-grey-dark mb-4" style="line-height: 1.6;">
-                                        A more complex counter with configurable step size and history tracking:
-                                    </p>
+                        <KeyConceptsGrid />
 
-                                    <div style="border: 1px solid #e5e7eb; border-radius: 0.5rem; overflow: hidden;">
-                                        <div style="background-color: #1e293b; padding: 1rem;">
-                                            <pre style="background: transparent; color: #e2e8f0; font-size: 0.8rem; line-height: 1.5;">
-                                                <code>{advanced_example}</code>
-                                            </pre>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div style="border: 1px solid #e5e7eb; border-radius: 0.75rem; overflow: hidden;">
-                                <div class="px-5 py-4" style="background-color: #10b981; color: white;">
-                                    <h3 class="title is-4 has-text-white mb-0" style="font-weight: 600;">
-                                        <span class="icon has-text-white mr-2"><i class="fas fa-graduation-cap"></i></span>
-                                        Key Concepts Demonstrated
-                                    </h3>
-                                </div>
-                                <div class="px-5 py-4">
-                                    <div class="columns is-multiline">
-                                        <div class="column is-6">
-                                            <div class="is-flex is-align-items-start mb-4">
-                                                <span class="icon has-text-link mr-3 mt-1">
-                                                    <i class="fas fa-broadcast-tower"></i>
-                                                </span>
-                                                <div>
-                                                    <p class="has-text-weight-semibold has-text-grey-darker">Signal creation and updates</p>
-                                                    <p class="is-size-7 has-text-grey-dark">Reactive state management with automatic re-rendering</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="column is-6">
-                                            <div class="is-flex is-align-items-start mb-4">
-                                                <span class="icon has-text-link mr-3 mt-1">
-                                                    <i class="fas fa-mouse-pointer"></i>
-                                                </span>
-                                                <div>
-                                                    <p class="has-text-weight-semibold has-text-grey-darker">Event handler closures</p>
-                                                    <p class="is-size-7 has-text-grey-dark">Capturing variables in event callbacks</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="column is-6">
-                                            <div class="is-flex is-align-items-start mb-4">
-                                                <span class="icon has-text-warning mr-3 mt-1">
-                                                    <i class="fas fa-eye"></i>
-                                                </span>
-                                                <div>
-                                                    <p class="has-text-weight-semibold has-text-grey-darker">Conditional rendering</p>
-                                                    <p class="is-size-7 has-text-grey-dark">Dynamic UI based on state conditions</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="column is-6">
-                                            <div class="is-flex is-align-items-start mb-4">
-                                                <span class="icon has-text-danger mr-3 mt-1">
-                                                    <i class="fas fa-palette"></i>
-                                                </span>
-                                                <div>
-                                                    <p class="has-text-weight-semibold has-text-grey-darker">Dynamic class names</p>
-                                                    <p class="is-size-7 has-text-grey-dark">Styling based on component state</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="column is-12">
-                                            <div class="is-flex is-align-items-start">
-                                                <span class="icon has-text-link mr-3 mt-1">
-                                                    <i class="fas fa-history"></i>
-                                                </span>
-                                                <div>
-                                                    <p class="has-text-weight-semibold has-text-grey-darker">State history management</p>
-                                                    <p class="is-size-7 has-text-grey-dark">Tracking and displaying state changes over time</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                        <div class="mt-10 flex justify-center">
+                            <a
+                                href="#concepts"
+                                class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background bg-primary-600  text-primary-foreground hover:bg-primary-600/90 h-10 py-2 px-4"
+                            >
+                                <i class="fas fa-arrow-right mr-2"></i>
+                                <span>Explore Core Concepts</span>
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -630,201 +100,64 @@ fn CounterAppPage() -> Node {
 #[component]
 fn ConceptsPage() -> Node {
     rsx! {
-        <section class="section py-6 has-background-white">
+        <section class="py-16 bg-background">
             <div class="container">
-                <div class="columns">
-                    <div class="column is-8 is-offset-2">
-                        <div class="mb-6">
-                            <h1 class="title is-1 has-text-grey-darker mb-4" style="font-weight: 800;">
-                                Core Concepts
-                            </h1>
-                            <p class="subtitle is-5 has-text-grey-dark" style="font-weight: 400; line-height: 1.6;">
-                                Master the fundamental building blocks of Simple RSX
-                            </p>
-                        </div>
+                <div class="max-w-3xl mx-auto">
+                    <PageHeader title="Core Concepts" subtitle="Master the fundamental building blocks of Momenta" />
 
-                        <div class="content">
-                            <div class="columns is-multiline">
-                                <div class="column is-6">
-                                    <div class="box p-5" style="border: 1px solid #e5e7eb; border-radius: 0.75rem; height: 100%;">
-                                        <div class="mb-4">
-                                            <div class="is-flex is-align-items-center mb-3">
-                                                <span class="icon is-medium mr-3" style="color: #06B6D4;">
-                                                    <i class="fas fa-broadcast-tower fa-lg"></i>
-                                                </span>
-                                                <h3 class="title is-4 has-text-grey-darker mb-0" style="font-weight: 600;">Signals</h3>
-                                            </div>
-                                            <p class="has-text-grey-dark mb-4" style="line-height: 1.6;">
-                                                Reactive state management through signals. Components automatically re-render when signals they depend on change.
-                                            </p>
-                                        </div>
+                    <div class="prose max-w-none">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+                            <ConceptCard
+                                icon="fas fa-broadcast-tower"
+                                title="Signals"
+                                description="Reactive state management through signals. Components automatically re-render when signals they depend on change."
+                                benefits={vec![
+                                    ("Fine-grained reactivity:", "Only affected components re-render"),
+                                    ("Automatic dependency tracking:", "No manual subscriptions needed"),
+                                    ("Minimal re-renders:", "Optimized performance by default"),
+                                    ("Thread-safe by default:", "Built for concurrent environments")
+                                ]}
+                                color="primary"
+                            />
 
-                                        <div>
-                                            <h4 class="has-text-weight-semibold has-text-grey-darker mb-3">
-                                                <span class="icon has-text-link"><i class="fas fa-star"></i></span>
-                                                Benefits:
-                                            </h4>
-                                            <div class="content">
-                                                <ul class="has-text-grey-dark" style="font-size: 0.9rem; line-height: 1.5;">
-                                                    <li><strong>Fine-grained reactivity:</strong> Only affected components re-render</li>
-                                                    <li><strong>Automatic dependency tracking:</strong> No manual subscriptions needed</li>
-                                                    <li><strong>Minimal re-renders:</strong> Optimized performance by default</li>
-                                                    <li><strong>Thread-safe by default:</strong> Built for concurrent environments</li>
-                                                </ul>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+                            <ConceptCard
+                                icon="fas fa-magic"
+                                title="Effects"
+                                description="Side effects and subscriptions that run in response to signal changes. Perfect for API calls, timers, and cleanup logic."
+                                benefits={vec![
+                                    ("Data fetching:", "Automatic API calls on state changes"),
+                                    ("DOM manipulation:", "Direct DOM updates when needed"),
+                                    ("Event subscriptions:", "WebSocket and external event handling"),
+                                    ("Resource cleanup:", "Automatic cleanup on component unmount")
+                                ]}
+                                color="blue"
+                            />
 
-                                <div class="column is-6">
-                                    <div class="box p-5" style="border: 1px solid #e5e7eb; border-radius: 0.75rem; height: 100%;">
-                                        <div class="mb-4">
-                                            <div class="is-flex is-align-items-center mb-3">
-                                                <span class="icon is-medium mr-3" style="color: #3b82f6;">
-                                                    <i class="fas fa-magic fa-lg"></i>
-                                                </span>
-                                                <h3 class="title is-4 has-text-grey-darker mb-0" style="font-weight: 600;">Effects</h3>
-                                            </div>
-                                            <p class="has-text-grey-dark mb-4" style="line-height: 1.6;">
-                                                Side effects and subscriptions that run in response to signal changes. Perfect for API calls, timers, and cleanup logic.
-                                            </p>
-                                        </div>
+                            <ConceptCard
+                                icon="fas fa-layer-group"
+                                title="Rendering Scopes"
+                                description="Isolated rendering contexts that manage component lifecycles and cleanup automatically. Each scope owns its signals and effects."
+                                benefits={vec![
+                                    ("Automatic cleanup:", "Memory leaks are prevented"),
+                                    ("Memory safety:", "Rust&apos;s ownership ensures correctness"),
+                                    ("Hierarchical structure:", "Parent-child scope relationships"),
+                                    ("Performance isolation:", "Scoped optimization boundaries")
+                                ]}
+                                color="green"
+                            />
 
-                                        <div>
-                                            <h4 class="has-text-weight-semibold has-text-grey-darker mb-3">
-                                                <span class="icon has-text-info"><i class="fas fa-wrench"></i></span>
-                                                Use Cases:
-                                            </h4>
-                                            <div class="content">
-                                                <ul class="has-text-grey-dark" style="font-size: 0.9rem; line-height: 1.5;">
-                                                    <li><strong>Data fetching:</strong> Automatic API calls on state changes</li>
-                                                    <li><strong>DOM manipulation:</strong> Direct DOM updates when needed</li>
-                                                    <li><strong>Event subscriptions:</strong> WebSocket and external event handling</li>
-                                                    <li><strong>Resource cleanup:</strong> Automatic cleanup on component unmount</li>
-                                                </ul>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="column is-6">
-                                    <div class="box p-5" style="border: 1px solid #e5e7eb; border-radius: 0.75rem; height: 100%;">
-                                        <div class="mb-4">
-                                            <div class="is-flex is-align-items-center mb-3">
-                                                <span class="icon is-medium mr-3" style="color: #10b981;">
-                                                    <i class="fas fa-layer-group fa-lg"></i>
-                                                </span>
-                                                <h3 class="title is-4 has-text-grey-darker mb-0" style="font-weight: 600;">Rendering Scopes</h3>
-                                            </div>
-                                            <p class="has-text-grey-dark mb-4" style="line-height: 1.6;">
-                                                Isolated rendering contexts that manage component lifecycles and cleanup automatically. Each scope owns its signals and effects.
-                                            </p>
-                                        </div>
-
-                                        <div>
-                                            <h4 class="has-text-weight-semibold has-text-grey-darker mb-3">
-                                                <span class="icon has-text-success"><i class="fas fa-shield-alt"></i></span>
-                                                Features:
-                                            </h4>
-                                            <div class="content">
-                                                <ul class="has-text-grey-dark" style="font-size: 0.9rem; line-height: 1.5;">
-                                                    <li><strong>Automatic cleanup:</strong> Memory leaks are prevented</li>
-                                                    <li><strong>Memory safety:</strong> Rusts ownership ensures correctness</li>
-                                                    <li><strong>Hierarchical structure:</strong> Parent-child scope relationships</li>
-                                                    <li><strong>Performance isolation:</strong> Scoped optimization boundaries</li>
-                                                </ul>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="column is-6">
-                                    <div class="box p-5" style="border: 1px solid #e5e7eb; border-radius: 0.75rem; height: 100%;">
-                                        <div class="mb-4">
-                                            <div class="is-flex is-align-items-center mb-3">
-                                                <span class="icon is-medium mr-3" style="color: #f59e0b;">
-                                                    <i class="fas fa-puzzle-piece fa-lg"></i>
-                                                </span>
-                                                <h3 class="title is-4 has-text-grey-darker mb-0" style="font-weight: 600;">Components and Props</h3>
-                                            </div>
-                                            <p class="has-text-grey-dark mb-4" style="line-height: 1.6;">
-                                                Reusable UI components with type-safe props. Components are just Rust functions that return renderable content.
-                                            </p>
-                                        </div>
-
-                                        <div>
-                                            <h4 class="has-text-weight-semibold has-text-grey-darker mb-3">
-                                                <span class="icon has-text-warning"><i class="fas fa-check-double"></i></span>
-                                                Advantages:
-                                            </h4>
-                                            <div class="content">
-                                                <ul class="has-text-grey-dark" style="font-size: 0.9rem; line-height: 1.5;">
-                                                    <li><strong>Type safety:</strong> Compile-time prop validation</li>
-                                                    <li><strong>Compile-time validation:</strong> Catch errors before runtime</li>
-                                                    <li><strong>Zero-cost abstractions:</strong> No runtime overhead</li>
-                                                    <li><strong>Easy composition:</strong> Mix and match components freely</li>
-                                                </ul>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="box p-6 mt-6" style="border: 1px solid #e5e7eb; border-radius: 0.75rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
-                                <h3 class="title is-3 has-text-white mb-5" style="font-weight: 700;">
-                                    <span class="icon-text">
-                                        <span class="icon has-text-white"><i class="fas fa-graduation-cap"></i></span>
-                                        <span>Learning Path</span>
-                                    </span>
-                                </h3>
-                                <div class="columns">
-                                    <div class="column">
-                                        <div class="box has-background-white p-5" style="border-radius: 0.75rem; height: 100%;">
-                                            <div class="has-text-centered mb-3">
-                                                <span class="icon is-large" style="color: #06B6D4;">
-                                                    <i class="fas fa-play-circle fa-2x"></i>
-                                                </span>
-                                            </div>
-                                            <h4 class="title is-5 has-text-grey-darker has-text-centered mb-3" style="font-weight: 600;">1. Start with Components</h4>
-                                            <p class="has-text-grey-dark has-text-centered" style="font-size: 0.9rem; line-height: 1.5;">
-                                                Learn to create basic components using the <code class="px-2 py-1" style="background-color: #f3f4f6; border-radius: 0.25rem;">rsx!</code> macro.
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <div class="column">
-                                        <div class="box has-background-white p-5" style="border-radius: 0.75rem; height: 100%;">
-                                            <div class="has-text-centered mb-3">
-                                                <span class="icon is-large" style="color: #3b82f6;">
-                                                    <i class="fas fa-mouse-pointer fa-2x"></i>
-                                                </span>
-                                            </div>
-                                            <h4 class="title is-5 has-text-grey-darker has-text-centered mb-3" style="font-weight: 600;">2. Add Interactivity</h4>
-                                            <p class="has-text-grey-dark has-text-centered" style="font-size: 0.9rem; line-height: 1.5;">
-                                                Use signals to manage state and event handlers for user input.
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <div class="column">
-                                        <div class="box has-background-white p-5" style="border-radius: 0.75rem; height: 100%;">
-                                            <div class="has-text-centered mb-3">
-                                                <span class="icon is-large" style="color: #10b981;">
-                                                    <i class="fas fa-magic fa-2x"></i>
-                                                </span>
-                                            </div>
-                                            <h4 class="title is-5 has-text-grey-darker has-text-centered mb-3" style="font-weight: 600;">3. Master Effects</h4>
-                                            <p class="has-text-grey-dark has-text-centered" style="font-size: 0.9rem; line-height: 1.5;">
-                                                Handle side effects and cleanup with the effect system.
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="has-text-centered mt-5">
-                                    <button class="button is-white is-medium" style="font-weight: 600; padding: 0.75rem 1.5rem;">
-                                        <span class="icon"><i class="fas fa-book-open"></i></span>
-                                        <span>Start Learning</span>
-                                    </button>
-                                </div>
-                            </div>
+                            <ConceptCard
+                                icon="fas fa-puzzle-piece"
+                                title="Components and Props"
+                                description="Reusable UI components with type-safe props. Components are just Rust functions that return renderable content."
+                                benefits={vec![
+                                    ("Type safety:", "Compile-time prop validation"),
+                                    ("Compile-time validation:", "Catch errors before runtime"),
+                                    ("Zero-cost abstractions:", "No runtime overhead"),
+                                    ("Easy composition:", "Mix and match components freely")
+                                ]}
+                                color="amber"
+                            />
                         </div>
                     </div>
                 </div>
@@ -835,4 +168,356 @@ fn ConceptsPage() -> Node {
 
 fn main() {
     render_root::<App>("app");
+}
+
+// Main App Component
+#[component]
+fn App() -> Node {
+    let current_page = create_signal(Page::Landing);
+    let theme = create_signal("dark");
+
+    rsx! {
+        <div class="min-h-screen flex flex-col bg-background text-foreground">
+            <Header current_page={current_page} theme={theme} />
+
+            <div class="flex-grow flex">
+                <Sidebar current_page={current_page} />
+
+                <main class="flex-grow px-4 py-8 md:px-8 lg:px-12">
+                    {
+                        match current_page.get() {
+                            Page::Landing => rsx! { <LandingPage /> },
+                            Page::Installation => rsx! { <InstallationPage /> },
+                            Page::GetStarted => rsx! { <GetStartedPage /> },
+                            Page::Counter => rsx! { <CounterAppPage /> },
+                            Page::Concepts => rsx! { <ConceptsPage /> },
+                            Page::Signals => rsx! { <SignalsPage /> },
+                            Page::Resources => rsx! { <ResourcesPage /> },
+                            Page::Effects => rsx! { <EffectsPage /> },
+                        }
+                    }
+                </main>
+            </div>
+
+            <Footer />
+        </div>
+    }
+}
+
+#[component]
+fn LandingPage() -> Node {
+    rsx! {
+        <div>
+            <HeroSection />
+            <FeaturesSection />
+            <CallToActionSection />
+        </div>
+    }
+}
+
+#[component]
+fn HeroSection() -> Node {
+    let counter_example = r#"use momenta::prelude::*;
+
+#[component]
+fn Counter() -> Node {
+    let (count, set_count) = create_signal(0);
+    
+    rsx! {
+        <div class="text-center p-6">
+            <h2 class="text-3xl font-bold mb-4">"Count: {count()}"</h2>
+            <button 
+                on_click={move |_| set_count(count() + 1)}
+                class="px-4 py-2 bg-primary-600  text-white rounded-md">
+                "Increment"
+            </button>
+        </div>
+    }
+}"#;
+
+    rsx! {
+        <section class="bg-gradient-to-br from-primary-600  to-secondary">
+            <div class="container py-20 md:py-28">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+                    <div>
+                        <h1 class="text-4xl md:text-5xl font-bold text-white mb-4">Momenta</h1>
+                        <h2 class="text-xl md:text-2xl font-medium text-white/90 mb-6">
+                            A reactive UI metaframework for Rust
+                        </h2>
+                        <p class="text-white/80 mb-8 text-lg">
+                            Build high-performance web applications with fine-grained reactivity and a familiar JSX-like syntax.
+                        </p>
+                        <div class="flex flex-wrap gap-4">
+                            <a
+                                href="#get-started"
+                                class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background bg-white text-primary-600  hover:bg-white/90 h-10 py-2 px-4"
+                            >
+                                <i class="fas fa-arrow-right mr-2"></i>
+                                <span>Get Started</span>
+                            </a>
+                            <a
+                                href="https://github.com/elcharitas/simple-rsx"
+                                class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background border border-white text-white hover:bg-white/10 h-10 py-2 px-4"
+                                target="_blank"
+                            >
+                                <i class="fab fa-github mr-2"></i>
+                                <span>GitHub</span>
+                            </a>
+                        </div>
+                    </div>
+                    <div>
+                        <CodeBlock title="Counter.rs" code={counter_example} language="rust" />
+                    </div>
+                </div>
+            </div>
+        </section>
+    }
+}
+
+#[component]
+fn FeaturesSection() -> Node {
+    rsx! {
+        <section class="py-20 bg-background">
+            <div class="container">
+                <div class="text-center mb-16">
+                    <h2 class="text-3xl font-bold mb-4">Why Momenta?</h2>
+                    <p class="text-lg text-muted-foreground max-w-3xl mx-auto">
+                        A lightweight, reactive framework for building modern web applications in Rust
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <FeatureCard
+                        icon="fas fa-bolt"
+                        title="Fine-Grained Reactivity"
+                        description="Precise updates with minimal overhead using a signal-based reactive system."
+                    />
+                    <FeatureCard
+                        icon="fas fa-code"
+                        title="RSX Syntax"
+                        description="Familiar JSX-like syntax that makes UI development in Rust intuitive and enjoyable."
+                    />
+                    <FeatureCard
+                        icon="fas fa-shield-alt"
+                        title="Type Safe"
+                        description="Leverage Rust&apos;s strong type system to catch errors at compile time rather than runtime."
+                    />
+                </div>
+            </div>
+        </section>
+    }
+}
+
+#[component]
+fn CallToActionSection() -> Node {
+    rsx! {
+        <section class="py-20 bg-gradient-to-br from-primary-600/90 to-secondary/90">
+            <div class="container text-center">
+                <h2 class="text-3xl font-bold text-white mb-4">Ready to get started?</h2>
+                <p class="text-lg text-white/80 mb-8 max-w-3xl mx-auto">
+                    Join the growing community of developers building with Momenta.
+                </p>
+                <div class="flex flex-wrap justify-center gap-4">
+                    <a
+                        href="#installation"
+                        class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background bg-white text-primary-600  hover:bg-white/90 h-10 py-2 px-4"
+                    >
+                        <i class="fas fa-download mr-2"></i>
+                        <span>Installation Guide</span>
+                    </a>
+                    <a
+                        href="#"
+                        class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background border border-white text-white hover:bg-white/10 h-10 py-2 px-4"
+                    >
+                        <i class="fas fa-book mr-2"></i>
+                        <span>API Documentation</span>
+                    </a>
+                </div>
+            </div>
+        </section>
+    }
+}
+
+#[component]
+fn InstallationPage() -> Node {
+    let cargo_toml_code = r#"[dependencies]
+momenta = "0.1.0"#;
+
+    let terminal_code = "$ cargo add momenta";
+
+    let main_rs_code = r#"use momenta::prelude::*;
+
+#[component]
+fn App() -> Node {
+    rsx! {
+        <div>"Hello, Momenta!"</div>
+    }
+}
+
+fn main() {
+    render_root::<App>("app");
+}"#;
+
+    rsx! {
+        <div class="container py-12">
+            <PageHeader title="Installation" subtitle="Get Momenta up and running in your project" />
+
+            <div class="prose prose-slate max-w-none">
+                <ContentSection title="Prerequisites" icon="fas fa-info-circle">
+                    <div>
+                        <p class="text-muted-foreground mb-4">
+                            Make sure you have Rust installed on your system. If not, install it from
+                            <a href="https://rustup.rs/" target="_blank" class="text-primary-600  hover:underline">rustup.rs</a>.
+                        </p>
+                        <InfoBox
+                            icon="fas fa-info-circle"
+                            title="Minimum Rust version: "
+                            content="1.70+"
+                            variant="info"
+                        />
+                    </div>
+                </ContentSection>
+
+                <ContentSection title="Add to Your Project" icon="fas fa-plus">
+                    <div>
+                        <p class="text-muted-foreground mb-4">
+                            Add Momenta to your <code class="px-1.5 py-0.5 bg-muted rounded">Cargo.toml</code>:
+                        </p>
+                        <CodeBlock title="Cargo.toml" code={cargo_toml_code} language="toml" />
+
+                        <p class="text-muted-foreground mb-4">"Or use cargo add:"</p>
+                        <CodeBlock title="Terminal" code={terminal_code} language="bash" />
+                    </div>
+                 </ContentSection>
+
+                <ContentSection title="Feature Flags" icon="fas fa-flag">
+                        <div>
+                            <p class="text-muted-foreground mb-4">Momenta supports several optional features:</p>
+                            <FeatureTable />
+                        </div>
+                </ContentSection>
+
+                <ContentSection title="Verify Installation" icon="fas fa-check-circle">
+                    <div>
+                        <p class="text-muted-foreground mb-4">Create a simple test to verify everything works:</p>
+                        <CodeBlock title="main.rs" code={main_rs_code} language="rust" />
+                        <InfoBox
+                            icon="fas fa-check-circle"
+                            title="Success! "
+                            content="You&apos;re ready to start building with Momenta."
+                            variant="success"
+                        />
+                    </div>
+                </ContentSection>
+
+                <div class="mt-6">
+                    <a
+                        href="#get-started"
+                        class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background bg-primary-600  text-primary-foreground hover:bg-primary-600/90 h-10 py-2 px-4"
+                    >
+                        <i class="fas fa-arrow-right mr-2"></i>
+                        <span>Getting Started Guide</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    }
+}
+
+#[component]
+fn GetStartedPage() -> Node {
+    let basic_app_code = r#"use momenta::prelude::*;
+
+#[component]
+fn App() -> Node {
+    let count = signal(0);
+    
+    let increment = move |_| {
+        count.set(count.get() + 1);
+    };
+    
+    rsx! {
+        <div>
+            <h1>Count: {count.get()}</h1>
+            <button onclick={increment}>Increment</button>
+        </div>
+    }
+}
+
+fn main() {
+    momenta::render(App);
+}"#;
+
+    let styling_code = r#"rsx! {
+    <div class="p-4 bg-blue-100 rounded">
+        <h1 class="text-2xl font-bold text-blue-800">Count: {count.get()}</h1>
+        <button 
+            class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600" 
+            onclick={increment}
+        >
+            Increment
+        </button>
+    </div>
+}"#;
+
+    rsx! {
+        <div class="container py-12">
+            <PageHeader
+                title="Get Started"
+                subtitle="Learn Momenta fundamentals step by step"
+            />
+
+            <div class="prose prose-slate max-w-none">
+                <ContentSection title="Creating Your First App" icon="fas fa-puzzle-piece">
+                    <div>
+                        <p class="text-muted-foreground mb-4">
+                            Let&apos;s create a simple counter application to demonstrate the basics of Momenta.
+                        </p>
+                        <CodeBlock
+                            title="src/main.rs"
+                            code={basic_app_code}
+                            language="rust"
+                        />
+                        <p class="mt-4 mb-4 text-muted-foreground">
+                            This example demonstrates the core concepts of Momenta:
+                        </p>
+                        <ul class="list-disc pl-6 mb-6 text-muted-foreground space-y-2">
+                            <li><strong>Signals</strong> - Reactive state variables that trigger updates when changed</li>
+                            <li><strong>Components</strong> - Reusable UI elements defined with the <code class="bg-muted px-1 py-0.5 rounded">#[component]</code> attribute</li>
+                            <li><strong>RSX</strong> - JSX-like syntax for defining UI structure</li>
+                            <li><strong>Event Handling</strong> - Responding to user interactions</li>
+                        </ul>
+                    </div>
+                </ContentSection>
+
+                <ContentSection title="Adding Styles" icon="fas fa-palette">
+                    <div>
+                        <p class="text-muted-foreground mb-4">
+                            Momenta supports inline CSS classes for styling your components:
+                        </p>
+                        <CodeBlock
+                            title="Styled Component"
+                            code={styling_code}
+                            language="rust"
+                        />
+                        <p class="mt-4 text-muted-foreground">
+                            You can use any CSS framework like Tailwind CSS or write your own styles.
+                        </p>
+                    </div>
+                </ContentSection>
+
+                <EventHandlingSection />
+
+                <div class="mt-10 flex justify-center">
+                    <a
+                        href="#counter"
+                        class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background bg-primary-600  text-primary-foreground hover:bg-primary-600/90 h-10 py-2 px-4"
+                    >
+                        <i class="fas fa-arrow-right mr-2"></i>
+                        <span>View Counter Example</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    }
 }

@@ -107,11 +107,20 @@ impl<T: SignalValue + 'static> SignalValue for Option<T> {
 //==============================================================================
 
 /// Reactive value that triggers re-renders when changed
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Signal<T> {
     id: (usize, usize),
     _marker: PhantomData<T>,
 }
+
+impl<T: SignalValue + PartialEq + 'static> PartialEq<T> for Signal<T> {
+    fn eq(&self, other: &T) -> bool {
+        self.with(|val| val == other).unwrap_or(false)
+    }
+}
+
+impl<T: SignalValue + PartialEq + 'static> Eq for Signal<T> {}
+impl<T: SignalValue + PartialEq + 'static> Signal<T> {}
 
 impl<T: SignalValue + PartialEq + Clone + core::ops::Add<Output = T> + 'static> AddAssign<T>
     for Signal<T>
