@@ -51,7 +51,7 @@ fn Counter() -> Node {
             <h2 class="text-3xl font-bold mb-4">"Count: {count()}"</h2>
             <button 
                 on_click={move |_| count += 1}
-                class="px-4 py-2 bg-primary-600  text-white rounded-md">
+                class="px-4 py-2 bg-primary  text-white rounded-md">
                 "Increment"
             </button>
         </div>
@@ -82,7 +82,7 @@ fn Counter() -> Node {
                         <div class="mt-12 flex justify-center">
                             <a
                                 href="#concepts"
-                                class="inline-flex items-center justify-center rounded-lg text-base font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background bg-primary-600 text-primary-foreground hover:bg-primary-700/90 shadow-lg h-12 py-3 px-6 gap-2 animate-in"
+                                class="inline-flex items-center justify-center rounded-lg text-base font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background bg-primary text-primary-foreground hover:bg-primary-700/90 shadow-lg h-12 py-3 px-6 gap-2 animate-in"
                             >
                                 <i class="fas fa-arrow-right"></i>
                                 <span>Explore Core Concepts</span>
@@ -217,7 +217,7 @@ fn Counter() -> Node {
             <h2 class="text-3xl font-bold mb-4">"Count: {count}"</h2>
             <button 
                 on_click={move |_| count += 1}
-                class="px-4 py-2 bg-primary-600  text-white rounded-md">
+                class="px-4 py-2 bg-primary  text-white rounded-md">
                 "Increment"
             </button>
         </div>
@@ -225,7 +225,7 @@ fn Counter() -> Node {
 }"#;
 
     rsx! {
-        <section class="bg-gradient-to-br from-primary-600  to-secondary">
+        <section>
             <div class="container py-20 md:py-28">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
                     <div>
@@ -239,7 +239,7 @@ fn Counter() -> Node {
                         <div class="flex flex-wrap gap-4">
                             <a
                                 href="#get-started"
-                                class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background bg-white text-primary-600  hover:bg-white/90 h-10 py-2 px-4"
+                                class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none text-background ring-offset-background bg-white hover:bg-white/90 h-10 py-2 px-4"
                             >
                                 <i class="fas fa-arrow-right mr-2"></i>
                                 <span>Get Started</span>
@@ -266,30 +266,42 @@ fn Counter() -> Node {
 #[component]
 fn FeaturesSection() -> Node {
     rsx! {
-        <section class="py-20 bg-background">
-            <div class="container">
-                <div class="text-center mb-16">
-                    <h2 class="text-3xl font-bold mb-4">Why Momenta?</h2>
-                    <p class="text-lg text-muted-foreground max-w-3xl mx-auto">
-                        A lightweight, reactive framework for building modern web applications in Rust
-                    </p>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    <FeatureCard
-                        icon="fas fa-bolt"
-                        title="Fine-Grained Reactivity"
-                        description="Precise updates with minimal overhead using a signal-based reactive system."
-                    />
+        <section class="py-20 md:py-28 bg-gradient-to-br from-background to-secondary-50 dark:from-background dark:to-secondary-950">
+            <div class="container mx-auto px-6">
+                <h2 class="text-4xl md:text-5xl font-extrabold text-center text-foreground mb-12">
+                    "Why Choose "
+                    <span class="text-primary dark:text-primary-400">"Momenta?"</span>
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                     <FeatureCard
                         icon="fas fa-code"
-                        title="RSX Syntax"
-                        description="Familiar JSX-like syntax that makes UI development in Rust intuitive and enjoyable."
+                        title="Familiar JSX-like Syntax"
+                        description="Write UI with a familiar JSX-like syntax directly in Rust, making it intuitive for web developers coming from React or other frontend frameworks."
+                    />
+                    <FeatureCard
+                        icon="fas fa-leaf"
+                        title="Fine-grained Reactivity"
+                        description="Leverage Rust's ownership system for efficient and precise UI updates. Only the parts of your UI that need to change are re-rendered, leading to highly performant applications."
+                    />
+                    <FeatureCard
+                        icon="fas fa-cubes"
+                        title="Component-Based Architecture"
+                        description="Build complex UIs from small, reusable components, promoting modularity, maintainability, and a clear separation of concerns."
                     />
                     <FeatureCard
                         icon="fas fa-shield-alt"
-                        title="Type Safe"
-                        description="Leverage Rust's strong type system to catch errors at compile time rather than runtime."
+                        title="Type-Safe and Robust"
+                        description="Benefit from Rust's strong type system to catch errors at compile time, ensuring robust and reliable applications with fewer runtime bugs."
+                    />
+                    <FeatureCard
+                        icon="fas fa-server"
+                        title="Server-Side Rendering (SSR)"
+                        description="Improve performance, SEO, and initial load times with built-in server-side rendering capabilities, delivering a better user experience from the start."
+                    />
+                    <FeatureCard
+                        icon="fas fa-tachometer-alt"
+                        title="Minimal Overhead & Fast"
+                        description="Enjoy a lightweight runtime with minimal dependencies, leading to faster load times and a smaller bundle size. Momenta is designed for speed and efficiency."
                     />
                 </div>
             </div>
@@ -300,26 +312,31 @@ fn FeaturesSection() -> Node {
 #[component]
 fn CallToActionSection() -> Node {
     rsx! {
-        <section class="py-20 bg-gradient-to-br from-primary-600/90 to-secondary/90">
-            <div class="container text-center">
-                <h2 class="text-3xl font-bold text-white mb-4">Ready to get started?</h2>
-                <p class="text-lg text-white/80 mb-8 max-w-3xl mx-auto">
-                    Join the growing community of developers building with Momenta.
+        <section class="py-20 md:py-28 bg-gradient-to-br from-primary-500 to-primary-700 text-white dark:from-primary-800 dark:to-primary-900">
+            <div class="container mx-auto px-6 text-center">
+                <h2 class="text-4xl md:text-5xl font-extrabold mb-6 leading-tight">
+                    "Ready to build something "
+                    <span class="text-secondary-200 dark:text-secondary-400">"amazing"</span>
+                    "?"
+                </h2>
+                <p class="text-lg md:text-xl mb-10 max-w-3xl mx-auto opacity-90">
+                    "Join the Momenta community and start building high-performance, type-safe web applications with Rust today. It's easier than you think!"
                 </p>
-                <div class="flex flex-wrap justify-center gap-4">
+                <div class="flex flex-col sm:flex-row justify-center gap-4">
                     <a
-                        href="#installation"
-                        class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background bg-white text-primary-600  hover:bg-white/90 h-10 py-2 px-4"
+                        href="#get-started"
+                        class="inline-flex items-center justify-center rounded-lg text-base font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background bg-white text-primary hover:bg-white/90 shadow-lg h-12 py-3 px-6 gap-2 animate-in"
                     >
-                        <i class="fas fa-download mr-2"></i>
-                        <span>Installation Guide</span>
+                        <i class="fas fa-rocket"></i>
+                        <span>"Get Started Now"</span>
                     </a>
                     <a
-                        href="#"
-                        class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background border border-white text-white hover:bg-white/10 h-10 py-2 px-4"
+                        href="https://github.com/elcharitas/simple-rsx"
+                        target="_blank"
+                        class="inline-flex items-center justify-center rounded-lg text-base font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background border border-white text-white hover:bg-white/10 shadow-lg h-12 py-3 px-6 gap-2 animate-in"
                     >
-                        <i class="fas fa-book mr-2"></i>
-                        <span>API Documentation</span>
+                        <i class="fas fa-book"></i>
+                        <span>"Read the Docs"</span>
                     </a>
                 </div>
             </div>
@@ -356,7 +373,7 @@ fn main() {
                     <div>
                         <p class="text-muted-foreground mb-4">
                             Make sure you have Rust installed on your system. If not, install it from
-                            <a href="https://rustup.rs/" target="_blank" class="text-primary-600  hover:underline">rustup.rs</a>.
+                            <a href="https://rustup.rs/" target="_blank" class="text-primary  hover:underline">rustup.rs</a>.
                         </p>
                         <InfoBox
                             icon="fas fa-info-circle"
@@ -402,7 +419,7 @@ fn main() {
                 <div class="mt-6">
                     <a
                         href="#get-started"
-                        class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background bg-primary-600  text-primary-foreground hover:bg-primary-600/90 h-10 py-2 px-4"
+                        class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background bg-primary  text-primary-foreground hover:bg-primary/90 h-10 py-2 px-4"
                     >
                         <i class="fas fa-arrow-right mr-2"></i>
                         <span>Getting Started Guide</span>
@@ -500,7 +517,7 @@ fn main() {
                 <div class="mt-10 flex justify-center">
                     <a
                         href="#counter"
-                        class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background bg-primary-600  text-primary-foreground hover:bg-primary-600/90 h-10 py-2 px-4"
+                        class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background bg-primary  text-primary-foreground hover:bg-primary/90 h-10 py-2 px-4"
                     >
                         <i class="fas fa-arrow-right mr-2"></i>
                         <span>View Counter Example</span>

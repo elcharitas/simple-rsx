@@ -14,43 +14,22 @@ export default {
 		},
 		extend: {
 			colors: {
-				primary: {
-					DEFAULT: "#0070c2",
-					50: "#f0f7ff",
-					100: "#e0eefe",
-					200: "#bae0fd",
-					300: "#7cc6fb",
-					400: "#36a9f7",
-					500: "#0c8de4",
-					600: "#0070c2",
-					700: "#015a9e",
-					800: "#064b81",
-					900: "#0a406c",
-					950: "#072a4a",
-				},
-				secondary: {
-					50: "#f5f3ff",
-					100: "#ede8ff",
-					200: "#dcd5ff",
-					300: "#c3b5fd",
-					400: "#a48afb",
-					500: "#8a5cf6",
-					600: "#7c3aed",
-					700: "#6d28d9",
-					800: "#5b21b6",
-					900: "#4c1d95",
-					950: "#2e1065",
-				},
-				code: {
-					background: "#1e293b",
-					foreground: "#f8fafc",
-				},
+				border: "hsl(var(--border))",
+				input: "hsl(var(--input))",
+				ring: "hsl(var(--ring))",
 				background: "hsl(var(--background))",
 				foreground: "hsl(var(--foreground))",
-				card: {
-					DEFAULT: "hsl(var(--card))",
-					foreground: "hsl(var(--card-foreground))",
-					hover: "hsl(var(--muted))",
+				primary: {
+					DEFAULT: "hsl(var(--primary))",
+					foreground: "hsl(var(--primary-foreground))",
+				},
+				secondary: {
+					DEFAULT: "hsl(var(--secondary))",
+					foreground: "hsl(var(--secondary-foreground))",
+				},
+				destructive: {
+					DEFAULT: "hsl(var(--destructive))",
+					foreground: "hsl(var(--destructive-foreground))",
 				},
 				muted: {
 					DEFAULT: "hsl(var(--muted))",
@@ -60,8 +39,14 @@ export default {
 					DEFAULT: "hsl(var(--accent))",
 					foreground: "hsl(var(--accent-foreground))",
 				},
-				border: "hsl(var(--border))",
-				ring: "hsl(var(--ring))",
+				popover: {
+					DEFAULT: "hsl(var(--popover))",
+					foreground: "hsl(var(--popover-foreground))",
+				},
+				card: {
+					DEFAULT: "hsl(var(--card))",
+					foreground: "hsl(var(--card-foreground))",
+				},
 			},
 			keyframes: {
 				"accordion-down": {

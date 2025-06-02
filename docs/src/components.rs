@@ -248,9 +248,12 @@ pub fn FeatureCard(props: &FeatureCardProps) -> Node {
 #[component]
 pub fn PageHeader(props: &PageHeaderProps) -> Node {
     rsx! {
-        <div class="mb-10 text-center">
-            <h1 class="text-5xl font-extrabold mb-4 bg-gradient-to-r from-primary-600 via-secondary-500 to-primary-600 bg-clip-text text-transparent drop-shadow-lg">{props.title}</h1>
-            <p class="text-2xl text-muted-foreground font-medium">{props.subtitle}</p>
+        <div class="mb-16 text-center relative">
+            <div class="absolute inset-0 -z-10 overflow-hidden">
+                <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-gradient-to-br from-primary-600/20 via-secondary-600/20 to-primary-600/20 blur-3xl rounded-full animate-pulse"></div>
+            </div>
+            <h1 class="text-6xl font-extrabold mb-6 bg-gradient-to-r from-primary-600 via-secondary-500 to-primary-600 bg-clip-text text-transparent drop-shadow-xl animate-in slide-in">{props.title}</h1>
+            <p class="text-2xl text-muted-foreground/90 font-medium max-w-2xl mx-auto leading-relaxed animate-in slide-in">{props.subtitle}</p>
             {&props.children}
         </div>
     }
@@ -265,22 +268,22 @@ pub fn ContentSection(
     }: &ContentSectionProps,
 ) -> Node {
     rsx! {
-        <div class="mb-8 border border-border rounded-2xl overflow-hidden shadow-lg bg-card/80">
-            <div class="bg-muted/70 px-8 py-6 border-b border-border">
-                <h2 class="text-lg font-bold flex items-center text-primary-600">
+        <div class="mb-12 border border-border/40 rounded-2xl overflow-hidden shadow-xl bg-gradient-to-b from-card/95 to-background/95 backdrop-blur-sm transition-all duration-300 hover:shadow-2xl hover:border-border/60">
+            <div class="bg-gradient-to-r from-muted/40 via-muted/60 to-muted/40 px-8 py-6 border-b border-border/40">
+                <h2 class="text-xl font-bold flex items-center">
                     {if let Some(icon_class) = *icon {
                         rsx! {
-                            <span class="text-primary-600 mr-3">
-                                <i class={icon_class}></i>
+                            <span class="bg-gradient-to-br from-primary-600 to-secondary-600 text-white p-2.5 rounded-lg mr-4 shadow-md">
+                                <i class={format!("{} text-lg", icon_class)}></i>
                             </span>
                         }
                     } else {
                         rsx! { <span></span> }
                     }}
-                    {title}
+                    <span class="bg-gradient-to-r from-primary-600 to-secondary-600 bg-clip-text text-transparent">{title}</span>
                 </h2>
             </div>
-            <div class="p-8 bg-card/90">
+            <div class="p-8 bg-card/30">
                 {children}
             </div>
         </div>
@@ -488,15 +491,15 @@ pub fn Sidebar(props: &SidebarProps) -> Node {
 
     let sidebar_link_class = |page: Page| {
         if current_page.get() == page {
-            "flex items-center px-3 py-2 text-sm font-medium rounded-md bg-primary-600/10 text-primary"
+            "flex items-center px-4 py-2.5 text-sm font-medium rounded-lg bg-gradient-to-r from-primary-600/10 to-secondary-600/10 text-primary border border-primary/10 shadow-sm"
         } else {
-            "flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-muted text-foreground hover:text-primary-600  transition-colors"
+            "flex items-center px-4 py-2.5 text-sm font-medium rounded-lg hover:bg-muted/80 text-foreground hover:text-primary-600 transition-all duration-200 ease-in-out hover:shadow-sm hover:translate-x-1"
         }
     };
 
     rsx! {
-        <div class="hidden md:block w-64 shrink-0 border-r border-border bg-card glass-effect shadow-lg">
-            <div class="h-full py-6 px-3">
+        <div class="hidden md:block w-72 shrink-0 border-r border-border/40 bg-card/50 backdrop-blur-xl shadow-xl">
+            <div class="h-full py-8 px-4">
                 <div class="space-y-1">
                     <h3 class="px-3 text-sm font-medium text-muted-foreground mb-2">Getting Started</h3>
                     <a class={sidebar_link_class(Page::Installation)} href="#installation" on_click={nav(Page::Installation)}>
@@ -555,9 +558,9 @@ pub fn Sidebar(props: &SidebarProps) -> Node {
 
 fn navbar_class(is_active: bool) -> &'static str {
     if is_active {
-        "text-primary font-medium border-b-2 border-primary py-1"
+        "text-primary font-medium relative after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-gradient-to-r after:from-primary-600 after:to-secondary-600 after:rounded-full py-1"
     } else {
-        "text-muted-foreground hover:text-primary transition-colors py-1"
+        "text-muted-foreground hover:text-primary relative after:absolute after:bottom-0 after:left-0 after:w-0 after:h-0.5 after:bg-gradient-to-r after:from-primary-600 after:to-secondary-600 after:rounded-full after:transition-all after:duration-300 hover:after:w-full py-1"
     }
 }
 
@@ -584,29 +587,29 @@ pub fn Header(
     };
 
     rsx! {
-        <header class="sticky top-0 z-40 w-full backdrop-blur-lg bg-background/80 border-b border-border shadow-md">
-            <div class="container flex h-14 items-center">
-                <a class="flex items-center mr-6" href="#" on_click={nav(Page::Landing)}>
-                    <div class="text-primary-600  mr-2">
-                        <i class="fas fa-bolt text-xl"></i>
+        <header class="sticky top-0 z-40 w-full backdrop-blur-xl bg-background/80 border-b border-border/40 shadow-lg">
+            <div class="container flex h-16 items-center">
+                <a class="flex items-center mr-8 group transition-transform hover:scale-105" href="#" on_click={nav(Page::Landing)}>
+                    <div class="text-primary-600 mr-3 transition-transform group-hover:rotate-12">
+                        <i class="fas fa-bolt text-2xl"></i>
                     </div>
                     <div>
-                        <h1 class="text-xl font-bold">Momenta</h1>
+                        <h1 class="text-xl font-bold bg-clip-text text-white">Momenta</h1>
                     </div>
                 </a>
 
-                <nav class="hidden md:flex items-center space-x-4 lg:space-x-6">
-                    <a class={navbar_class(current_page == Page::Installation)}
+                <nav class="hidden md:flex items-center space-x-6 lg:space-x-8">
+                    <a class={format!("{} transition-all duration-200 ease-in-out", navbar_class(current_page == Page::Installation))}
                        href="#installation" on_click={nav(Page::Installation)}>
-                        Installation
+                        <i class="fas fa-download mr-2 opacity-70"></i>Installation
                     </a>
-                    <a class={navbar_class(current_page == Page::GetStarted)}
+                    <a class={format!("{} transition-all duration-200 ease-in-out", navbar_class(current_page == Page::GetStarted))}
                        href="#get-started" on_click={nav(Page::GetStarted)}>
-                        Get Started
+                        <i class="fas fa-play mr-2 opacity-70"></i>Get Started
                     </a>
-                    <a class={navbar_class(current_page == Page::Counter)}
+                    <a class={format!("{} transition-all duration-200 ease-in-out", navbar_class(current_page == Page::Counter))}
                        href="#counter" on_click={nav(Page::Counter)}>
-                        Examples
+                        <i class="fas fa-code mr-2 opacity-70"></i>Examples
                     </a>
                     <div class="relative group">
                         <a class={navbar_class(current_page == Page::Concepts || current_page == Page::Signals || current_page == Page::Resources || current_page == Page::Effects)}
@@ -642,8 +645,8 @@ pub fn Header(
                         <i class="fab fa-github mr-2"></i>
                         <span>GitHub</span>
                     </a>
-                    <button type_="button" on_click={toggle_theme} class="inline-flex items-center justify-center rounded-md p-2.5 text-muted-foreground ml-2 hover:bg-accent hover:text-accent-foreground">
-                        {either!(theme == "dark" => <i class="fas fa-sun"></i> else <i class="fas fa-moon"></i>)}
+                    <button type_="button" on_click={toggle_theme} class="inline-flex items-center justify-center rounded-full w-10 h-10 text-muted-foreground ml-2 hover:bg-muted/80 hover:text-primary transition-colors">
+                        {either!(theme == "dark" => <i class="fas fa-sun text-lg transition-transform hover:rotate-45"></i> else <i class="fas fa-moon text-lg transition-transform hover:-rotate-12"></i>)}
                     </button>
                 </div>
             </div>
@@ -658,12 +661,8 @@ pub fn Footer() -> Node {
         <footer class="border-t border-border py-6 md:py-0">
             <div class="container flex flex-col items-center justify-between gap-4 md:h-14 md:flex-row">
                 <p class="text-center text-sm leading-loose text-muted-foreground md:text-left">
-                    Built with Momenta. Open source on
+                    Built with Momenta. Open source on " "
                     <a href="https://github.com/elcharitas/simple-rsx" class="font-medium underline underline-offset-4 hover:text-primary">GitHub</a>
-                </p>
-                <p class="text-center text-sm leading-loose text-muted-foreground md:text-right">
-                    Inspired by
-                    <a href="https://www.solidjs.com/" target="_blank" class="font-medium underline underline-offset-4 hover:text-primary">SolidJS</a>
                 </p>
             </div>
         </footer>

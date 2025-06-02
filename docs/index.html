@@ -3,11 +3,11 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Momenta - A reactive UI metaframework for Rust with fine-grained reactivity and a familiar JSX-like syntax" />
-    <meta name="keywords" content="Rust, UI, Framework, Reactive, JSX, Web Development" />
+    <meta name="description" content="Momenta - A reactive UI framework for Rust with fine-grained reactivity and a familiar JSX-like syntax" />
+    <meta name="keywords" content="Rust, UI, Framework, Reactive, JSX, Web Development, Momenta" />
     <meta name="author" content="Momenta Team" />
-    <meta name="theme-color" content="#0070c2" />
-    <title>Momenta - A Reactive UI Library for Rust</title>
+    <meta name="theme-color" content="#6366f1" />
+    <title>Momenta - The Reactive Rust UI Framework</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
@@ -26,7 +26,7 @@
       .loader {
         width: 48px;
         height: 48px;
-        border: 5px solid #0070c2;
+        border: 5px solid var(--primary);
         border-bottom-color: transparent;
         border-radius: 50%;
         display: inline-block;
@@ -52,13 +52,13 @@
         display: flex;
         justify-content: center;
         align-items: center;
-        background-color: #f8fafc;
+        background-color: hsl(var(--background));
         z-index: 9999;
         transition: opacity 0.5s ease-out;
       }
 
       .dark #loading {
-        background-color: #0f172a;
+        background-color: hsl(var(--background));
       }
 
       .loaded {

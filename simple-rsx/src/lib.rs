@@ -175,6 +175,7 @@ use alloc::{
     vec::Vec,
 };
 use core::{fmt::Display, iter::FromIterator};
+use signals::{Signal, SignalValue};
 
 pub use simple_rsx_macros::{component, either, rsx};
 
@@ -515,6 +516,15 @@ impl From<f32> for Node {
 impl From<bool> for Node {
     fn from(value: bool) -> Self {
         Node::Text(value.to_string())
+    }
+}
+
+impl<T: SignalValue + PartialEq + Clone + 'static> From<Signal<T>> for Node
+where
+    T: Into<Node>,
+{
+    fn from(value: Signal<T>) -> Self {
+        value.get().into()
     }
 }
 
