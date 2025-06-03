@@ -10,7 +10,6 @@ use simple_rsx::dom::render_root;
 use simple_rsx::either;
 use simple_rsx::rsx;
 use simple_rsx::signals::create_effect;
-use simple_rsx::signals::create_memo;
 use simple_rsx::signals::{Signal, SignalValue, create_signal};
 
 static GITHUB_LINK: &str = "https://github.com/elcharitas/simple-rsx";
@@ -26,7 +25,6 @@ pub enum Page {
     Rsx,
     Signals,
     Effects,
-    Memo,
     Resources,
     Components,
 
@@ -282,7 +280,6 @@ fn Navigation(props: &NavigationProps) -> Node {
                 nav_link(Page::Rsx, "rsx!"),
                 nav_link(Page::Components, "#[component]"),
                 nav_link(Page::Signals, "create_signal"),
-                nav_link(Page::Memo, "create_memo"),
                 nav_link(Page::Effects, "create_effect"),
                 nav_link(Page::Resources, "create_resource"),
             ])}
@@ -459,14 +456,14 @@ fn HomePage() -> Node {
 #[component]
 fn Counter() -> Node {
     let mut count = create_signal(0);
-    let doubled = create_memo(move || count.get() * 2);
 
     rsx! {
         <div>
-            <button on_click={move |_| count += 1}>
+            <button type_="submit" class="bg-blue-500 text-white py-2 px-6 rounded" on_click={move |_| {
+                count += 1
+            }}>
                 Count: {count}
             </button>
-            <p>Doubled: {doubled}</p>
         </div>
     }
 }"#} />
@@ -617,8 +614,7 @@ rsx! {
 
                 <Note variant="tip">
                     <p>
-                        <strong>"Performance tip:"</strong> " Use " <code>"create_memo"</code> " for expensive computations.
-                        Memos cache their results and only recompute when dependencies change."
+                        <strong>"Performance tip:"</strong> Avoid creating derived signals for every possible combination of signals.
                     </p>
                 </Note>
 
@@ -945,7 +941,6 @@ fn CounterExample() -> Node {
 #[component]
 fn Counter() -> Node {
     let mut count = create_signal(0);
-    let doubled = create_memo(|| 2);
 
     rsx! {
         <div>
@@ -954,7 +949,6 @@ fn Counter() -> Node {
             }}>
                 Count: {count}
             </button>
-            <p>Doubled: {doubled}</p>
         </div>
     }
 }

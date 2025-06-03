@@ -107,7 +107,7 @@ impl<T: SignalValue + 'static> SignalValue for Option<T> {
 //==============================================================================
 
 /// Reactive value that triggers re-renders when changed
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Signal<T> {
     id: (usize, usize),
     _marker: PhantomData<T>,
@@ -118,9 +118,6 @@ impl<T: SignalValue + PartialEq + 'static> PartialEq<T> for Signal<T> {
         self.with(|val| val == other).unwrap_or(false)
     }
 }
-
-impl<T: SignalValue + PartialEq + 'static> Eq for Signal<T> {}
-impl<T: SignalValue + PartialEq + 'static> Signal<T> {}
 
 impl<T: SignalValue + PartialEq + Clone + core::ops::Add<Output = T> + 'static> AddAssign<T>
     for Signal<T>
@@ -154,7 +151,7 @@ impl<T: SignalValue + PartialEq + Clone + core::ops::Div<Output = T> + 'static> 
     }
 }
 
-impl<T: SignalValue + PartialEq + 'static> Signal<T> {
+impl<T: SignalValue + 'static> Signal<T> {
     /// Access signal value immutably
     pub fn with<R>(&self, f: impl FnOnce(&T) -> R) -> Option<R> {
         if let Some(current_scope) = get_current_scope() {
@@ -187,7 +184,10 @@ impl<T: SignalValue + PartialEq + 'static> Signal<T> {
     }
 
     /// Update signal value and trigger re-renders if changed
-    pub fn set(&self, value: T) {
+    pub fn set(&self, value: T)
+    where
+        T: PartialEq,
+    {
         let mut changed = false;
 
         {
@@ -317,17 +317,6 @@ pub fn create_effect(effect: impl Fn() + Send + 'static) {
         let mut effects = SCOPE_EFFECTS.lock();
         effects.insert(effect_struct.id, Box::new(effect));
     }
-}
-
-pub fn create_memo<T, I>(init: I) -> T
-where
-    T: SignalValue + PartialEq + Clone + 'static,
-    I: Fn() -> T + Send + Sync + Copy + 'static,
-{
-    let signal = create_signal(SignalInit::InitFn(Box::new(init)));
-    let value = signal.get();
-
-    value
 }
 
 //==============================================================================
