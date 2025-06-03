@@ -7,11 +7,10 @@ use simple_rsx::{Node, component};
 
 struct CounterProps {
     count: Signal<i32>,
-    children: Vec<Node>,
 }
 
 #[component]
-fn Counter(CounterProps { count, children }: &CounterProps) -> Node {
+fn Counter(CounterProps { count }: &CounterProps) -> Node {
     let mut count = count.clone(); // this is zero-copy because it's a signal
     let increment = move |_| {
         count += 1;
@@ -26,7 +25,6 @@ fn Counter(CounterProps { count, children }: &CounterProps) -> Node {
             <p>Count: {count}</p>
             <button type_="button" on_click={increment}>Increment</button>
             <button type_="button" on_click={decrement}>Decrement</button>
-            {children}
         </div>
     }
 }

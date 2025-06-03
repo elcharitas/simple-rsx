@@ -333,9 +333,7 @@ pub trait Component {
 }
 
 #[derive(Default)]
-pub struct PropWithChildren {
-    pub children: Vec<Node>,
-}
+pub struct DefaultProps;
 
 #[derive(Clone)]
 /// Represents a node in the RSX tree.

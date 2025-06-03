@@ -197,7 +197,7 @@ pub fn component(_attr: TokenStream, input: TokenStream) -> TokenStream {
     let prop_type = if let Some(prop_ty) = prop_ty {
         quote! {type Props = #prop_ty;}
     } else {
-        quote! {type Props = ::simple_rsx::PropWithChildren;}
+        quote! {type Props = ::simple_rsx::DefaultProps;}
     };
 
     if inputs.is_empty() {
@@ -601,9 +601,13 @@ impl RsxNode {
                     .filter(|(name, _)| !(is_element && name.to_string().starts_with("data_"))) // filter out data- attributes for elements
                     .map(|(name, value)| quote! { #name: {#value}.into(), });
 
-                let child_tokens = children.iter().map(|child| child.to_tokens());
-                let children_tokens = quote! {
-                    children: vec![#(#child_tokens),*],
+                let children_tokens = if children.len() > 0 || is_element {
+                    let child_tokens = children.iter().map(|child| child.to_tokens());
+                    quote! {
+                        children: vec![#(#child_tokens),*],
+                    }
+                } else {
+                    quote! {}
                 };
 
                 let use_element = is_element.then(|| quote! {use ::simple_rsx::elements::#name;});
