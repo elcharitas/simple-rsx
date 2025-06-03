@@ -1,6 +1,45 @@
 use crate::{Component, Node, signals::run_scope};
 
 #[cfg(feature = "wasm")]
+#[wasm_bindgen::prelude::wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(js_namespace = console)]
+    pub fn log(s: &str);
+}
+
+#[cfg(feature = "wasm")]
+mod element_cache {
+    use alloc::{collections::BTreeMap, string::String};
+    use core::cell::UnsafeCell;
+
+    #[derive(Debug)]
+    // UnsafeCell wrapper for WASM single-threaded environment
+    pub struct ElementCache {
+        inner: UnsafeCell<Option<BTreeMap<String, web_sys::Element>>>,
+    }
+
+    unsafe impl Sync for ElementCache {}
+
+    pub static ELEMENT_CACHE: ElementCache = ElementCache {
+        inner: UnsafeCell::new(None),
+    };
+
+    // Safe in WASM because it's single-threaded
+    pub fn with_cache<F, R>(f: F) -> R
+    where
+        F: FnOnce(&mut BTreeMap<String, web_sys::Element>) -> R,
+    {
+        unsafe {
+            let cache = &mut *ELEMENT_CACHE.inner.get();
+            if cache.is_none() {
+                *cache = Some(BTreeMap::new());
+            }
+            f(cache.as_mut().unwrap())
+        }
+    }
+}
+
+#[cfg(feature = "wasm")]
 pub trait WasmRender {
     fn render(&self, mount: &web_sys::Element) -> Option<web_sys::Element>;
 }
@@ -10,8 +49,10 @@ impl WasmRender for crate::Element {
     fn render(&self, mount: &web_sys::Element) -> Option<web_sys::Element> {
         let element = web_sys::window()
             .map(|window| window.document().map(|doc| doc.create_element(&self.tag)))
-            .flatten()?;
-        if let Ok(element) = element {
+            .flatten()
+            .and_then(|el| el.ok());
+
+        if let Some(element) = element {
             let _ = mount.append_child(&element);
             for child in &self.children {
                 child.render(&element);
@@ -24,6 +65,11 @@ impl WasmRender for crate::Element {
             for (event_type, callback) in &self.events {
                 attach_event_handler(&element, event_type, callback.clone());
             }
+
+            element_cache::with_cache(|cache| {
+                use alloc::string::ToString;
+                cache.insert(self.key().to_string(), element.clone());
+            });
             return Some(element);
         }
         None
@@ -36,7 +82,7 @@ impl WasmRender for Node {
         match self {
             Node::Text(text) => {
                 let current_text = mount.text_content().unwrap_or_default();
-                mount.set_text_content(Some(&(current_text + text)));
+                mount.set_text_content(Some(&(current_text + &text)));
                 return None;
             }
             Node::Element(el) => {
@@ -109,10 +155,26 @@ fn attach_event_handler(
 
 pub fn render_component<C: Component>(
     props: C::Props,
-    callback: impl Fn(&Node) + 'static + Send + Sync,
+    callback: impl Fn(&Node) + Send + Sync + 'static,
 ) -> Option<Node>
 where
     <C as Component>::Props: Send + Sync + 'static,
 {
-    run_scope(move || C::render(&props), callback)
+    run_scope(
+        move || C::render(&props),
+        move |node| {
+            #[cfg(feature = "wasm")]
+            if let Node::Element(el) = node {
+                if let Some(element) =
+                    element_cache::with_cache(|cache| cache.get(el.key()).cloned())
+                {
+                    if let Some(parent) = element.parent_element() {
+                        parent.remove_child(&element).ok();
+                        el.render(&parent);
+                    }
+                }
+            }
+            callback(node)
+        },
+    )
 }

@@ -383,13 +383,6 @@ impl Node {
         }
     }
 
-    pub fn as_text(&self) -> Option<&str> {
-        match self {
-            Node::Text(text) => Some(text),
-            _ => None,
-        }
-    }
-
     /// Adds a child node if this node is an Element.
     ///
     /// This method has no effect if the node is not an Element.
@@ -402,7 +395,7 @@ impl Node {
 
 impl From<String> for Node {
     fn from(value: String) -> Self {
-        Node::Text(value)
+        Node::Text(value.into())
     }
 }
 
@@ -991,15 +984,15 @@ macro_rules! derive_elements {
                     fn get_events(&self) -> BTreeMap<String, String> {
                         BTreeMap::new()
                     }
-
                 }
 
                 impl Component for $tag {
                     type Props = [<HTML $tag:camel Element Props>];
 
                     fn render(props: &Self::Props) -> Node {
+                        let scope = get_current_scope().unwrap_or(0);
                         Element::parse_tag_with_attributes(
-                            &props.key,
+                            &scope.to_string(),
                             stringify!($tag),
                             props.to_attributes(),
                             props.get_events(),
@@ -1013,7 +1006,7 @@ macro_rules! derive_elements {
 }
 
 pub mod elements {
-    use super::*;
+    use super::{signals::get_current_scope, *};
     derive_elements! {
         /// HTML `<html>` element - Root element of an HTML document
         html {

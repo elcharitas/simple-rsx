@@ -2,7 +2,7 @@ use crate::Node;
 use alloc::{
     boxed::Box,
     collections::{BTreeMap, BTreeSet},
-    string::String,
+    string::{String, ToString},
     sync::Arc,
     vec::Vec,
 };
@@ -327,13 +327,6 @@ where
     let signal = create_signal(SignalInit::InitFn(Box::new(init)));
     let value = signal.get();
 
-    create_effect(move || {
-        let new_value = init();
-        if new_value != signal.get() {
-            signal.set(new_value);
-        }
-    });
-
     value
 }
 
@@ -384,7 +377,7 @@ pub fn rerender_all_scopes() {
 // INTERNAL FUNCTIONS
 //==============================================================================
 
-fn get_current_scope() -> Option<usize> {
+pub(crate) fn get_current_scope() -> Option<usize> {
     *CURRENT_SCOPE.lock()
 }
 
@@ -461,10 +454,13 @@ fn render_scope(scope_id: usize) -> Option<Node> {
     };
 
     let node = scope_fn.map(|mut fnc| {
-        let node = fnc();
+        let mut node = fnc();
         {
             let mut scope_functions = SCOPE_FUNCTIONS.lock();
             scope_functions.insert(scope_id, fnc);
+        }
+        if let Some(el) = node.as_element_mut() {
+            el.key = scope_id.to_string();
         }
         node
     });
@@ -615,6 +611,73 @@ mod tests {
                 Node::Empty
             },
             |_| {},
+        );
+    }
+
+    #[test]
+    fn test_stable_scope_ids_across_rerenders() {
+        let first_run_ids = Arc::new(Mutex::new(Vec::new()));
+        let second_run_ids = Arc::new(Mutex::new(Vec::new()));
+        let run_count = Arc::new(AtomicUsize::new(0));
+
+        let first_ids_clone = first_run_ids.clone();
+        let second_ids_clone = second_run_ids.clone();
+        let run_count_clone = run_count.clone();
+
+        run_scope(
+            move || {
+                let current_run = run_count_clone.fetch_add(1, Ordering::SeqCst);
+                let scope1_id = get_current_scope().unwrap();
+                let first_ids_clone = first_ids_clone.clone();
+                let second_ids_clone = second_ids_clone.clone();
+
+                run_scope(
+                    move || {
+                        let scope2_id = get_current_scope().unwrap();
+                        let first_ids_clone = first_ids_clone.clone();
+                        let second_ids_clone = second_ids_clone.clone();
+
+                        run_scope(
+                            move || {
+                                let scope3_id = get_current_scope().unwrap();
+
+                                if current_run == 0 {
+                                    let mut ids = first_ids_clone.lock();
+                                    ids.push(scope1_id);
+                                    ids.push(scope2_id);
+                                    ids.push(scope3_id);
+                                } else {
+                                    let mut ids = second_ids_clone.lock();
+                                    ids.push(scope1_id);
+                                    ids.push(scope2_id);
+                                    ids.push(scope3_id);
+                                }
+
+                                Node::Empty
+                            },
+                            |_| {},
+                        );
+
+                        Node::Empty
+                    },
+                    |_| {},
+                );
+
+                Node::Empty
+            },
+            |_| {},
+        );
+
+        // Trigger a re-render (this would normally happen via signal changes)
+        rerender_all_scopes();
+
+        let first_ids = first_run_ids.lock();
+        let second_ids = second_run_ids.lock();
+
+        // Scope IDs should be stable across re-renders
+        assert_eq!(
+            *first_ids, *second_ids,
+            "Scope IDs should remain stable across re-renders"
         );
     }
 }

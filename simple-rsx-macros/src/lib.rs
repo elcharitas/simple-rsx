@@ -589,7 +589,7 @@ impl RsxNode {
                         });
                     quote! {
                         r#data: {
-                            let mut #ident = std::collections::HashMap::new();
+                            let mut #ident = ::alloc::collections::BTreeMap::new();
                             {
                                 #(#data)*
                             }

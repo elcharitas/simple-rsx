@@ -945,16 +945,16 @@ fn CounterExample() -> Node {
 #[component]
 fn Counter() -> Node {
     let mut count = create_signal(0);
-    // let doubled = create_memo(move || count.get() * 2);
+    let doubled = create_memo(|| 2);
 
     rsx! {
         <div>
-            <button type_="submit" class="bg-red-500" on_click={move |_| {
+            <button type_="submit" class="bg-blue-500 text-white py-2 px-6 rounded" on_click={move |_| {
                 count += 1
             }}>
                 Count: {count}
             </button>
-            // <p>Doubled: {doubled}</p>
+            <p>Doubled: {doubled}</p>
         </div>
     }
 }
