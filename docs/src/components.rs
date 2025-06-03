@@ -7,7 +7,6 @@ pub struct CodeBlockProps {
     pub title: &'static str,
     pub code: &'static str,
     pub language: Option<&'static str>,
-    pub children: Vec<Node>,
 }
 
 pub struct InfoBoxProps {
@@ -15,20 +14,17 @@ pub struct InfoBoxProps {
     pub title: &'static str,
     pub content: &'static str,
     pub variant: &'static str,
-    pub children: Vec<Node>,
 }
 
 pub struct FeatureCardProps {
     pub icon: &'static str,
     pub title: &'static str,
     pub description: &'static str,
-    pub children: Vec<Node>,
 }
 
 pub struct PageHeaderProps {
     pub title: &'static str,
     pub subtitle: &'static str,
-    pub children: Vec<Node>,
 }
 
 pub struct ContentSectionProps {
@@ -55,7 +51,6 @@ pub struct TableRowProps {
 pub struct HeaderProps {
     pub current_page: Signal<Page>,
     pub theme: Signal<&'static str>,
-    pub children: Vec<Node>,
 }
 
 pub struct EventTypeCardProps {
@@ -63,7 +58,6 @@ pub struct EventTypeCardProps {
     pub icon: &'static str,
     pub events: Vec<&'static str>,
     pub color: &'static str,
-    pub children: Vec<Node>,
 }
 
 pub struct ConceptItemProps {
@@ -71,7 +65,6 @@ pub struct ConceptItemProps {
     pub title: &'static str,
     pub description: &'static str,
     pub color: &'static str,
-    pub children: Vec<Node>,
 }
 
 pub struct ConceptCardProps {
@@ -80,7 +73,6 @@ pub struct ConceptCardProps {
     pub description: &'static str,
     pub benefits: Vec<(&'static str, &'static str)>,
     pub color: &'static str,
-    pub children: Vec<Node>,
 }
 
 // Reusable Components
@@ -183,7 +175,6 @@ pub fn CodeBlock(props: &CodeBlockProps) -> Node {
             <pre class="bg-code-background p-4 overflow-x-auto">
                 <code class="text-sm text-code-foreground font-mono">{props.code}</code>
             </pre>
-            {&props.children}
         </div>
     }
 }
@@ -226,7 +217,6 @@ pub fn InfoBox(props: &InfoBoxProps) -> Node {
                 <strong>{props.title}</strong>
                 <span>{props.content}</span>
             </p>
-            {&props.children}
         </div>
     }
 }
@@ -240,7 +230,6 @@ pub fn FeatureCard(props: &FeatureCardProps) -> Node {
             </div>
             <h3 class="text-xl font-semibold mb-2">{props.title}</h3>
             <p class="text-muted-foreground">{props.description}</p>
-            {&props.children}
         </div>
     }
 }
@@ -254,7 +243,6 @@ pub fn PageHeader(props: &PageHeaderProps) -> Node {
             </div>
             <h1 class="text-6xl font-extrabold mb-6 bg-gradient-to-r from-primary-600 via-secondary-500 to-primary-600 bg-clip-text text-transparent drop-shadow-xl animate-in slide-in">{props.title}</h1>
             <p class="text-2xl text-muted-foreground/90 font-medium max-w-2xl mx-auto leading-relaxed animate-in slide-in">{props.subtitle}</p>
-            {&props.children}
         </div>
     }
 }
@@ -366,7 +354,6 @@ pub fn EventTypeCard(props: &EventTypeCardProps) -> Node {
                     }
                 }).collect::<Vec<_>>()}
             </div>
-            {&props.children}
         </div>
     }
 }
@@ -391,7 +378,6 @@ pub fn ConceptItem(props: &ConceptItemProps) -> Node {
                 <p class="font-semibold">{props.title}</p>
                 <p class="text-sm text-muted-foreground">{props.description}</p>
             </div>
-            {&props.children}
         </div>
     }
 }
@@ -467,10 +453,9 @@ pub fn ConceptCard(props: &ConceptCardProps) -> Node {
                                 </span>
                             </li>
                         }
-                    }).collect::<Vec<_>>()}
+                    })}
                 </ul>
             </div>
-            {&props.children}
         </div>
     }
 }
@@ -569,7 +554,6 @@ pub fn Header(
     HeaderProps {
         current_page,
         theme,
-        children,
     }: &HeaderProps,
 ) -> Node {
     let current_page = current_page.clone();
