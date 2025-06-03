@@ -43,7 +43,7 @@ fn App() -> Node {
 
 // Example Usage
 fn main() {
-    render_root::<App>("app");
+    render_root::<App>("#app");
 }
 
 #[cfg(test)]

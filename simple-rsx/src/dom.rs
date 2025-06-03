@@ -58,7 +58,7 @@ impl WasmRender for Node {
 }
 
 #[cfg(feature = "wasm")]
-pub fn render_root<C: Component>(element_id: &'static str)
+pub fn render_root<C: Component>(selectors: &'static str)
 where
     <C as Component>::Props: Default,
     <C as Component>::Props: Send + Sync + 'static,
@@ -67,7 +67,8 @@ where
         let window = web_sys::window().expect("no global `window` exists");
         let document = window.document().expect("should have a document on window");
         let mount_point = document
-            .get_element_by_id(&element_id)
+            .query_selector(&selectors)
+            .expect("couldn't find element")
             .expect("couldn't find element");
         // clear mount point
         while let Some(child) = mount_point.first_child() {
@@ -75,6 +76,15 @@ where
         }
         node.render(&mount_point);
     });
+}
+
+#[cfg(feature = "wasm")]
+pub fn mount_to_body<C: Component>()
+where
+    <C as Component>::Props: Default,
+    <C as Component>::Props: Send + Sync + 'static,
+{
+    render_root::<C>("body");
 }
 
 #[cfg(feature = "wasm")]

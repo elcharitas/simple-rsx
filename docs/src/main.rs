@@ -12,6 +12,8 @@ use simple_rsx::rsx;
 use simple_rsx::signals::create_effect;
 use simple_rsx::signals::{Signal, SignalValue, create_signal};
 
+static GITHUB_LINK: &str = "https://github.com/elcharitas/simple-rsx";
+
 #[derive(Clone, Copy, PartialEq)]
 pub enum Page {
     // Start Here
@@ -229,7 +231,7 @@ fn Header(props: &HeaderProps) -> Node {
                         )}
                     </button>
 
-                    <a href="https://github.com/momenta"
+                    <a href={GITHUB_LINK}
                        class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
                         <i class="fab fa-github"></i>
                     </a>
@@ -393,7 +395,7 @@ fn Playground(props: &PlaygroundProps) -> Node {
                     </div>
                     <div class="p-4">
                         <div class="text-sm text-gray-600 dark:text-gray-400">
-                            [Interactive output would be displayed here]
+                            "[Interactive output would be displayed here]"
                         </div>
                     </div>
                 </div>
@@ -418,7 +420,7 @@ fn HomePage() -> Node {
                     <a href="#" class="rounded-lg bg-blue-600 px-6 py-3 text-sm font-semibold text-white hover:bg-blue-700">
                         "Get Started"
                     </a>
-                    <a href="#" class="rounded-lg border border-gray-300 dark:border-gray-700 px-6 py-3 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-900">
+                    <a href={GITHUB_LINK} class="rounded-lg border border-gray-300 dark:border-gray-700 px-6 py-3 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-900">
                         "View on GitHub"
                     </a>
                 </div>
@@ -671,6 +673,77 @@ let toggle = move |_| visible.update(|v| !v);"#}
 }
 
 #[component]
+fn RsxPage() -> Node {
+    rsx! {
+        <article class="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
+            <header class="mb-12">
+                <h1 class="text-4xl font-bold text-gray-900 dark:text-gray-100">RSX</h1>
+                <p class="mt-4 text-lg text-gray-600 dark:text-gray-400">
+                    "RSX is a Rust macro for building user interfaces. It's inspired by SolidJS, but with a Rust-first approach."
+                </p>
+            </header>
+            <section class="prose prose-gray dark:prose-invert max-w-none">
+                <h2 id="introduction">Introduction</h2>
+                <p>
+                    "RSX allows you to write HTML-like syntax inside Rust code. It's a way to declaratively describe the structure of your UI."
+                </p>
+                <h2 id="basic-example">Basic Example</h2>
+                <CodeBlock
+                    language="rust"
+                    filename="src/main.rs"
+                    highlight=""
+                    code={r#"use momenta::prelude::*;
+
+let rsx = rsx! {
+    <div>
+        <h1>Hello, world!</h1>
+        <p>Welcome to Momenta.</p>
+    </div>
+};"#}
+                />
+                <Note variant="info">
+                    <p>
+                        <strong>"Good to know:"</strong> " Momenta uses Rust's type system to ensure that your UI is always up-to-date."
+                    </p>
+                </Note>
+                <h2 id="api-reference">API Reference</h2>
+                <h3 id="creating-elements">Creating Elements</h3>
+                <CodeBlock
+                    language="rust"
+                    filename="src/main.rs"
+                    highlight=""
+                    code={r#"let element = rsx! {
+    };"#}
+                />
+                <h3 id="attributes">Attributes</h3>
+                <CodeBlock
+                    language="rust"
+                    filename="src/main.rs"
+                    highlight=""
+                    code={r#"let element = rsx! {
+    <div class="container">
+        <p>Hello, world!</p>
+    </div>
+};"#}
+                />
+                <h3 id="children">Children</h3>
+                <CodeBlock
+                    language="rust"
+                    filename="src/main.rs"
+                    highlight=""
+                    code={r#"let element = rsx! {
+    <div>
+        <p>Hello, world!</p>
+        <p>Welcome to Momenta.</p>
+    </div>
+};"#}
+                />
+            </section>
+        </article>
+    }
+}
+
+#[component]
 pub fn EffectsPage() -> Node {
     rsx! {
         <article class="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
@@ -793,9 +866,9 @@ fn App() -> Node {
     
     rsx! {
         <div class="container">
-            <h1>"Hello, {name.get()}!"</h1>
+            <h1>Hello, {name}!</h1>
             <input 
-                type="text"
+                type_="text"
                 value={name.get()}
                 on_input={move |e| name.set(e.value())}
                 placeholder="Enter your name"
@@ -805,7 +878,7 @@ fn App() -> Node {
 }
 
 fn main() {
-    mount_to_body(App);
+    mount_to_body::<App>();
 }"#}
                 />
 
@@ -850,10 +923,6 @@ fn TutorialPage() -> Node {
 }
 
 #[component]
-fn RsxPage() -> Node {
-    rsx! { <div class="p-8">"RSX page..."</div> }
-}
-#[component]
 fn ResourcesPage() -> Node {
     rsx! { <div class="p-8">"Resources page..."</div> }
 }
@@ -883,5 +952,5 @@ fn CounterExample() -> Node {
 }
 
 fn main() {
-    render_root::<App>("app");
+    render_root::<App>("#app");
 }

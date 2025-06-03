@@ -319,6 +319,23 @@ pub fn create_effect(effect: impl Fn() + Send + 'static) {
     }
 }
 
+pub fn create_memo<T, I>(init: I) -> T
+where
+    T: SignalValue + PartialEq + Clone + 'static,
+    I: Fn() -> T + Send + Sync + Copy + 'static,
+{
+    let signal = create_signal(SignalInit::InitFn(Box::new(init)));
+    let value = signal.get();
+
+    create_effect(move || {
+        let new_value = init();
+        if new_value != signal.get() {
+            signal.set(new_value);
+        }
+    });
+    value
+}
+
 //==============================================================================
 // SCOPE MANAGEMENT
 //==============================================================================
