@@ -10,6 +10,7 @@ use simple_rsx::dom::render_root;
 use simple_rsx::either;
 use simple_rsx::rsx;
 use simple_rsx::signals::create_effect;
+use simple_rsx::signals::create_memo;
 use simple_rsx::signals::{Signal, SignalValue, create_signal};
 
 static GITHUB_LINK: &str = "https://github.com/elcharitas/simple-rsx";
@@ -19,23 +20,19 @@ pub enum Page {
     // Start Here
     Home,
     GettingStarted,
-    Tutorial,
+    Philosophy,
 
     // Core Concepts
     Rsx,
     Signals,
     Effects,
+    Memo,
     Resources,
+    Components,
 
     // Control Flow
     Show,
     For,
-
-    // API Reference
-    CreateSignal,
-    CreateEffect,
-    CreateMemo,
-    CreateResource,
 
     // Guides
     Reactivity,
@@ -147,7 +144,7 @@ fn App() -> Node {
                     {match current_page.get() {
                         Page::Home => rsx! { <HomePage /> },
                         Page::GettingStarted => rsx! { <GettingStartedPage /> },
-                        Page::Tutorial => rsx! { <TutorialPage /> },
+                        Page::Philosophy => rsx! { <TutorialPage /> },
                         Page::Signals => rsx! { <SignalsPage /> },
                         Page::Effects => rsx! { <EffectsPage /> },
                         Page::Rsx => rsx! { <RsxPage /> },
@@ -206,9 +203,9 @@ fn Header(props: &HeaderProps) -> Node {
 
                 <div class="ml-auto flex items-center space-x-4">
                     <nav class="hidden md:flex items-center space-x-6 mr-6">
-                        <a href="#" on_click={move |_| current_page.set(Page::CreateSignal)}
+                        <a href="#" on_click={move |_| current_page.set(Page::Reactivity)}
                            class="text-sm font-medium transition-colors hover:text-blue-600 dark:hover:text-blue-400">
-                            API
+                            Guides
                         </a>
                         <a href="#" on_click={move |_| current_page.set(Page::GettingStarted)}
                            class="text-sm font-medium transition-colors hover:text-blue-600 dark:hover:text-blue-400">
@@ -278,26 +275,21 @@ fn Navigation(props: &NavigationProps) -> Node {
         <nav class="px-2">
             {section("Start Here", vec![
                 nav_link(Page::GettingStarted, "Getting Started"),
-                nav_link(Page::Tutorial, "Tutorial"),
+                nav_link(Page::Philosophy, "Philosophy"),
             ])}
 
             {section("Core Concepts", vec![
                 nav_link(Page::Rsx, "rsx!"),
-                nav_link(Page::Signals, "Signals"),
-                nav_link(Page::Effects, "Effects"),
-                nav_link(Page::Resources, "Resources"),
+                nav_link(Page::Components, "#[component]"),
+                nav_link(Page::Signals, "create_signal"),
+                nav_link(Page::Memo, "create_memo"),
+                nav_link(Page::Effects, "create_effect"),
+                nav_link(Page::Resources, "create_resource"),
             ])}
 
             {section("Control Flow", vec![
                 nav_link(Page::Show, "either!"),
                 nav_link(Page::For, ".iter().map()"),
-            ])}
-
-            {section("API Reference", vec![
-                nav_link(Page::CreateSignal, "create_signal"),
-                nav_link(Page::CreateEffect, "create_effect"),
-                nav_link(Page::CreateMemo, "create_memo"),
-                nav_link(Page::CreateResource, "create_resource"),
             ])}
 
             {section("Guides", vec![
@@ -395,7 +387,7 @@ fn Playground(props: &PlaygroundProps) -> Node {
                     </div>
                     <div class="p-4">
                         <div class="text-sm text-gray-600 dark:text-gray-400">
-                            "[Interactive output would be displayed here]"
+                            <Counter />
                         </div>
                     </div>
                 </div>
@@ -435,7 +427,7 @@ fn HomePage() -> Node {
                 <Feature
                     icon="fas fa-code"
                     title="Familiar API"
-                    description="Inspired by SolidJS with a Rust-first approach to reactive programming."
+                    description="Inspired by React with a Rust-first approach to reactive programming."
                 />
                 <Feature
                     icon="fas fa-shield-alt"
@@ -461,13 +453,14 @@ fn HomePage() -> Node {
 
             <div class="mt-24">
                 <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">Quick Example</h2>
-                <Playground code={r#"use momenta::prelude::*;
+                <Playground
+                    code={r#"use momenta::prelude::*;
 
 #[component]
 fn Counter() -> Node {
-    let count = create_signal(0);
-    let doubled = create_memo(move || count * 2);
-    
+    let mut count = create_signal(0);
+    let doubled = create_memo(move || count.get() * 2);
+
     rsx! {
         <div>
             <button on_click={move |_| count += 1}>
@@ -590,16 +583,14 @@ let doubled = move || count * 2;"#}
                     language="rust"
                     filename="src/main.rs"
                     highlight=""
-                    code={r#"let count = create_signal(0);
+                    code={r#"let mut count = create_signal(0);
 
-// Set new value
-count.set(5);
+// Override the value
+count.set(5); // Now count is 5
 
 // Update based on previous value
-count.update(|n| n + 1);
-
-// Conditional updates
-count.update(|n| if n < 10 { n + 1 } else { n });"#}
+count += 1; // Now count is 6
+"#}
                 />
 
                 <h2>Advanced Patterns</h2>
@@ -677,9 +668,10 @@ fn RsxPage() -> Node {
     rsx! {
         <article class="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
             <header class="mb-12">
-                <h1 class="text-4xl font-bold text-gray-900 dark:text-gray-100">RSX</h1>
+                <h1 class="text-4xl font-bold text-gray-900 dark:text-gray-100">rsx!</h1>
                 <p class="mt-4 text-lg text-gray-600 dark:text-gray-400">
-                    "RSX is a Rust macro for building user interfaces. It's inspired by SolidJS, but with a Rust-first approach."
+                    rsx! is a built in macro that allows you to write HTML-like syntax inside Rust code.
+                    "It's a way to declaratively describe the structure of your UI."
                 </p>
             </header>
             <section class="prose prose-gray dark:prose-invert max-w-none">
@@ -907,8 +899,7 @@ fn main() {
 
                 <Note variant="tip">
                     <p>
-                        <strong>"VS Code Extension:"</strong> " Install the Momenta VS Code extension for syntax highlighting,
-                        code completion, and inline error checking."
+                        <strong>"Tip:"</strong> add a <code>"static"</code> folder to your project to serve static files like images, CSS, and JavaScript.
                     </p>
                 </Note>
             </section>
@@ -949,6 +940,23 @@ fn ReactivityPage() -> Node {
 #[component]
 fn CounterExample() -> Node {
     rsx! { <div class="p-8">"Counter example..."</div> }
+}
+
+#[component]
+fn Counter() -> Node {
+    let mut count = create_signal(0);
+    // let doubled = create_memo(move || count.get() * 2);
+
+    rsx! {
+        <div>
+            <button type_="submit" class="bg-red-500" on_click={move |_| {
+                count += 1
+            }}>
+                Count: {count}
+            </button>
+            // <p>Doubled: {doubled}</p>
+        </div>
+    }
 }
 
 fn main() {

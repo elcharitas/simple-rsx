@@ -333,6 +333,7 @@ where
             signal.set(new_value);
         }
     });
+
     value
 }
 
