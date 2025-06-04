@@ -1,6 +1,8 @@
 use proc_macro::TokenStream;
 use proc_macro2::{Span, TokenStream as TokenStream2};
 use quote::quote;
+use syn::braced;
+use syn::punctuated::Punctuated;
 use syn::spanned::Spanned;
 use syn::token::Colon;
 use syn::{
@@ -11,51 +13,29 @@ use syn::{
 };
 use syn::{FnArg, PatType, Signature, Stmt, Type, TypeReference};
 
-/// A procedural macro that provides JSX-like syntax for creating HTML elements in Rust.
-///
-/// # Examples
-///
-/// ```rust
-/// use simple_rsx::*;
-/// // Fragment
-/// rsx!(<>"Hello World"</>);
-///
-/// // Self-closing tag
-/// rsx!(<div class="container" id="app" />);
-///
-/// // Tag with children
-/// rsx!(<div class="container">
-///     <h1>Title</h1>
-///     <p>Paragraph text</p>
-/// </div>);
-///
-/// // Expression
-/// let name = "World";
-/// rsx!(<div>Hello {name}</div>);
-/// ```
-#[proc_macro]
-pub fn rsx(input: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(input as RsxNode);
-    let expanded = input.to_tokens();
-    expanded.into()
-}
-
 /// A procedural macro that transforms a conditional expression into a JSX-like syntax.
-/// Supports both RSX nodes and literals.
+/// Supports both RSX nodes and literals, with conditional and match syntax.
 ///
 /// # Examples
 /// ```rust
 /// use simple_rsx::*;
 ///
 /// let show = true;
+/// let result: Result<i32, String> = Ok(42);
 ///
-/// // With RSX nodes
+/// // Conditional syntax with RSX nodes
 /// either!(show => <p>"Show me"</p>);
 /// either!(show => <p>"Show me"</p> else <p>"Hidden"</p>);
 ///
-/// // With literals
+/// // Conditional syntax with literals
 /// either!(show => "Visible text");
 /// either!(show => "Visible" else "Hidden");
+///
+/// // Match syntax
+/// either!(result {
+///     Ok(val) => <div>{val}</div>,
+///     Err(_) => <p>"Error occurred"</p>
+/// });
 /// ```
 #[proc_macro]
 pub fn either(input: TokenStream) -> TokenStream {
@@ -93,55 +73,114 @@ impl EitherValue {
     }
 }
 
-struct Either {
-    condition: Expr,
-    true_value: EitherValue,
-    false_value: Option<EitherValue>,
+struct MatchArm {
+    pattern: Expr,
+    value: EitherValue,
+}
+
+impl Parse for MatchArm {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let pattern = input.parse()?;
+        input.parse::<Token![=>]>()?;
+        let value = input.parse()?;
+        Ok(MatchArm { pattern, value })
+    }
+}
+
+impl MatchArm {
+    fn to_tokens(&self) -> TokenStream2 {
+        let pattern = &self.pattern;
+        let value = self.value.to_tokens();
+        quote! { #pattern => #value }
+    }
+}
+
+enum Either {
+    Conditional {
+        condition: Expr,
+        true_value: EitherValue,
+        false_value: Option<EitherValue>,
+    },
+    Match {
+        expr: Expr,
+        arms: Vec<MatchArm>,
+    },
 }
 
 impl Parse for Either {
     fn parse(input: ParseStream) -> Result<Self> {
-        let condition = input.parse()?;
-        input.parse::<Token![=>]>()?;
-        let true_value = input.parse()?;
+        let expr = input.parse::<Expr>()?;
 
-        let false_value = if input.peek(Token![else]) {
-            input.parse::<Token![else]>()?;
-            Some(input.parse()?)
+        // Check if we have conditional syntax (=>) or match syntax ({)
+        if input.peek(Token![=>]) {
+            // Conditional syntax
+            input.parse::<Token![=>]>()?;
+            let true_value = input.parse()?;
+            let false_value = if input.peek(Token![else]) {
+                input.parse::<Token![else]>()?;
+                Some(input.parse()?)
+            } else {
+                None
+            };
+
+            Ok(Either::Conditional {
+                condition: expr,
+                true_value,
+                false_value,
+            })
+        } else if input.peek(Brace) {
+            // Match syntax
+            let content;
+            braced!(content in input);
+
+            let arms: Punctuated<MatchArm, Token![,]> =
+                content.parse_terminated(MatchArm::parse, Token![,])?;
+
+            Ok(Either::Match {
+                expr,
+                arms: arms.into_iter().collect(),
+            })
         } else {
-            None
-        };
-
-        Ok(Either {
-            condition,
-            true_value,
-            false_value,
-        })
+            Err(input.error("Expected '=>' for conditional or '{' for match syntax"))
+        }
     }
 }
 
 impl Either {
     fn to_tokens(&self) -> TokenStream2 {
-        let condition = &self.condition;
-        let true_value = self.true_value.to_tokens();
+        match self {
+            Either::Conditional {
+                condition,
+                true_value,
+                false_value,
+            } => {
+                let true_tokens = true_value.to_tokens();
+                let false_tokens = false_value
+                    .as_ref()
+                    .map(|v| v.to_tokens())
+                    .map(|v| quote! { else { #v }});
 
-        let false_value = self
-            .false_value
-            .as_ref()
-            .map(|v| v.to_tokens())
-            .and_then(|v| Some(quote! { else { #v }}));
-
-        if false_value.is_none() {
-            return quote! {
-                (#condition).then(|| #true_value)
-            };
-        }
-
-        quote! {
-            if #condition {
-                #true_value
+                if false_tokens.is_none() {
+                    quote! {
+                        (#condition).then(|| #true_tokens)
+                    }
+                } else {
+                    quote! {
+                        if #condition {
+                            #true_tokens
+                        }
+                        #false_tokens
+                    }
+                }
             }
-            #false_value
+            Either::Match { expr, arms } => {
+                let arm_tokens: Vec<_> = arms.iter().map(|arm| arm.to_tokens()).collect();
+                quote! {
+                    match #expr {
+                        #(#arm_tokens),*
+                    }
+                }
+            }
         }
     }
 }
@@ -220,6 +259,35 @@ pub fn component(_attr: TokenStream, input: TokenStream) -> TokenStream {
         }
     };
 
+    expanded.into()
+}
+
+/// A procedural macro that provides JSX-like syntax for creating HTML elements in Rust.
+///
+/// # Examples
+///
+/// ```rust
+/// use simple_rsx::*;
+/// // Fragment
+/// rsx!(<>"Hello World"</>);
+///
+/// // Self-closing tag
+/// rsx!(<div class="container" id="app" />);
+///
+/// // Tag with children
+/// rsx!(<div class="container">
+///     <h1>Title</h1>
+///     <p>Paragraph text</p>
+/// </div>);
+///
+/// // Expression
+/// let name = "World";
+/// rsx!(<div>Hello {name}</div>);
+/// ```
+#[proc_macro]
+pub fn rsx(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as RsxNode);
+    let expanded = input.to_tokens();
     expanded.into()
 }
 
