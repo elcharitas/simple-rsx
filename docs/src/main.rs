@@ -545,7 +545,7 @@ fn FruitList() -> Node {
     
     rsx! {
         <div>
-            <h2>"Fruit List"</h2>
+            <h2 class="font-bold uppercase">"Fruit List"</h2>
             <ul>
                 {fruits.get().iter().map(|fruit| rsx! {
                     <li>{fruit}</li>
@@ -580,7 +580,7 @@ rsx! {
     <ul>
         {items.iter().map(|item| rsx! {
             <li>{item}</li>
-        }).collect::<Vec<_>>()}
+        })}
     </ul>
 }
 
@@ -591,7 +591,7 @@ rsx! {
     <ul>
         {items.get().iter().map(|item| rsx! {
             <li>{item}</li>
-        }).collect::<Vec<_>>()}
+        })}
     </ul>
 }"#}
                 />
@@ -611,7 +611,7 @@ rsx! {
     <ul>
         {items.get().iter().enumerate().map(|(index, item)| rsx! {
             <li>"Item #" {index + 1} ": " {item}</li>
-        }).collect::<Vec<_>>()}
+        })}
     </ul>
 }"#}
                 />
@@ -642,31 +642,25 @@ fn TodoList() -> Node {
     let add_todo = move |_| {
         let text = new_todo_text.get();
         if !text.is_empty() {
-            todos.update(|mut t| {
-                let next_id = t.iter().map(|todo| todo.id).max().unwrap_or(0) + 1;
-                t.push(Todo {
-                    id: next_id,
-                    text: text.clone(),
-                    completed: false,
-                });
-                t
+            let next_id = todos.map(|todo| todo.id).max().unwrap_or(0) + 1;
+            todos.push(Todo {
+                id: next_id,
+                text: text.clone(),
+                completed: false,
             });
             new_todo_text.set(String::new());
         }
     };
     
     let toggle_todo = move |id: usize| {
-        todos.update(|mut t| {
-            if let Some(todo) = t.iter_mut().find(|todo| todo.id == id) {
-                todo.completed = !todo.completed;
-            }
-            t
-        });
+        if let Some(todo) = todos.iter_mut().find(|todo| todo.id == id) {
+            todo.completed = !todo.completed;
+        }
     };
     
     rsx! {
         <div>
-            <h2>"Todo List"</h2>
+            <h2 class="font-bold uppercase">"Todo List"</h2>
             <ul class="space-y-2">
                 {todos.get().iter().map(|todo| {
                     let id = todo.id;
@@ -683,7 +677,7 @@ fn TodoList() -> Node {
                             {todo.text.clone()}
                         </li>
                     }
-                }).collect::<Vec<_>>()}
+                })}
             </ul>
             
             <div class="mt-4 flex">
@@ -762,7 +756,7 @@ rsx! {
                     <li class="bg-gray-100 dark:bg-gray-800 p-2 rounded text-center">
                         {n}
                     </li>
-                }).collect::<Vec<_>>()
+                })
             }}
         </ul>
     </div>
@@ -779,9 +773,9 @@ rsx! {
                     <li>"Pre-compute derived values outside of the render function"</li>
                 </ul>
 
-                <h2>Best Practices</h2>
+                <h2 class="font-bold uppercase">Best Practices</h2>
                 <ul>
-                    <li>"Use .iter().map().collect::<Vec<_>>() pattern for list rendering"</li>
+                    <li>"Use .iter().map() pattern for list rendering"</li>
                     <li>"Extract complex item rendering into separate components"</li>
                     <li>"Use signals for list data that changes over time"</li>
                     <li>"Leverage Rust's powerful iterator methods for filtering, sorting, and transforming data"</li>
@@ -928,22 +922,13 @@ count.set(5); // Now count is 5
 // Update based on previous value
 count += 1; // Now count is 6
 
-// Update with a function
-count.update(|prev| prev + 1); // Now count is 7
-
 // Updating complex types
 let mut user = create_signal(User {
     name: "Alice".to_string(),
     age: 30,
 });
 
-// Update a single property
-user.update(|mut u| {
-    u.age += 1;
-    u
-});
-
-// Or create a new instance
+// create a new instance
 user.set(User {
     name: "Bob".to_string(),
     age: 25,
@@ -988,7 +973,7 @@ batch(|| {
 });"#}
                 />
 
-                <h2>Best Practices</h2>
+                <h2 class="font-bold uppercase">Best Practices</h2>
                 <ul>
                     <li>"Keep signals at the appropriate scope - not everything needs to be global state"</li>
                     <li>"Prefer fine-grained signals over large state objects for better performance"</li>
@@ -1024,13 +1009,13 @@ fn ResourcesPage() -> Node {
             </header>
 
             <section class="prose prose-gray dark:prose-invert max-w-none">
-                <h2>Introduction</h2>
+                <h2 class="font-bold uppercase">Introduction</h2>
                 <p>
                     "Resources are reactive primitives for handling asynchronous operations like API calls.
                     They automatically track loading states, handle errors, and update when their dependencies change."
                 </p>
 
-                <h2>Basic Example</h2>
+                <h2 class="font-bold uppercase">Basic Example</h2>
                 <CodeBlock
                     language="rust"
                     filename="src/main.rs"
@@ -1078,7 +1063,7 @@ fn UserProfile() -> Node {
                     </p>
                 </Note>
 
-                <h2>API Reference</h2>
+                <h2 class="font-bold uppercase">API Reference</h2>
 
                 <h3>Creating Resources</h3>
                 <CodeBlock
@@ -1151,7 +1136,7 @@ rsx! {
 }"#}
                 />
 
-                <h2>Advanced Patterns</h2>
+                <h2 class="font-bold uppercase">Advanced Patterns</h2>
 
                 <h3>Optimistic Updates</h3>
                 <CodeBlock
@@ -1194,18 +1179,16 @@ let load_more = create_resource(
 
 create_effect(move || {
     if let Some(Ok(new_posts)) = load_more.get() {
-        posts.update(|current| {
-            current.extend(new_posts);
-        });
+        posts.extend(new_posts);
     }
 });
 
 let load_next_page = move |_| {
-    page.update(|p| *p += 1);
+    page += 1;
 };"#}
                 />
 
-                <h2>Best Practices</h2>
+                <h2 class="font-bold uppercase">Best Practices</h2>
                 <ul>
                     <li>"Use resources for any asynchronous data fetching"</li>
                     <li>"Handle all three states: loading, success, and error"</li>
@@ -1256,13 +1239,13 @@ fn PhilosophyPage() -> Node {
                     There's no magic configuration or conventions - just composable primitives."
                 </p>
 
-                <h2>Why Not Virtual DOM?</h2>
+                <h2 class="font-bold uppercase">Why Not Virtual DOM?</h2>
                 <p>
                     "Virtual DOM was designed to solve a specific problem: making imperative DOM updates manageable.
                     However, with fine-grained reactivity, we can track exactly what changed and update the DOM directly."
                 </p>
 
-                <h2>Comparison with Other Frameworks</h2>
+                <h2 class="font-bold uppercase">Comparison with Other Frameworks</h2>
                 <p>
                     "Momenta draws inspiration from SolidJS's reactivity model but implements it in Rust with zero-cost
                     abstractions. Unlike React, there are no re-renders or reconciliation phases."
@@ -1413,7 +1396,7 @@ let list = rsx! {
     <ul>
         {items.get().iter().map(|item| rsx! {
             <li>{item}</li>
-        }).collect::<Vec<_>>()}
+        })}
     </ul>
 };"#}
                 />
@@ -1442,7 +1425,7 @@ let elements = rsx! {
 };"#}
                 />
 
-                <h2>Best Practices</h2>
+                <h2 class="font-bold uppercase">Best Practices</h2>
                 <ul>
                     <li>"Keep your components small and focused on a single responsibility"</li>
                     <li>"Use signals for state that changes over time"</li>
@@ -1527,54 +1510,7 @@ create_effect(move || {
     println!("Result: {}", result);
 });"#}
                 />
-                <h3 id="cleaning-up-effects">Cleaning Up Effects</h3>
-                <CodeBlock
-                    language="rust"
-                    filename="src/main.rs"
-                    highlight=""
-                    code={r#"// Clean up effects when they are no longer needed
-let interval_id = create_signal(None);
-
-create_effect(move || {
-    // Set up an interval
-    let id = set_interval(move || {
-        println!("Tick");
-    }, 1000);
-    
-    interval_id.set(Some(id));
-    
-    // Return a cleanup function
-    move || {
-        if let Some(id) = interval_id.get() {
-            clear_interval(id);
-        }
-    }
-});"#}
-                />
-                <h2>Advanced Patterns</h2>
-                <h3>Effect Cleanup</h3>
-                <p>"Effects can return a cleanup function that is called when the effect is no longer needed or before the effect runs again:"</p>
-                <CodeBlock
-                    language="rust"
-                    filename="src/main.rs"
-                    highlight=""
-                    code={r#"// Effect with cleanup
-let resource_id = create_signal(1);
-
-create_effect(move || {
-    let id = resource_id.get();
-    println!("Loading resource {}", id);
-    
-    // Simulate resource acquisition
-    let resource = acquire_resource(id);
-    
-    // Return cleanup function
-    move || {
-        println!("Releasing resource {}", id);
-        release_resource(resource);
-    }
-});"#}
-                />
+                <h2 class="font-bold uppercase">Advanced Patterns</h2>
                 <h3>Effect Dependencies</h3>
                 <p>"Effects can depend on multiple signals, and they will only run when any of their dependencies change:"</p>
                 <CodeBlock
@@ -1596,7 +1532,7 @@ first_name.set("Jane".to_string()); // Effect runs
 last_name.set("Smith".to_string()); // Effect runs again"#}
                 />
                 <h3>Effect Ordering</h3>
-                <p>"Effects are executed in the order they are created, and their cleanup functions are executed in reverse order:"</p>
+                <p>"Effects are executed in the order they are created"</p>
                 <CodeBlock
                     language="rust"
                     filename="src/main.rs"
@@ -1620,11 +1556,10 @@ create_effect(move || {
 // Effect 1: 1
 // Effect 2: 1"#}
                 />
-                <h2>Best Practices</h2>
+                <h2 class="font-bold uppercase">Best Practices</h2>
                 <ul>
                     <li>"Keep effects as lightweight as possible"</li>
                     <li>"Avoid creating effects inside loops or other complex logic"</li>
-                    <li>"Use cleanup functions to avoid memory leaks"</li>
                     <li>"Use " <code>"create_effect"</code> " for simple effects"</li>
                     <li>"Don't modify signals that you're tracking in the same effect to avoid infinite loops"</li>
                     <li>"Group related effects together for better code organization"</li>
@@ -1758,7 +1693,7 @@ let are_equal = a == b; // true
 "#}
                 />
 
-                <h2>Best Practices</h2>
+                <h2 class="font-bold uppercase">Best Practices</h2>
                 <ul>
                     <li>"Keep signals at the appropriate scope - not everything needs to be global state"</li>
                     <li>Prefer</li>
@@ -1791,7 +1726,7 @@ fn GettingStartedPage() -> Node {
             </header>
 
             <section class="prose prose-gray dark:prose-invert max-w-none">
-                <h2>Installation</h2>
+                <h2 class="font-bold uppercase">Installation</h2>
                 <p>"Add Momenta to your " <code>"Cargo.toml"</code> ":"</p>
                 <CodeBlock
                     filename="Cargo.toml"
@@ -1806,7 +1741,7 @@ version = "0.3"
 features = ["Document", "Element", "HtmlElement"]"#}
                 />
 
-                <h2>Your First Component</h2>
+                <h2 class="font-bold uppercase">Your First Component</h2>
                 <CodeBlock
                     filename="src/main.rs"
                     highlight=""
@@ -1835,7 +1770,7 @@ fn main() {
 }"#}
                 />
 
-                <h2>Project Structure</h2>
+                <h2 class="font-bold uppercase">Project Structure</h2>
                 <p>"A typical Momenta project structure looks like this:"</p>
                 <CodeBlock
                     language="text"
@@ -1880,13 +1815,13 @@ fn ComponentsPage() -> Node {
             </header>
 
             <section class="prose prose-gray dark:prose-invert max-w-none">
-                <h2>Introduction</h2>
+                <h2 class="font-bold uppercase">Introduction</h2>
                 <p>
                     "Components in Momenta are functions that return a Node. They can accept props and maintain
                     internal state using signals and other reactive primitives."
                 </p>
 
-                <h2>Basic Component</h2>
+                <h2 class="font-bold uppercase">Basic Component</h2>
                 <CodeBlock
                     language="rust"
                     filename="src/components/button.rs"
@@ -1913,7 +1848,7 @@ fn App() -> Node {
 }"#}
                 />
 
-                <h2>Components with Props</h2>
+                <h2 class="font-bold uppercase">Components with Props</h2>
                 <CodeBlock
                     language="rust"
                     filename="src/components/button.rs"
@@ -1946,14 +1881,14 @@ fn App() -> Node {
             <Button 
                 text="Increment"
                 variant="primary"
-                on_click={Box::new(move || count += 1)}
+                on_click={move || count += 1}
             />
         </div>
     }
 }"#}
                 />
 
-                <h2>Components with State</h2>
+                <h2 class="font-bold uppercase">Components with State</h2>
                 <CodeBlock
                     language="rust"
                     filename="src/components/toggle.rs"
@@ -1969,17 +1904,17 @@ fn Toggle() -> Node {
     rsx! {
         <div class="toggle">
             <button 
-                class={if is_on.get() { "toggle-on" } else { "toggle-off" }}
+                class={either!(is_on => "toggle-on" else "toggle-off")}
                 on_click={toggle}
             >
-                {if is_on.get() { "ON" } else { "OFF" }}
+                {either!(is_on => "On" else "Off")}
             </button>
         </div>
     }
 }"#}
                 />
 
-                <h2>Component Composition</h2>
+                <h2 class="font-bold uppercase">Component Composition</h2>
                 <CodeBlock
                     language="rust"
                     filename="src/components/card.rs"
@@ -2016,7 +1951,7 @@ fn App() -> Node {
 }"#}
                 />
 
-                <h2>Best Practices</h2>
+                <h2 class="font-bold uppercase">Best Practices</h2>
                 <ul>
                     <li>"Keep components focused on a single responsibility"</li>
                     <li>"Use props for data that changes between instances"</li>
@@ -2048,13 +1983,13 @@ fn ShowPage() -> Node {
             </header>
 
             <section class="prose prose-gray dark:prose-invert max-w-none">
-                <h2>Introduction</h2>
+                <h2 class="font-bold uppercase">Introduction</h2>
                 <p>
                     "The either! macro provides a clean way to conditionally render different UI based on
                     reactive values. It's similar to ternary operators but integrates seamlessly with Momenta's reactivity."
                 </p>
 
-                <h2>Basic Usage</h2>
+                <h2 class="font-bold uppercase">Basic Usage</h2>
                 <CodeBlock
                     language="rust"
                     filename="src/main.rs"
@@ -2087,7 +2022,7 @@ fn App() -> Node {
 }"#}
                 />
 
-                <h2>Complex Conditions</h2>
+                <h2 class="font-bold uppercase">Complex Conditions</h2>
                 <CodeBlock
                     language="rust"
                     filename="src/main.rs"
@@ -2110,7 +2045,7 @@ rsx! {
 }"#}
                 />
 
-                <h2>Show Components</h2>
+                <h2 class="font-bold uppercase">Show Components</h2>
                 <CodeBlock
                     language="rust"
                     filename="src/main.rs"
@@ -2145,7 +2080,7 @@ rsx! {
 }"#}
                 />
 
-                <h2>Advanced Patterns</h2>
+                <h2 class="font-bold uppercase">Advanced Patterns</h2>
 
                 <h3>Loading States</h3>
                 <CodeBlock
@@ -2225,7 +2160,7 @@ rsx! {
 }"#}
                 />
 
-                <h2>Best Practices</h2>
+                <h2 class="font-bold uppercase">Best Practices</h2>
                 <ul>
                     <li>"Use either! for simple boolean conditions"</li>
                     <li>"Consider creating Show/Hide components for reusable patterns"</li>
