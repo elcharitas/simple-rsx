@@ -95,6 +95,12 @@ impl_signal_value!(
     ()
 );
 
+impl<T: SignalValue + 'static> SignalValue for alloc::vec::Vec<T> {
+    fn as_any(&self) -> Option<&dyn Any> {
+        Some(self)
+    }
+}
+
 impl<T: SignalValue + 'static> SignalValue for Option<T> {
     fn as_any(&self) -> Option<&dyn Any> {
         Some(self)
@@ -147,6 +153,17 @@ impl<T: SignalValue + PartialEq + Clone + core::ops::Div<Output = T> + 'static> 
 {
     fn div_assign(&mut self, rhs: T) {
         self.set(self.get() / rhs);
+    }
+}
+
+// impl iter for Signal where T is a vec
+impl<T: SignalValue + PartialEq + Clone + 'static, R: SignalValue> Iterator for Signal<T>
+where
+    T: IntoIterator<Item = R>,
+{
+    type Item = R;
+    fn next(&mut self) -> Option<Self::Item> {
+        self.get().into_iter().next()
     }
 }
 

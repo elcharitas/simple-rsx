@@ -680,7 +680,8 @@ impl RsxNode {
                     quote! {}
                 };
 
-                let use_element = is_element.then(|| quote! {use ::simple_rsx::elements::#name;});
+                let use_element =
+                    is_element.then(|| quote! {use ::simple_rsx::dom::elements::#name;});
                 let close_tag = close_tag.as_ref().map(|close_tag| {
                     quote! {
                         {
@@ -694,7 +695,7 @@ impl RsxNode {
                 let component = if !is_element {
                     quote! { #name }
                 } else {
-                    quote! { ::simple_rsx::elements::#name }
+                    quote! { ::simple_rsx::dom::elements::#name }
                 };
 
                 quote! {

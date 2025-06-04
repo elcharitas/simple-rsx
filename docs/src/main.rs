@@ -139,25 +139,25 @@ fn App() -> Node {
 
                 // Main Content
                 <main class="flex-1 min-w-0">
-                    {match current_page.get() {
-                        Page::Home => rsx! { <HomePage /> },
-                        Page::GettingStarted => rsx! { <GettingStartedPage /> },
-                        Page::Philosophy => rsx! { <PhilosophyPage /> },
-                        Page::Signals => rsx! { <SignalsPage /> },
-                        Page::Effects => rsx! { <EffectsPage /> },
-                        Page::Rsx => rsx! { <RsxPage /> },
-                        Page::Resources => rsx! { <ResourcesPage /> },
-                        Page::Show => rsx! { <ShowPage /> },
-                        Page::For => rsx! { <ForPage /> },
-                        Page::Components => rsx! { <ComponentsPage /> },
-                        Page::Reactivity => rsx! { <ReactivityPage /> },
-                        Page::Counter => rsx! { <CounterExample /> },
-                        _ => rsx! { <div class="p-8">"Page under construction..."</div> },
-                    }}
+                    {either!(current_page.get() {
+                        Page::Home => <HomePage />,
+                        Page::GettingStarted => <GettingStartedPage />,
+                        Page::Philosophy => <PhilosophyPage />,
+                        Page::Signals => <SignalsPage />,
+                        Page::Effects => <EffectsPage />,
+                        Page::Rsx => <RsxPage />,
+                        Page::Resources => <ResourcesPage />,
+                        Page::Show => <ShowPage />,
+                        Page::For => <ForPage />,
+                        Page::Components => <ComponentsPage />,
+                        Page::Reactivity => <ReactivityPage />,
+                        Page::Counter => <CounterExample />,
+                        _ => <div class="p-8">"Page under construction..."</div>,
+                    })}
                 </main>
 
                 // Right Sidebar (TOC)
-                {either!(current_page!= Page::Home => <aside class="hidden xl:block w-64 shrink-0">
+                {either!(current_page != Page::Home => <aside class="hidden xl:block w-64 shrink-0">
                         <div class="sticky top-14 h-[calc(100vh-3.5rem)] overflow-y-auto p-8">
                             // <TableOfContents current_page={current_page} />
                         </div>
@@ -368,25 +368,23 @@ fn Note(props: &NoteProps) -> Node {
 fn Playground(props: &PlaygroundProps) -> Node {
     rsx! {
         <div class="my-8 overflow-hidden rounded-lg border border-gray-200 dark:border-gray-800">
-            <div class="grid md:grid-cols-2">
-                <div class="border-r border-gray-200 dark:border-gray-800">
+            <div class="flex flex-col md:flex-row items-stretch h-full">
+                <div class="w-1/2 border-r border-gray-200 dark:border-gray-800 flex flex-col">
                     <div class="border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 px-4 py-2">
                         <span class="text-xs font-medium text-gray-600 dark:text-gray-400">Code</span>
                     </div>
-                    <div class="bg-gray-50 dark:bg-gray-900">
-                        <pre class="overflow-x-auto">
-                            <code class="language-rust text-sm">{props.code}</code>
+                    <div class="bg-gray-50 dark:bg-gray-900 flex-1">
+                        <pre class="overflow-x-auto h-full">
+                            <code class="language-rust text-xs overflow-x">{props.code}</code>
                         </pre>
                     </div>
                 </div>
-                <div>
+                <div class="w-1/2 flex flex-col">
                     <div class="border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 px-4 py-2">
                         <span class="text-xs font-medium text-gray-600 dark:text-gray-400">Output</span>
                     </div>
-                    <div class="p-4">
-                        <div class="text-sm text-gray-600 dark:text-gray-400">
-                            <CounterExample />
-                        </div>
+                    <div class="flex-1 text-sm text-gray-600 dark:text-gray-400">
+                        <CounterExample />
                     </div>
                 </div>
             </div>
@@ -455,16 +453,38 @@ fn HomePage() -> Node {
                     code={r#"use momenta::prelude::*;
 
 #[component]
-fn Counter() -> Node {
+fn CounterExample() -> Node {
     let mut count = create_signal(0);
-
     rsx! {
-        <div>
-            <button type_="submit" class="bg-blue-500 text-white py-2 px-6 rounded" on_click={move |_| {
-                count += 1
-            }}>
-                Count: {count}
-            </button>
+        <div class="bg-gradient-to-br from-purple-400 to-blue-600 flex items-center justify-center p-4">
+            <div class="bg-white/20 backdrop-blur-lg rounded-3xl p-8 shadow-2xl border border-white/30">
+                <h1 class="text-3xl font-bold text-white mb-6 text-center">
+                    "Momenta Counter"
+                </h1>
+                <div class="text-6xl font-bold text-center mb-8 transition-all duration-300 text-white">
+                    {count}
+                </div>
+                <div class="flex gap-4 justify-center">
+                    <button
+                        class="px-6 py-3 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg"
+                        on_click={move |_| count -= 1}
+                    >
+                        "− Decrease"
+                    </button>
+                    <button
+                        class="px-6 py-3 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg"
+                        on_click={move |_| count += 1}
+                    >
+                        "+ Increase"
+                    </button>
+                </div>
+                <button
+                    class="w-full mt-4 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
+                    on_click={move |_| count.set(0)}
+                >
+                    "Reset Count: " {count}
+                </button>
+            </div>
         </div>
     }
 }"#} />
@@ -517,7 +537,7 @@ fn ForPage() -> Node {
 
 #[component]
 fn FruitList() -> Node {
-    let fruits = create_signal(vec![
+    let mut fruits = create_signal(vec![
         "Apple".to_string(),
         "Banana".to_string(),
         "Cherry".to_string(),
@@ -529,13 +549,10 @@ fn FruitList() -> Node {
             <ul>
                 {fruits.get().iter().map(|fruit| rsx! {
                     <li>{fruit}</li>
-                }).collect::<Vec<_>>()}
+                })}
             </ul>
             <button on_click={move |_| {
-                fruits.update(|mut f| {
-                    f.push("Orange".to_string());
-                    f
-                });
+                fruits.push("Orange".to_string());
             }}>
                 "Add Orange"
             </button>
@@ -2226,12 +2243,39 @@ fn CounterExample() -> Node {
     let mut count = create_signal(0);
 
     rsx! {
-        <div>
-            <button type_="submit" class="bg-blue-500 text-white py-2 px-6 rounded" on_click={move |_| {
-                count += 1
-            }}>
-                Count: {count}
-            </button>
+        <div class="min-h-full bg-gradient-to-br from-purple-400 to-blue-600 flex items-center justify-center p-4">
+            <div class="bg-white/20 backdrop-blur-lg rounded-3xl p-8 shadow-2xl border border-white/30">
+                <h1 class="text-3xl font-bold text-white mb-6 text-center">
+                    "Momenta Counter"
+                </h1>
+
+                <div class="text-6xl font-bold text-center mb-8 transition-all duration-300 text-white">
+                    {count}
+                </div>
+
+                <div class="flex gap-4 justify-center">
+                    <button
+                        class="px-6 py-3 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg"
+                        on_click={move |_| count -= 1}
+                    >
+                        "− Decrease"
+                    </button>
+
+                    <button
+                        class="px-6 py-3 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg"
+                        on_click={move |_| count += 1}
+                    >
+                        "+ Increase"
+                    </button>
+                </div>
+
+                <button
+                    class="w-full mt-4 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
+                    on_click={move |_| count.set(0)}
+                >
+                    "Reset Count: " {count}
+                </button>
+            </div>
         </div>
     }
 }
