@@ -1977,10 +1977,10 @@ fn Card(props: &CardProps) -> Node {
     rsx! {
         <div class="card">
             <div class="card-header">
-                <h3>{props.title}</h3>
+                <h3>{&props.title}</h3>
             </div>
             <div class="card-body">
-                {props.children}
+                {&props.children}
             </div>
         </div>
     }
@@ -2106,7 +2106,7 @@ rsx! {
 #[component]
 fn Show(props: &ShowProps) -> Node {
     if props.when {
-        rsx! { <div>{props.children}</div> }
+        rsx! { <div>{&props.children}</div> }
     } else {
         rsx! { <div></div> }
     }
@@ -2191,7 +2191,7 @@ fn RequirePermission(props: &PermissionProps) -> Node {
     
     rsx! {
         {either!(has_permission =>
-            <div>{props.children}</div>
+            <div>{&props.children}</div>
         else
             <div class="permission-denied">
                 "You don't have permission to view this content."

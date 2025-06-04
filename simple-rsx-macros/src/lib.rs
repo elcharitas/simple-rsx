@@ -56,9 +56,6 @@ pub fn rsx(input: TokenStream) -> TokenStream {
 /// // With literals
 /// either!(show => "Visible text");
 /// either!(show => "Visible" else "Hidden");
-///
-/// // Mixed usage
-/// either!(show => <div>"Complex"</div> else "Simple text");
 /// ```
 #[proc_macro]
 pub fn either(input: TokenStream) -> TokenStream {
@@ -132,14 +129,19 @@ impl Either {
             .false_value
             .as_ref()
             .map(|v| v.to_tokens())
-            .unwrap_or_else(|| quote! { ::simple_rsx::Node::Fragment(vec![]) });
+            .and_then(|v| Some(quote! { else { #v }}));
+
+        if false_value.is_none() {
+            return quote! {
+                (#condition).then(|| #true_value)
+            };
+        }
 
         quote! {
             if #condition {
                 #true_value
-            } else {
-                #false_value
             }
+            #false_value
         }
     }
 }

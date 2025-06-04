@@ -24,6 +24,7 @@
 //! Here's a quick taste of what you can do:
 //!
 //! ```rust
+//! extern crate alloc;
 //! use simple_rsx::*;
 //!
 //! // Create your first component - looks familiar, right?
@@ -43,6 +44,7 @@
 //! ## JSX-style Elements - Write HTML, Get Rust
 //!
 //! ```rust
+//! extern crate alloc;
 //! use simple_rsx::*;
 //!
 //! // Self-closing tags? Check!
@@ -68,6 +70,7 @@
 //! ## Dynamic Content - Make It Come Alive
 //!
 //! ```rust
+//! extern crate alloc;
 //! use simple_rsx::*;
 //!
 //! let name = "World";
@@ -112,6 +115,7 @@
 //! ## Components and Props - Build Reusable UI
 //!
 //! ```rust
+//! extern crate alloc;
 //! use simple_rsx::*;
 //!
 //! // Define your props - just like React's PropTypes
@@ -124,11 +128,11 @@
 //!
 //! // Create a component - clean and simple
 //! #[component]
-//! fn Button(props: ButtonProps) -> Node {
+//! fn Button(props: &ButtonProps) -> Node {
 //!     rsx!(
 //!         <button class={format!("btn btn-{}", props.variant)}>
-//!             {props.text}
-//!             {props.children}
+//!             {&props.text}
+//!             {&props.children}
 //!         </button>
 //!     )
 //! }
@@ -146,7 +150,8 @@
 //! With simple RSX, HTML data attributes are the only props which do not get validated by the compiler.
 //! This allows you to use any valid literal or expression in the value of a data attribute.
 //!
-//! ```rust
+//! ```rust ignore
+//! extern crate alloc;
 //! use simple_rsx::*;
 //!
 //! // Data attributes? No problem!
@@ -314,11 +319,11 @@ impl Element {
 ///
 /// impl Component for Card {
 ///     type Props = CardProps;
-///     fn render(props: Self::Props) -> Node {
+///     fn render(props: &Self::Props) -> Node {
 ///         rsx!(
 ///             <div class="card">
-///                 <h2>{props.title}</h2>
-///                 <div class="card-content">{props.children}</div>
+///                 <h2>{&props.title}</h2>
+///                 <div class="card-content">{&props.children}</div>
 ///             </div>
 ///         )
 ///     }
@@ -350,8 +355,7 @@ pub struct DefaultProps;
 /// use simple_rsx::*;
 ///
 /// let text_node = Node::Text("Hello".to_string());
-/// let element_node = Element::parse_tag("div");
-/// let fragment = Node::Fragment(vec![text_node, element_node]);
+/// let fragment = Node::Fragment(vec![text_node]);
 /// ```
 pub enum Node {
     /// An HTML element with a tag name, attributes, and children
@@ -376,19 +380,13 @@ impl Node {
         }
     }
 
+    /// Attempts to get a reference to the underlying Element if this node is an Element.
+    ///
+    /// Returns None if the node is not an Element (e.g., if it's Text or Fragment).
     pub fn as_element(&self) -> Option<&Element> {
         match self {
             Node::Element(el) => Some(el),
             _ => None,
-        }
-    }
-
-    /// Adds a child node if this node is an Element.
-    ///
-    /// This method has no effect if the node is not an Element.
-    pub fn append_child(&mut self, node: Node) {
-        if let Node::Element(el) = self {
-            el.children.push(node);
         }
     }
 }
@@ -441,10 +439,13 @@ where
     }
 }
 
-impl<T: ToString> From<Option<T>> for Node {
+impl<T> From<Option<T>> for Node
+where
+    Node: From<T>,
+{
     fn from(value: Option<T>) -> Self {
         match value {
-            Some(t) => Node::Text(t.to_string()),
+            Some(t) => Node::from(t),
             _ => Node::Empty,
         }
     }
@@ -1128,11 +1129,7 @@ pub mod elements {
         ///
         /// Example:
         ///
-        /// ```<pre>
-        ///     This is
-        ///     preformatted
-        ///     text.
-        /// </pre>```
+        /// `<pre> This is preformatted text.</pre>`
         pre {}
         /// HTML `<code>` element - Represents a piece of computer code
         ///

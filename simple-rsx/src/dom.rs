@@ -14,18 +14,18 @@ mod element_cache {
 
     #[derive(Debug)]
     // UnsafeCell wrapper for WASM single-threaded environment
-    pub struct ElementCache {
+    struct ElementCache {
         inner: UnsafeCell<Option<BTreeMap<String, web_sys::Element>>>,
     }
 
     unsafe impl Sync for ElementCache {}
 
-    pub static ELEMENT_CACHE: ElementCache = ElementCache {
+    static ELEMENT_CACHE: ElementCache = ElementCache {
         inner: UnsafeCell::new(None),
     };
 
     // Safe in WASM because it's single-threaded
-    pub fn with_cache<F, R>(f: F) -> R
+    pub(crate) fn with_cache<F, R>(f: F) -> R
     where
         F: FnOnce(&mut BTreeMap<String, web_sys::Element>) -> R,
     {
@@ -40,7 +40,7 @@ mod element_cache {
 }
 
 #[cfg(feature = "wasm")]
-pub trait WasmRender {
+trait WasmRender {
     fn render(&self, mount: &web_sys::Element) -> Option<web_sys::Element>;
 }
 
@@ -104,6 +104,29 @@ impl WasmRender for Node {
 }
 
 #[cfg(feature = "wasm")]
+/// Renders the root component to the specified selector
+///
+/// # Example
+///
+/// ```rust ignore
+/// use simple_rsx::{dom::render_root, signals::create_signal, *};
+///
+/// #[component]
+/// fn App() -> Node {
+///     let count = create_signal(0);
+///
+///     rsx! {
+///         <div>
+///             <h1>Hello World</h1>
+///             Count: {count}
+///         </div>
+///     }
+/// }
+///
+/// fn main() {
+///     render_root::<App>("#app");
+/// }
+/// ```
 pub fn render_root<C: Component>(selectors: &'static str)
 where
     <C as Component>::Props: Default,
@@ -125,6 +148,29 @@ where
 }
 
 #[cfg(feature = "wasm")]
+/// Mounts the root component to the body element
+///
+/// # Example
+///
+/// ```rust ignore
+/// use simple_rsx::{dom::mount_to_body, signals::create_signal, *};
+///
+/// #[component]
+/// fn App() -> Node {
+///     let count = create_signal(0);
+///
+///     rsx! {
+///         <div>
+///             <h1>Hello World</h1>
+///             Count: {count}
+///         </div>
+///     }
+/// }
+///
+/// fn main() {
+///     mount_to_body::<App>();
+/// }
+/// ```
 pub fn mount_to_body<C: Component>()
 where
     <C as Component>::Props: Default,

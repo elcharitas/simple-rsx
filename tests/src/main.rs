@@ -234,7 +234,7 @@ mod tests {
             type Props = Props;
             fn render(props: &Self::Props) -> Node {
                 println!("{}", props.message);
-                rsx!(<div>{props.children.clone()}</div>)
+                rsx!(<div>{&props.children}</div>)
             }
         }
 
