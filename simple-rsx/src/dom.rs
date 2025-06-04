@@ -103,6 +103,37 @@ impl WasmRender for Node {
     }
 }
 
+/// Renders a component with the given props
+///
+/// # Example
+///
+/// ```rust ignore
+/// use simple_rsx::{dom::component, signals::create_signal, *};
+///
+/// #[component]
+/// fn App() -> Node {
+///     let count = create_signal(0);
+///
+///     rsx! {
+///         <div>
+///             <h1>Hello World</h1>
+///             Count: {count}
+///         </div>
+///     }
+/// }
+///
+/// fn main() {
+///     let node = component::<App>(Default::default());
+///     println!("{}", node.to_string());
+/// }
+/// ```
+pub fn component<C: Component>(props: C::Props) -> Node
+where
+    <C as Component>::Props: Send + Sync + 'static,
+{
+    render_component::<C>(props, |_| {})
+}
+
 #[cfg(feature = "wasm")]
 /// Renders the root component to the specified selector
 ///
@@ -199,10 +230,10 @@ fn attach_event_handler(
     closure.forget(); // Keep the closure alive
 }
 
-pub fn render_component<C: Component>(
+fn render_component<C: Component>(
     props: C::Props,
     callback: impl Fn(&Node) + Send + Sync + 'static,
-) -> Option<Node>
+) -> Node
 where
     <C as Component>::Props: Send + Sync + 'static,
 {

@@ -991,9 +991,8 @@ macro_rules! derive_elements {
                     type Props = [<HTML $tag:camel Element Props>];
 
                     fn render(props: &Self::Props) -> Node {
-                        let scope = get_current_scope().unwrap_or(0);
                         Element::parse_tag_with_attributes(
-                            &scope.to_string(),
+                            &props.key,
                             stringify!($tag),
                             props.to_attributes(),
                             props.get_events(),
@@ -1007,7 +1006,7 @@ macro_rules! derive_elements {
 }
 
 pub mod elements {
-    use super::{signals::get_current_scope, *};
+    use super::*;
     derive_elements! {
         /// HTML `<html>` element - Root element of an HTML document
         html {

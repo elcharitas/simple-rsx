@@ -634,16 +634,15 @@ impl RsxNode {
                         type Props = <#component as ::simple_rsx::Component>::Props;
                         {
                             #close_tag
-                            ::simple_rsx::dom::render_component::<#component>(
+                            ::simple_rsx::dom::component::<#component>(
                                 Props {
                                     #(#props_tokens)*
                                     #children_tokens
                                     #data_props
                                     #default_props
-                                },
-                                |_| {},
+                                }
                             )
-                        }.unwrap()
+                        }
                     }
                 }
             }

@@ -4,7 +4,6 @@ use alloc::{
     collections::{BTreeMap, BTreeSet},
     string::{String, ToString},
     sync::Arc,
-    vec::Vec,
 };
 use core::{
     any::Any,
@@ -327,7 +326,7 @@ pub fn create_effect(effect: impl Fn() + Send + 'static) {
 pub(crate) fn run_scope(
     scope_fn: impl FnMut() -> Node + Send + 'static,
     callback: impl Fn(&Node) + Send + Sync + 'static,
-) -> Option<Node> {
+) -> Node {
     let scope_id = {
         let mut next_id = NEXT_SCOPE_ID.lock();
         let current = *next_id;
@@ -348,25 +347,11 @@ pub(crate) fn run_scope(
     render_scope(scope_id)
 }
 
-/// Trigger re-render of all scopes
-pub fn rerender_all_scopes() {
-    let scope_ids: Vec<usize> = {
-        let scope_functions = SCOPE_FUNCTIONS.lock();
-        scope_functions.keys().cloned().collect()
-    };
-
-    for scope_id in scope_ids {
-        render_scope(scope_id);
-    }
-
-    process_pending_renders();
-}
-
 //==============================================================================
 // INTERNAL FUNCTIONS
 //==============================================================================
 
-pub(crate) fn get_current_scope() -> Option<usize> {
+fn get_current_scope() -> Option<usize> {
     *CURRENT_SCOPE.lock()
 }
 
@@ -406,7 +391,7 @@ impl Drop for ScopeGuard {
     }
 }
 
-fn render_scope(scope_id: usize) -> Option<Node> {
+fn render_scope(scope_id: usize) -> Node {
     let _guard = ScopeGuard {
         previous_scope: get_current_scope(),
     };
@@ -493,7 +478,7 @@ fn render_scope(scope_id: usize) -> Option<Node> {
         }
     }
 
-    node
+    node.unwrap_or(Node::Empty)
 }
 
 fn run_scope_effects(scope_id: usize) {
