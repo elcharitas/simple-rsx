@@ -16,9 +16,11 @@ static GITHUB_LINK: &str = "https://github.com/elcharitas/simple-rsx";
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum Page {
-    // Start Here
     Home,
+
+    // Start Here
     GettingStarted,
+    Reactivity,
     Philosophy,
 
     // Core Concepts
@@ -33,7 +35,6 @@ pub enum Page {
     For,
 
     // Guides
-    Reactivity,
     Performance,
     Rust,
     Testing,
@@ -202,7 +203,7 @@ fn Header(props: &HeaderProps) -> Node {
 
                 <div class="ml-auto flex items-center space-x-4">
                     <nav class="hidden md:flex items-center space-x-6 mr-6">
-                        <a href="#" on_click={move |_| current_page.set(Page::Reactivity)}
+                        <a href="#" on_click={move |_| current_page.set(Page::Performance)}
                            class="text-sm font-medium transition-colors hover:text-blue-600 dark:hover:text-blue-400">
                             Guides
                         </a>
@@ -274,10 +275,11 @@ fn Navigation(props: &NavigationProps) -> Node {
         <nav class="px-2">
             {section("Start Here", vec![
                 nav_link(Page::GettingStarted, "Getting Started"),
+                nav_link(Page::Reactivity, "Reactivity"),
                 nav_link(Page::Philosophy, "Philosophy"),
             ])}
 
-            {section("Core Concepts", vec![
+            {section("Reactive Primitives", vec![
                 nav_link(Page::Rsx, "rsx!"),
                 nav_link(Page::Components, "#[component]"),
                 nav_link(Page::Signals, "create_signal"),
@@ -291,7 +293,6 @@ fn Navigation(props: &NavigationProps) -> Node {
             ])}
 
             {section("Guides", vec![
-                nav_link(Page::Reactivity, "Reactivity"),
                 nav_link(Page::Performance, "Performance"),
                 nav_link(Page::Rust, "Rust"),
                 nav_link(Page::Testing, "Testing"),
@@ -417,7 +418,7 @@ fn HomePage() -> Node {
             <div class="mt-24 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
                 <Feature
                     icon="fas fa-zap"
-                    title="Fine-Grained Reactivity"
+                    title="Element-Level Reactivity"
                     description="Automatically track dependencies and update only what has changed."
                 />
                 <Feature
@@ -547,7 +548,7 @@ fn FruitList() -> Node {
         <div>
             <h2 class="font-bold uppercase">"Fruit List"</h2>
             <ul>
-                {fruits.get().iter().map(|fruit| rsx! {
+                {fruits.map(|fruit| rsx! {
                     <li>{fruit}</li>
                 })}
             </ul>
@@ -578,7 +579,7 @@ let items = vec!["Item 1", "Item 2", "Item 3"];
 
 rsx! {
     <ul>
-        {items.iter().map(|item| rsx! {
+        {items.map(|item| rsx! {
             <li>{item}</li>
         })}
     </ul>
@@ -589,7 +590,7 @@ let items = create_signal(vec!["Item 1", "Item 2", "Item 3"]);
 
 rsx! {
     <ul>
-        {items.get().iter().map(|item| rsx! {
+        {items.map(|item| rsx! {
             <li>{item}</li>
         })}
     </ul>
@@ -609,7 +610,7 @@ let items = create_signal(vec!["Apple", "Banana", "Cherry"]);
 
 rsx! {
     <ul>
-        {items.get().iter().enumerate().map(|(index, item)| rsx! {
+        {items.enumerate().map(|(index, item)| rsx! {
             <li>"Item #" {index + 1} ": " {item}</li>
         })}
     </ul>
@@ -662,7 +663,7 @@ fn TodoList() -> Node {
         <div>
             <h2 class="font-bold uppercase">"Todo List"</h2>
             <ul class="space-y-2">
-                {todos.get().iter().map(|todo| {
+                {todos.map(|todo| {
                     let id = todo.id;
                     rsx! {
                         <li class={format!("flex items-center {}", 
@@ -839,7 +840,7 @@ fn App() -> Node {
                 <Note variant="info">
                     <p>
                         <strong>"Good to know:"</strong> " Unlike other frameworks, You  accessing a signal's value requires calling "
-                        <code>".get()"</code> ". This explicit call enables Momenta's fine-grained reactivity system to track dependencies precisely."
+                        <code>".get()"</code> ". This explicit call enables Momenta's element-level reactivity system to track dependencies precisely."
                     </p>
                 </Note>
 
@@ -976,7 +977,7 @@ batch(|| {
                 <h2 class="font-bold uppercase">Best Practices</h2>
                 <ul>
                     <li>"Keep signals at the appropriate scope - not everything needs to be global state"</li>
-                    <li>"Prefer fine-grained signals over large state objects for better performance"</li>
+                    <li>"Prefer element-level signals over large state objects for better performance"</li>
                     <li>"Group related signals into structs for better organization"</li>
                     <li>"Use derived values (closures that read signals) instead of creating redundant signals"</li>
                     <li>"When updating complex objects, use the update method to modify only what changed"</li>
@@ -1215,9 +1216,9 @@ fn PhilosophyPage() -> Node {
             <section class="prose prose-gray dark:prose-invert max-w-none">
                 <h2 class="text-xl my-1">Core Principles</h2>
 
-                <h3>1. Fine-Grained Reactivity</h3>
+                <h3>1. Element-Level Reactivity</h3>
                 <p>
-                    "Momenta uses fine-grained reactivity, which means only the specific parts of your UI that depend on
+                    "Momenta uses element-level reactivity, which means only the specific parts of your UI that depend on
                     changed data will be updated. This is more efficient than virtual DOM diffing and provides consistent performance."
                 </p>
 
@@ -1242,7 +1243,7 @@ fn PhilosophyPage() -> Node {
                 <h2 class="font-bold uppercase">Why Not Virtual DOM?</h2>
                 <p>
                     "Virtual DOM was designed to solve a specific problem: making imperative DOM updates manageable.
-                    However, with fine-grained reactivity, we can track exactly what changed and update the DOM directly."
+                    However, with element-level reactivity, we can track exactly what changed and update the DOM directly."
                 </p>
 
                 <h2 class="font-bold uppercase">Comparison with Other Frameworks</h2>
@@ -1254,7 +1255,7 @@ fn PhilosophyPage() -> Node {
                 <Note variant="tip">
                     <p>
                         <strong>"Performance:"</strong> " Because Momenta compiles to efficient native code and uses
-                        fine-grained updates, your applications will be fast by default."
+                        element-level updates, your applications will be fast by default."
                     </p>
                 </Note>
             </section>
@@ -1394,7 +1395,7 @@ let element = rsx! {
 let items = create_signal(vec!["Apple", "Banana", "Cherry"]);
 let list = rsx! {
     <ul>
-        {items.get().iter().map(|item| rsx! {
+        {items.map(|item| rsx! {
             <li>{item}</li>
         })}
     </ul>
@@ -1621,7 +1622,7 @@ fn App() -> Node {
                 <Note variant="info">
                     <p>
                         <strong>"Good to know:"</strong> " Unlike other frameworks, You  accessing a signal's value requires calling "
-                        <code>".get()"</code> ". This explicit call enables Momenta's fine-grained reactivity system to track dependencies precisely."
+                        <code>".get()"</code> ". This explicit call enables Momenta's element-level reactivity system to track dependencies precisely."
                     </p>
                 </Note>
 
@@ -2099,26 +2100,23 @@ let state = create_signal(LoadingState::Idle);
 
 rsx! {
     <div>
-        {either!(state.get() == LoadingState::Loading =>
-            <div class="loading">
+        {either!(state.get() {
+            LoadingState::Loading => <div class="loading">
                 <i class="fas fa-spinner fa-spin"></i>
                 " Loading..."
-            </div>
-        else either!(state.get() == LoadingState::Success =>
-            <div class="success">
+            </div>,
+            LoadingState::Success => <div class="success">
                 <i class="fas fa-check"></i>
                 " Success!"
-            </div>
-        else either!(state.get() == LoadingState::Error =>
-            <div class="error">
+            </div>,
+            LoadingState::Error => <div class="error">
                 <i class="fas fa-exclamation-triangle"></i>
                 " Something went wrong"
-            </div>
-        else
-            <button on_click={move |_| state.set(LoadingState::Loading)}>
+            </div>,
+            _ => <button on_click={move |_| state.set(LoadingState::Loading)}>
                 "Start Operation"
             </button>
-        )))}
+        })}
     </div>
 }"#}
                 />
