@@ -83,6 +83,16 @@
 		@apply bg-background text-foreground;
 		font-feature-settings: "rlig" 1, "calt" 1;
 	}
+
+	p,
+	h3,
+	h4,
+	h5,
+	h6,
+	li {
+		margin-top: 12px;
+		margin-bottom: 12px;
+	}
 }
 
 @layer utilities {

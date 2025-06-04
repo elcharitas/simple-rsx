@@ -142,13 +142,14 @@ fn App() -> Node {
                     {match current_page.get() {
                         Page::Home => rsx! { <HomePage /> },
                         Page::GettingStarted => rsx! { <GettingStartedPage /> },
-                        Page::Philosophy => rsx! { <TutorialPage /> },
+                        Page::Philosophy => rsx! { <PhilosophyPage /> },
                         Page::Signals => rsx! { <SignalsPage /> },
                         Page::Effects => rsx! { <EffectsPage /> },
                         Page::Rsx => rsx! { <RsxPage /> },
                         Page::Resources => rsx! { <ResourcesPage /> },
                         Page::Show => rsx! { <ShowPage /> },
                         Page::For => rsx! { <ForPage /> },
+                        Page::Components => rsx! { <ComponentsPage /> },
                         Page::Reactivity => rsx! { <ReactivityPage /> },
                         Page::Counter => rsx! { <CounterExample /> },
                         _ => rsx! { <div class="p-8">"Page under construction..."</div> },
@@ -384,7 +385,7 @@ fn Playground(props: &PlaygroundProps) -> Node {
                     </div>
                     <div class="p-4">
                         <div class="text-sm text-gray-600 dark:text-gray-400">
-                            <Counter />
+                            <CounterExample />
                         </div>
                     </div>
                 </div>
@@ -492,6 +493,1139 @@ pub struct FeatureProps {
 }
 
 #[component]
+fn ForPage() -> Node {
+    rsx! {
+        <article class="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
+            <header class="mb-12">
+                <h1 class="text-4xl font-bold text-gray-900 dark:text-gray-100">List Rendering</h1>
+                <p class="mt-4 text-lg text-gray-600 dark:text-gray-400">
+                    "Rendering lists of items efficiently using Rust's iterators."
+                </p>
+            </header>
+            <section class="prose prose-gray dark:prose-invert max-w-none">
+                <h2 id="introduction">Introduction</h2>
+                <p>
+                    "List rendering is a common task in UI development. Momenta leverages Rust's powerful iterator system to provide efficient and type-safe list rendering."
+                </p>
+
+                <h2 id="basic-example">Basic Example</h2>
+                <CodeBlock
+                    language="rust"
+                    filename="src/main.rs"
+                    highlight=""
+                    code={r#"use momenta::prelude::*;
+
+#[component]
+fn FruitList() -> Node {
+    let fruits = create_signal(vec![
+        "Apple".to_string(),
+        "Banana".to_string(),
+        "Cherry".to_string(),
+    ]);
+    
+    rsx! {
+        <div>
+            <h2>"Fruit List"</h2>
+            <ul>
+                {fruits.get().iter().map(|fruit| rsx! {
+                    <li>{fruit}</li>
+                }).collect::<Vec<_>>()}
+            </ul>
+            <button on_click={move |_| {
+                fruits.update(|mut f| {
+                    f.push("Orange".to_string());
+                    f
+                });
+            }}>
+                "Add Orange"
+            </button>
+        </div>
+    }
+}"#}
+                />
+
+                <Note variant="info">
+                    <p>
+                        <strong>"Good to know:"</strong> " When rendering lists, Momenta efficiently updates only the items that have changed, added, or removed."
+                    </p>
+                </Note>
+
+                <h2 id="syntax">Basic Syntax</h2>
+                <p>"The basic pattern for rendering lists in Momenta uses Rust's iterator methods:"</p>
+                <CodeBlock
+                    language="rust"
+                    filename="src/main.rs"
+                    highlight=""
+                    code={r#"// Basic list rendering pattern
+let items = vec!["Item 1", "Item 2", "Item 3"];
+
+rsx! {
+    <ul>
+        {items.iter().map(|item| rsx! {
+            <li>{item}</li>
+        }).collect::<Vec<_>>()}
+    </ul>
+}
+
+// With a signal
+let items = create_signal(vec!["Item 1", "Item 2", "Item 3"]);
+
+rsx! {
+    <ul>
+        {items.get().iter().map(|item| rsx! {
+            <li>{item}</li>
+        }).collect::<Vec<_>>()}
+    </ul>
+}"#}
+                />
+
+                <h2 id="advanced-patterns">Advanced Patterns</h2>
+
+                <h3 id="with-indices">Working with Indices</h3>
+                <p>"Sometimes you need the index of each item in the list:"</p>
+                <CodeBlock
+                    language="rust"
+                    filename="src/main.rs"
+                    highlight=""
+                    code={r#"// Using enumerate() to get indices
+let items = create_signal(vec!["Apple", "Banana", "Cherry"]);
+
+rsx! {
+    <ul>
+        {items.get().iter().enumerate().map(|(index, item)| rsx! {
+            <li>"Item #" {index + 1} ": " {item}</li>
+        }).collect::<Vec<_>>()}
+    </ul>
+}"#}
+                />
+
+                <h3 id="complex-items">Complex Item Types</h3>
+                <p>"You can render lists of complex types:"</p>
+                <CodeBlock
+                    language="rust"
+                    filename="src/main.rs"
+                    highlight=""
+                    code={r#"// Define a struct for list items
+struct Todo {
+    id: usize,
+    text: String,
+    completed: bool,
+}
+
+#[component]
+fn TodoList() -> Node {
+    let todos = create_signal(vec![
+        Todo { id: 1, text: "Learn Momenta".to_string(), completed: false },
+        Todo { id: 2, text: "Build an app".to_string(), completed: false },
+        Todo { id: 3, text: "Share with friends".to_string(), completed: true },
+    ]);
+    
+    let new_todo_text = create_signal(String::new());
+    
+    let add_todo = move |_| {
+        let text = new_todo_text.get();
+        if !text.is_empty() {
+            todos.update(|mut t| {
+                let next_id = t.iter().map(|todo| todo.id).max().unwrap_or(0) + 1;
+                t.push(Todo {
+                    id: next_id,
+                    text: text.clone(),
+                    completed: false,
+                });
+                t
+            });
+            new_todo_text.set(String::new());
+        }
+    };
+    
+    let toggle_todo = move |id: usize| {
+        todos.update(|mut t| {
+            if let Some(todo) = t.iter_mut().find(|todo| todo.id == id) {
+                todo.completed = !todo.completed;
+            }
+            t
+        });
+    };
+    
+    rsx! {
+        <div>
+            <h2>"Todo List"</h2>
+            <ul class="space-y-2">
+                {todos.get().iter().map(|todo| {
+                    let id = todo.id;
+                    rsx! {
+                        <li class={format!("flex items-center {}", 
+                            if todo.completed { "line-through text-gray-400" } else { "" }
+                        )}>
+                            <input 
+                                type_="checkbox" 
+                                checked={todo.completed} 
+                                on_change={move |_| toggle_todo(id)}
+                                class="mr-2"
+                            />
+                            {todo.text.clone()}
+                        </li>
+                    }
+                }).collect::<Vec<_>>()}
+            </ul>
+            
+            <div class="mt-4 flex">
+                <input 
+                    type_="text" 
+                    value={new_todo_text.get()}
+                    on_input={move |e| new_todo_text.set(e.value())}
+                    placeholder="Add a new todo"
+                    class="border p-2 rounded-l"
+                />
+                <button 
+                    on_click={add_todo}
+                    class="bg-blue-500 text-white p-2 rounded-r"
+                >
+                    "Add"
+                </button>
+            </div>
+        </div>
+    }
+}"#}
+                />
+
+                <h3 id="filtering-sorting">Filtering and Sorting</h3>
+                <p>"You can use Rust's iterator methods to filter and sort items before rendering:"</p>
+                <CodeBlock
+                    language="rust"
+                    filename="src/main.rs"
+                    highlight=""
+                    code={r#"// Filtering and sorting example
+let numbers = create_signal(vec![5, 2, 8, 1, 9, 3, 7, 4, 6]);
+let show_even_only = create_signal(false);
+let sort_ascending = create_signal(true);
+
+rsx! {
+    <div>
+        <div class="mb-4">
+            <label class="mr-4">
+                <input 
+                    type_="checkbox" 
+                    checked={show_even_only.get()}
+                    on_change={move |_| show_even_only.set(!show_even_only.get())}
+                    class="mr-2"
+                />
+                "Show even numbers only"
+            </label>
+            
+            <label>
+                <input 
+                    type_="checkbox" 
+                    checked={sort_ascending.get()}
+                    on_change={move |_| sort_ascending.set(!sort_ascending.get())}
+                    class="mr-2"
+                />
+                "Sort ascending"
+            </label>
+        </div>
+        
+        <ul class="grid grid-cols-3 gap-2">
+            {{
+                let mut filtered = numbers.get().clone();
+                
+                // Apply filtering if needed
+                if show_even_only.get() {
+                    filtered.retain(|n| n % 2 == 0);
+                }
+                
+                // Apply sorting
+                if sort_ascending.get() {
+                    filtered.sort();
+                } else {
+                    filtered.sort_by(|a, b| b.cmp(a));
+                }
+                
+                // Map to nodes
+                filtered.iter().map(|n| rsx! {
+                    <li class="bg-gray-100 dark:bg-gray-800 p-2 rounded text-center">
+                        {n}
+                    </li>
+                }).collect::<Vec<_>>()
+            }}
+        </ul>
+    </div>
+}"#}
+                />
+
+                <h2 id="performance">Performance Considerations</h2>
+                <p>"When rendering lists, keep these performance considerations in mind:"</p>
+                <ul>
+                    <li>"Use keys for list items when possible to help with efficient updates"</li>
+                    <li>"Avoid recreating the entire list when only a few items change"</li>
+                    <li>"For large lists, consider pagination or virtualization"</li>
+                    <li>"Minimize the amount of work done in the map function"</li>
+                    <li>"Pre-compute derived values outside of the render function"</li>
+                </ul>
+
+                <h2>Best Practices</h2>
+                <ul>
+                    <li>"Use .iter().map().collect::<Vec<_>>() pattern for list rendering"</li>
+                    <li>"Extract complex item rendering into separate components"</li>
+                    <li>"Use signals for list data that changes over time"</li>
+                    <li>"Leverage Rust's powerful iterator methods for filtering, sorting, and transforming data"</li>
+                    <li>"Consider memoizing expensive computations for list items"</li>
+                </ul>
+
+                <div class="mt-12 flex items-center justify-between border-t border-gray-200 dark:border-gray-800 pt-6">
+                    <a href="#" class="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200">
+                        "← Conditional Rendering"
+                    </a>
+                    <a href="#" class="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200">
+                        "Reactivity →"
+                    </a>
+                </div>
+            </section>
+        </article>
+    }
+}
+
+#[component]
+fn ReactivityPage() -> Node {
+    rsx! {
+        <article class="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
+            <header class="mb-12">
+                <h1 class="text-4xl font-bold text-gray-900 dark:text-gray-100">Signals</h1>
+                <p class="mt-4 text-lg text-gray-600 dark:text-gray-400">
+                    "Signals are the most basic reactive primitive in Momenta. They contain values that change over time."
+                </p>
+            </header>
+
+            <section class="prose prose-gray dark:prose-invert max-w-none">
+                <h2 id="introduction">Introduction</h2>
+                <p>
+                    "When you create a signal, you get a getter and setter function. The getter tracks any scope it's called in,
+                    and the setter triggers updates to any computations that depend on the signal's value."
+                </p>
+
+                <h2 id="basic-example">Basic Example</h2>
+                <CodeBlock
+                    language="rust"
+                    filename="src/main.rs"
+                    highlight=""
+                    code={r#"use momenta::prelude::*;
+
+#[component]
+fn App() -> Node {
+    // Create a signal with initial value 0
+    let count = create_signal(0);
+    
+    rsx! {
+        <div>
+            <p>Count: {count}</p>
+            <button on_click={move |_| count += 1}>
+                "Increment"
+            </button>
+        </div>
+    }
+}"#}
+                />
+
+                <Note variant="info">
+                    <p>
+                        <strong>"Good to know:"</strong> " Unlike other frameworks, You  accessing a signal's value requires calling "
+                        <code>".get()"</code> ". This explicit call enables Momenta's fine-grained reactivity system to track dependencies precisely."
+                    </p>
+                </Note>
+
+                <h2 id="api-reference">API Reference</h2>
+
+                <h3 id="creating-signals">Creating Signals</h3>
+                <CodeBlock
+                    language="rust"
+                    filename="src/main.rs"
+                    highlight=""
+                    code={r#"// Basic signal creation
+let count = create_signal(0);
+let name = create_signal("Alice".to_string());
+let todos = create_signal(vec![]);
+
+// With type annotations
+let typed: Signal<i32> = create_signal(0);
+let items: Signal<Vec<String>> = create_signal(vec![]);
+
+// Creating mutable signals
+let mut count = create_signal(0); // Note the mut keyword
+let mut name = create_signal("Alice".to_string());
+
+// Creating signals with complex types
+struct User {
+    name: String,
+    age: u32,
+}
+
+let user = create_signal(User {
+    name: "Alice".to_string(),
+    age: 30,
+});"#}
+                />
+
+                <h3 id="reading-values">Reading Values</h3>
+                <CodeBlock
+                    language="rust"
+                    filename="src/main.rs"
+                    highlight=""
+                    code={r#"let count = create_signal(5);
+
+// Get current value
+let value = count.get(); // 5
+
+// Use in reactive context
+create_effect(move || {
+    println!("Count is: {}", count);
+});
+
+// Use with closures
+let doubled = move || count * 2;
+
+// Accessing nested properties
+let user = create_signal(User {
+    name: "Alice".to_string(),
+    age: 30,
+});
+
+// Access a property
+let name = user.get().name.clone();
+
+// In reactive contexts, the entire signal is tracked
+create_effect(move || {
+    println!("User name: {}", user.get().name);
+    println!("User age: {}", user.get().age);
+});"#}
+                />
+
+                <h3 id="updating-values">Updating Values</h3>
+                <CodeBlock
+                    language="rust"
+                    filename="src/main.rs"
+                    highlight=""
+                    code={r#"let mut count = create_signal(0);
+
+// Override the value
+count.set(5); // Now count is 5
+
+// Update based on previous value
+count += 1; // Now count is 6
+
+// Update with a function
+count.update(|prev| prev + 1); // Now count is 7
+
+// Updating complex types
+let mut user = create_signal(User {
+    name: "Alice".to_string(),
+    age: 30,
+});
+
+// Update a single property
+user.update(|mut u| {
+    u.age += 1;
+    u
+});
+
+// Or create a new instance
+user.set(User {
+    name: "Bob".to_string(),
+    age: 25,
+});"#}
+                />
+                <Note variant="tip">
+                    <p>
+                        <strong>"Performance tip:"</strong> " When updating complex objects, consider using the update method
+                        to modify only the properties that have changed, rather than creating entirely new objects."
+                    </p>
+                </Note>
+
+                <h3>Signal Utilities</h3>
+                <CodeBlock
+                    language="rust"
+                    filename="src/main.rs"
+                    highlight=""
+                    code={r#"// Check if signals are equal
+let a = create_signal(5);
+let b = create_signal(5);
+let are_equal = a == b; // true
+
+// Derived signals
+let count = create_signal(0);
+let doubled = move || count.get() * 2;
+let is_even = move || count.get() % 2 == 0;
+
+// Combining signals
+let first_name = create_signal("John".to_string());
+let last_name = create_signal("Doe".to_string());
+let full_name = move || format!("{} {}", first_name.get(), last_name.get());
+
+// Batch updates
+let mut count = create_signal(0);
+let mut name = create_signal("Alice".to_string());
+
+// Update multiple signals at once
+batch(|| {
+    count.set(5);
+    name.set("Bob".to_string());
+    // UI will only update once after both changes
+});"#}
+                />
+
+                <h2>Best Practices</h2>
+                <ul>
+                    <li>"Keep signals at the appropriate scope - not everything needs to be global state"</li>
+                    <li>"Prefer fine-grained signals over large state objects for better performance"</li>
+                    <li>"Group related signals into structs for better organization"</li>
+                    <li>"Use derived values (closures that read signals) instead of creating redundant signals"</li>
+                    <li>"When updating complex objects, use the update method to modify only what changed"</li>
+                    <li>"Use batch updates when changing multiple signals that affect the same UI elements"</li>
+                    <li>"Consider using custom signal types for domain-specific state management"</li>
+                </ul>
+
+                <div class="mt-12 flex items-center justify-between border-t border-gray-200 dark:border-gray-800 pt-6">
+                    <a href="#" class="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200">
+                        "← Getting Started"
+                    </a>
+                    <a href="#" class="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200">
+                        "Effects →"
+                    </a>
+                </div>
+            </section>
+        </article>
+    }
+}
+
+#[component]
+fn ResourcesPage() -> Node {
+    rsx! {
+        <article class="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
+            <header class="mb-12">
+                <h1 class="text-4xl font-bold text-gray-900 dark:text-gray-100">Resources</h1>
+                <p class="mt-4 text-lg text-gray-600 dark:text-gray-400">
+                    "Resources handle asynchronous data fetching with built-in loading and error states."
+                </p>
+            </header>
+
+            <section class="prose prose-gray dark:prose-invert max-w-none">
+                <h2>Introduction</h2>
+                <p>
+                    "Resources are reactive primitives for handling asynchronous operations like API calls.
+                    They automatically track loading states, handle errors, and update when their dependencies change."
+                </p>
+
+                <h2>Basic Example</h2>
+                <CodeBlock
+                    language="rust"
+                    filename="src/main.rs"
+                    highlight=""
+                    code={r#"use momenta::prelude::*;
+
+async fn fetch_user(id: u32) -> Result<User, Error> {
+    // Simulate API call
+    let response = api_client.get(&format!("/users/{}", id)).await?;
+    Ok(response.json().await?)
+}
+
+#[component]
+fn UserProfile() -> Node {
+    let user_id = create_signal(1);
+    
+    // Create a resource that depends on user_id
+    let user = create_resource(move || user_id.get(), fetch_user);
+    
+    rsx! {
+        <div>
+            {match user.get() {
+                Some(Ok(user)) => rsx! {
+                    <div>
+                        <h1>{user.name}</h1>
+                        <p>{user.email}</p>
+                    </div>
+                },
+                Some(Err(error)) => rsx! {
+                    <div class="error">Error: {error.to_string()}</div>
+                },
+                None => rsx! {
+                    <div class="loading">Loading...</div>
+                }
+            }}
+        </div>
+    }
+}"#}
+                />
+
+                <Note variant="info">
+                    <p>
+                        <strong>"Automatic refetching:"</strong> " When user_id changes, the resource automatically
+                        refetches the data with the new ID."
+                    </p>
+                </Note>
+
+                <h2>API Reference</h2>
+
+                <h3>Creating Resources</h3>
+                <CodeBlock
+                    language="rust"
+                    filename="src/main.rs"
+                    highlight=""
+                    code={r#"// Basic resource
+let data = create_resource(|| (), |_| async { fetch_data().await });
+
+// Resource with dependency
+let user_id = create_signal(1);
+let user = create_resource(move || user_id.get(), |id| fetch_user(id));
+
+// Resource with multiple dependencies
+let search_query = create_signal("".to_string());
+let page = create_signal(1);
+let results = create_resource(
+    move || (search_query.get(), page.get()),
+    |(query, page)| search_posts(query, page)
+);"#}
+                />
+
+                <h3>Resource States</h3>
+                <CodeBlock
+                    language="rust"
+                    filename="src/main.rs"
+                    highlight=""
+                    code={r#"let resource = create_resource(|| (), |_| fetch_data());
+
+// Check resource state
+match resource.get() {
+    None => {
+        // Still loading initial data
+        rsx! { <div>"Loading..."</div> }
+    },
+    Some(Ok(data)) => {
+        // Data loaded successfully
+        rsx! { <div>{data}</div> }
+    },
+    Some(Err(error)) => {
+        // Error occurred
+        rsx! { <div>"Error: {error}"</div> }
+    }
+}
+
+// Check if resource is loading
+if resource.loading() {
+    // Show loading spinner
+}"#}
+                />
+
+                <h3>Refetching Resources</h3>
+                <CodeBlock
+                    language="rust"
+                    filename="src/main.rs"
+                    highlight=""
+                    code={r#"let data = create_resource(|| (), |_| fetch_data());
+
+// Manually refetch
+data.refetch();
+
+// Refetch when a button is clicked
+rsx! {
+    <div>
+        <button on_click={move |_| data.refetch()}>
+            "Refresh"
+        </button>
+        {/* Display data */}
+    </div>
+}"#}
+                />
+
+                <h2>Advanced Patterns</h2>
+
+                <h3>Optimistic Updates</h3>
+                <CodeBlock
+                    language="rust"
+                    filename="src/main.rs"
+                    highlight=""
+                    code={r#"let todos = create_resource(|| (), |_| fetch_todos());
+
+let add_todo = move |text: String| {
+    // Optimistically add to local state
+    let mut current_todos = todos.get().unwrap_or_default();
+    current_todos.push(Todo { id: 0, text, completed: false });
+    todos.set_value(Ok(current_todos));
+    
+    // Then sync with server
+    spawn_local(async move {
+        match create_todo_on_server(text).await {
+            Ok(_) => todos.refetch(),
+            Err(_) => {
+                // Revert optimistic update
+                todos.refetch();
+            }
+        }
+    });
+};"#}
+                />
+
+                <h3>Infinite Loading</h3>
+                <CodeBlock
+                    language="rust"
+                    filename="src/main.rs"
+                    highlight=""
+                    code={r#"let page = create_signal(1);
+let posts = create_signal(vec![]);
+
+let load_more = create_resource(
+    move || page.get(),
+    |page_num| async move { fetch_posts(page_num).await }
+);
+
+create_effect(move || {
+    if let Some(Ok(new_posts)) = load_more.get() {
+        posts.update(|current| {
+            current.extend(new_posts);
+        });
+    }
+});
+
+let load_next_page = move |_| {
+    page.update(|p| *p += 1);
+};"#}
+                />
+
+                <h2>Best Practices</h2>
+                <ul>
+                    <li>"Use resources for any asynchronous data fetching"</li>
+                    <li>"Handle all three states: loading, success, and error"</li>
+                    <li>"Consider caching strategies for frequently accessed data"</li>
+                    <li>"Use optimistic updates for better UX in write operations"</li>
+                    <li>"Debounce search queries to avoid excessive API calls"</li>
+                </ul>
+            </section>
+        </article>
+    }
+}
+
+#[component]
+fn PhilosophyPage() -> Node {
+    rsx! {
+        <article class="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
+            <header class="mb-12">
+                <h1 class="text-4xl font-bold text-gray-900 dark:text-gray-100">Philosophy</h1>
+                <p class="mt-4 text-lg text-gray-600 dark:text-gray-400">
+                    "Understanding the principles and design decisions behind Momenta."
+                </p>
+            </header>
+
+            <section class="prose prose-gray dark:prose-invert max-w-none">
+                <h2 class="text-xl my-1">Core Principles</h2>
+
+                <h3>1. Fine-Grained Reactivity</h3>
+                <p>
+                    "Momenta uses fine-grained reactivity, which means only the specific parts of your UI that depend on
+                    changed data will be updated. This is more efficient than virtual DOM diffing and provides consistent performance."
+                </p>
+
+                <h3>2. Rust-First Design</h3>
+                <p>
+                    "Rather than porting concepts from JavaScript frameworks, Momenta embraces Rust's ownership model and
+                    type system. This leads to better performance and fewer runtime errors."
+                </p>
+
+                <h3>3. Explicit Reactivity</h3>
+                <p>
+                    "Reactivity is explicit in Momenta. You explicitly create signals, effects, and resources. This makes
+                    the reactive system predictable and debuggable."
+                </p>
+
+                <h3>4. Composability Over Configuration</h3>
+                <p>
+                    "Momenta provides primitive building blocks that can be composed to create complex applications.
+                    There's no magic configuration or conventions - just composable primitives."
+                </p>
+
+                <h2>Why Not Virtual DOM?</h2>
+                <p>
+                    "Virtual DOM was designed to solve a specific problem: making imperative DOM updates manageable.
+                    However, with fine-grained reactivity, we can track exactly what changed and update the DOM directly."
+                </p>
+
+                <h2>Comparison with Other Frameworks</h2>
+                <p>
+                    "Momenta draws inspiration from SolidJS's reactivity model but implements it in Rust with zero-cost
+                    abstractions. Unlike React, there are no re-renders or reconciliation phases."
+                </p>
+
+                <Note variant="tip">
+                    <p>
+                        <strong>"Performance:"</strong> " Because Momenta compiles to efficient native code and uses
+                        fine-grained updates, your applications will be fast by default."
+                    </p>
+                </Note>
+            </section>
+        </article>
+    }
+}
+
+#[component]
+fn RsxPage() -> Node {
+    rsx! {
+        <article class="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
+            <header class="mb-12">
+                <h1 class="text-4xl font-bold text-gray-900 dark:text-gray-100">rsx!</h1>
+                <p class="mt-4 text-lg text-gray-600 dark:text-gray-400">
+                    rsx! is a built in macro that allows you to write HTML-like syntax inside Rust code.
+                    "It's a way to declaratively describe the structure of your UI."
+                </p>
+            </header>
+            <section class="prose prose-gray dark:prose-invert max-w-none">
+                <h2 id="introduction">Introduction</h2>
+                <p>
+                    "RSX allows you to write HTML-like syntax inside Rust code. It's a way to declaratively describe the structure of your UI."
+                </p>
+                <h2 id="basic-example">Basic Example</h2>
+                <CodeBlock
+                    language="rust"
+                    filename="src/main.rs"
+                    highlight=""
+                    code={r#"use momenta::prelude::*;
+
+#[component]
+fn HelloWorld() -> Node {
+    let name = create_signal("World");
+    
+    rsx! {
+        <div>
+            <h1>"Hello, " {name} "!"</h1>
+            <p>"Welcome to Momenta."</p>
+        </div>
+    }
+}"#}
+                />
+                <Note variant="info">
+                    <p>
+                        <strong>"Good to know:"</strong> " The rsx! macro returns a Node type that can be rendered to the DOM. Nodes are lightweight and can be composed together to build complex UIs."
+                    </p>
+                </Note>
+                <h2 id="api-reference">API Reference</h2>
+                <h3 id="creating-elements">Creating Elements</h3>
+                <CodeBlock
+                    language="rust"
+                    filename="src/main.rs"
+                    highlight=""
+                    code={r#"// Basic element
+let div = rsx! { <div></div> };
+
+// Element with attributes
+let button = rsx! { <button type_="button" class="primary"></button> };
+
+// Self-closing element
+let input = rsx! { <input type_="text" /> };
+
+// Note: HTML attributes with hyphens use underscores in RSX
+// e.g., `data-id` becomes `data_id`
+let custom = rsx! { <div data_id="123"></div> };
+
+// Attributes that conflict with Rust keywords use trailing underscore
+// e.g., `type` becomes `type_`
+let input = rsx! { <input type_="text" /> };"#}
+                />
+                <h3 id="attributes">Dynamic Attributes</h3>
+                <CodeBlock
+                    language="rust"
+                    filename="src/main.rs"
+                    highlight=""
+                    code={r#"// Dynamic class names
+let is_active = create_signal(true);
+let element = rsx! {
+    <div class={format!("container {}", if is_active.get() { "active" } else { "" })}>
+        <p>"Hello, world!"</p>
+    </div>
+};
+
+// Conditional attributes
+let disabled = create_signal(false);
+let button = rsx! {
+    <button 
+        class="btn"
+        disabled={disabled.get()}
+    >
+        "Submit"
+    </button>
+};
+
+// Event handlers
+let count = create_signal(0);
+let button = rsx! {
+    <button on_click={move |_| count += 1}>
+        "Clicked " {count} " times"
+    </button>
+};"#}
+                />
+                <h3 id="children">Dynamic Children</h3>
+                <CodeBlock
+                    language="rust"
+                    filename="src/main.rs"
+                    highlight=""
+                    code={r#"// Text nodes
+let name = "World";
+let element = rsx! {
+    <div>
+        "Hello, " {name} "!"
+    </div>
+};
+
+// Signal values
+let count = create_signal(0);
+let element = rsx! {
+    <div>
+        "Count: " {count}
+    </div>
+};
+
+// Conditional rendering with either! macro
+let is_logged_in = create_signal(true);
+let element = rsx! {
+    <div>
+        {either!(is_logged_in.get() =>
+            <p>"Welcome back!"</p>
+        else
+            <p>"Please log in"</p>
+        )}
+    </div>
+};
+
+// Lists with iterators
+let items = create_signal(vec!["Apple", "Banana", "Cherry"]);
+let list = rsx! {
+    <ul>
+        {items.get().iter().map(|item| rsx! {
+            <li>{item}</li>
+        }).collect::<Vec<_>>()}
+    </ul>
+};"#}
+                />
+
+                <h3 id="fragments">Fragments</h3>
+                <p>"When you need to return multiple elements without a wrapper, you can use fragments:"</p>
+                <CodeBlock
+                    language="rust"
+                    filename="src/main.rs"
+                    highlight=""
+                    code={r#"// Using fragments (implicit)
+let elements = rsx! {
+    <h1>"Title"</h1>
+    <p>"Paragraph 1"</p>
+    <p>"Paragraph 2"</p>
+};
+
+// Fragments are automatically created when you have multiple root elements
+// This is equivalent to:
+let elements = rsx! {
+    <>
+        <h1>"Title"</h1>
+        <p>"Paragraph 1"</p>
+        <p>"Paragraph 2"</p>
+    </>
+};"#}
+                />
+
+                <h2>Best Practices</h2>
+                <ul>
+                    <li>"Keep your components small and focused on a single responsibility"</li>
+                    <li>"Use signals for state that changes over time"</li>
+                    <li>"Extract repeated patterns into reusable components"</li>
+                    <li>"Use the either! macro for conditional rendering"</li>
+                    <li>"Use iterators with .map() for rendering lists"</li>
+                </ul>
+
+                <div class="mt-12 flex items-center justify-between border-t border-gray-200 dark:border-gray-800 pt-6">
+                    <a href="#" class="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200">
+                        "← Getting Started"
+                    </a>
+                    <a href="#" class="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200">
+                        "Signals →"
+                    </a>
+                </div>
+            </section>
+        </article>
+    }
+}
+
+#[component]
+pub fn EffectsPage() -> Node {
+    rsx! {
+        <article class="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
+            <header class="mb-12">
+                <h1 class="text-4xl font-bold text-gray-900 dark:text-gray-100">Effects</h1>
+                <p class="mt-4 text-lg text-gray-600 dark:text-gray-400">
+                    "Effects are the building blocks of reactivity in Momenta. They run code in response to changes in signals."
+                </p>
+            </header>
+            <section class="prose prose-gray dark:prose-invert max-w-none">
+                <h2 id="introduction">Introduction</h2>
+                <p>
+                    "Effects are functions that run when their dependencies change. They are the building blocks of reactivity in Momenta. Effects automatically track any signals accessed during their execution and re-run when those signals change."
+                </p>
+                <h2 id="basic-example">Basic Example</h2>
+                <CodeBlock
+                    language="rust"
+                    filename="src/main.rs"
+                    highlight=""
+                    code={r#"use momenta::prelude::*;
+
+#[component]
+fn Counter() -> Node {
+    let count = create_signal(0);
+    
+    // This effect will run whenever count changes
+    create_effect(move || {
+        println!("Count changed to: {}", count.get());
+    });
+    
+    rsx! {
+        <div>
+            <p>"Current count: " {count}</p>
+            <button on_click={move |_| count += 1}>"Increment"</button>
+        </div>
+    }
+}"#}
+                />
+                <h2 id="api-reference">API Reference</h2>
+                <h3 id="creating-effects">Creating Effects</h3>
+                <CodeBlock
+                    language="rust"
+                    filename="src/main.rs"
+                    highlight=""
+                    code={r#"// Basic effect creation
+let name = create_signal("Alice".to_string());
+
+// This effect will run once immediately and then
+// whenever any of its dependencies change
+create_effect(move || {
+    println!("Hello, {}", name.get());
+});
+
+// Effects can access multiple signals
+let count = create_signal(0);
+let multiplier = create_signal(2);
+
+create_effect(move || {
+    let result = count.get() * multiplier.get();
+    println!("Result: {}", result);
+});"#}
+                />
+                <h3 id="cleaning-up-effects">Cleaning Up Effects</h3>
+                <CodeBlock
+                    language="rust"
+                    filename="src/main.rs"
+                    highlight=""
+                    code={r#"// Clean up effects when they are no longer needed
+let interval_id = create_signal(None);
+
+create_effect(move || {
+    // Set up an interval
+    let id = set_interval(move || {
+        println!("Tick");
+    }, 1000);
+    
+    interval_id.set(Some(id));
+    
+    // Return a cleanup function
+    move || {
+        if let Some(id) = interval_id.get() {
+            clear_interval(id);
+        }
+    }
+});"#}
+                />
+                <h2>Advanced Patterns</h2>
+                <h3>Effect Cleanup</h3>
+                <p>"Effects can return a cleanup function that is called when the effect is no longer needed or before the effect runs again:"</p>
+                <CodeBlock
+                    language="rust"
+                    filename="src/main.rs"
+                    highlight=""
+                    code={r#"// Effect with cleanup
+let resource_id = create_signal(1);
+
+create_effect(move || {
+    let id = resource_id.get();
+    println!("Loading resource {}", id);
+    
+    // Simulate resource acquisition
+    let resource = acquire_resource(id);
+    
+    // Return cleanup function
+    move || {
+        println!("Releasing resource {}", id);
+        release_resource(resource);
+    }
+});"#}
+                />
+                <h3>Effect Dependencies</h3>
+                <p>"Effects can depend on multiple signals, and they will only run when any of their dependencies change:"</p>
+                <CodeBlock
+                    language="rust"
+                    filename="src/main.rs"
+                    highlight=""
+                    code={r#"// Effect with multiple dependencies
+let first_name = create_signal("John".to_string());
+let last_name = create_signal("Doe".to_string());
+
+create_effect(move || {
+    // This effect depends on both first_name and last_name
+    let full_name = format!("{} {}", first_name.get(), last_name.get());
+    println!("Full name: {}", full_name);
+});
+
+// Changing either signal will trigger the effect
+first_name.set("Jane".to_string()); // Effect runs
+last_name.set("Smith".to_string()); // Effect runs again"#}
+                />
+                <h3>Effect Ordering</h3>
+                <p>"Effects are executed in the order they are created, and their cleanup functions are executed in reverse order:"</p>
+                <CodeBlock
+                    language="rust"
+                    filename="src/main.rs"
+                    highlight=""
+                    code={r#"// Effect ordering
+let count = create_signal(0);
+
+create_effect(move || {
+    println!("Effect 1: {}", count.get());
+    move || println!("Cleanup 1")
+});
+
+create_effect(move || {
+    println!("Effect 2: {}", count.get());
+    move || println!("Cleanup 2")
+});
+
+// When count changes, the output will be:
+// Cleanup 2
+// Cleanup 1
+// Effect 1: 1
+// Effect 2: 1"#}
+                />
+                <h2>Best Practices</h2>
+                <ul>
+                    <li>"Keep effects as lightweight as possible"</li>
+                    <li>"Avoid creating effects inside loops or other complex logic"</li>
+                    <li>"Use cleanup functions to avoid memory leaks"</li>
+                    <li>"Use " <code>"create_effect"</code> " for simple effects"</li>
+                    <li>"Don't modify signals that you're tracking in the same effect to avoid infinite loops"</li>
+                    <li>"Group related effects together for better code organization"</li>
+                </ul>
+                <div class="mt-12 flex items-center justify-between border-t border-gray-200 dark:border-gray-800 pt-6">
+                    <a href="#" class="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200">
+                        "← Signals"
+                    </a>
+                    <a href="#" class="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200">
+                        "Resources →"
+                    </a>
+                </div>
+            </section>
+        </article>
+    }
+}
+
+#[component]
 fn SignalsPage() -> Node {
     rsx! {
         <article class="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
@@ -589,29 +1723,6 @@ count.set(5); // Now count is 5
 count += 1; // Now count is 6
 "#}
                 />
-
-                <h2>Advanced Patterns</h2>
-
-                <h3>Derived Signals</h3>
-                <p>"You can create derived values that automatically update when their dependencies change:"</p>
-                <CodeBlock
-                    language="rust"
-                    filename="src/main.rs"
-                    highlight=""
-                    code={r#"let first = create_signal("John");
-let last = create_signal("Doe");
-
-// This will re-run whenever first or last changes
-let full_name = create_memo(move || {
-    format!("{} {}", first, last)
-});
-
-// Use in your component
-rsx! {
-    <p>Hello, {full_name}!</p>
-}"#}
-                />
-
                 <Note variant="tip">
                     <p>
                         <strong>"Performance tip:"</strong> Avoid creating derived signals for every possible combination of signals.
@@ -626,23 +1737,14 @@ rsx! {
                     code={r#"// Check if signals are equal
 let a = create_signal(5);
 let b = create_signal(5);
-let are_equal = create_memo(move || a.get() == b.get());
-
-// Combine multiple signals
-let x = create_signal(2);
-let y = create_signal(3);
-let sum = create_memo(move || x.get() + y.get());
-
-// Toggle boolean signals
-let visible = create_signal(false);
-let toggle = move |_| visible.update(|v| !v);"#}
+let are_equal = a == b; // true
+"#}
                 />
 
                 <h2>Best Practices</h2>
                 <ul>
                     <li>"Keep signals at the appropriate scope - not everything needs to be global state"</li>
-                    <li>"Use " <code>"create_memo"</code> " for derived state instead of storing computed values"</li>
-                    <li>"Prefer " <code>".update()"</code> " over " <code>".get()"</code> " + " <code>".set()"</code> " for transformations"</li>
+                    <li>Prefer</li>
                     <li>"Group related signals into structs for better organization"</li>
                 </ul>
 
@@ -652,160 +1754,6 @@ let toggle = move |_| visible.update(|v| !v);"#}
                     </a>
                     <a href="#" class="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200">
                         "Effects →"
-                    </a>
-                </div>
-            </section>
-        </article>
-    }
-}
-
-#[component]
-fn RsxPage() -> Node {
-    rsx! {
-        <article class="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
-            <header class="mb-12">
-                <h1 class="text-4xl font-bold text-gray-900 dark:text-gray-100">rsx!</h1>
-                <p class="mt-4 text-lg text-gray-600 dark:text-gray-400">
-                    rsx! is a built in macro that allows you to write HTML-like syntax inside Rust code.
-                    "It's a way to declaratively describe the structure of your UI."
-                </p>
-            </header>
-            <section class="prose prose-gray dark:prose-invert max-w-none">
-                <h2 id="introduction">Introduction</h2>
-                <p>
-                    "RSX allows you to write HTML-like syntax inside Rust code. It's a way to declaratively describe the structure of your UI."
-                </p>
-                <h2 id="basic-example">Basic Example</h2>
-                <CodeBlock
-                    language="rust"
-                    filename="src/main.rs"
-                    highlight=""
-                    code={r#"use momenta::prelude::*;
-
-let rsx = rsx! {
-    <div>
-        <h1>Hello, world!</h1>
-        <p>Welcome to Momenta.</p>
-    </div>
-};"#}
-                />
-                <Note variant="info">
-                    <p>
-                        <strong>"Good to know:"</strong> " Momenta uses Rust's type system to ensure that your UI is always up-to-date."
-                    </p>
-                </Note>
-                <h2 id="api-reference">API Reference</h2>
-                <h3 id="creating-elements">Creating Elements</h3>
-                <CodeBlock
-                    language="rust"
-                    filename="src/main.rs"
-                    highlight=""
-                    code={r#"let element = rsx! {
-    };"#}
-                />
-                <h3 id="attributes">Attributes</h3>
-                <CodeBlock
-                    language="rust"
-                    filename="src/main.rs"
-                    highlight=""
-                    code={r#"let element = rsx! {
-    <div class="container">
-        <p>Hello, world!</p>
-    </div>
-};"#}
-                />
-                <h3 id="children">Children</h3>
-                <CodeBlock
-                    language="rust"
-                    filename="src/main.rs"
-                    highlight=""
-                    code={r#"let element = rsx! {
-    <div>
-        <p>Hello, world!</p>
-        <p>Welcome to Momenta.</p>
-    </div>
-};"#}
-                />
-            </section>
-        </article>
-    }
-}
-
-#[component]
-pub fn EffectsPage() -> Node {
-    rsx! {
-        <article class="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
-            <header class="mb-12">
-                <h1 class="text-4xl font-bold text-gray-900 dark:text-gray-100">Effects</h1>
-                <p class="mt-4 text-lg text-gray-600 dark:text-gray-400">
-                    "Effects are the building blocks of reactivity in Momenta. They run code in response to changes in signals."
-                </p>
-            </header>
-            <section class="prose prose-gray dark:prose-invert max-w-none">
-                <h2 id="introduction">Introduction</h2>
-                <p>
-                    "Effects are functions that run when their dependencies change. They are the building blocks of reactivity in Momenta."
-                </p>
-                <h2 id="basic-example">Basic Example</h2>
-                <CodeBlock
-                    language="rust"
-                    filename="src/main.rs"
-                    highlight=""
-                    code={r#"use momenta::prelude::*;"#}
-                />
-                <h2 id="api-reference">API Reference</h2>
-                <h3 id="creating-effects">Creating Effects</h3>
-                <CodeBlock
-                    language="rust"
-                    filename="src/main.rs"
-                    highlight=""
-                    code={r#"// Basic effect creation"#}
-                />
-                <h3 id="cleaning-up-effects">Cleaning Up Effects</h3>
-                <CodeBlock
-                    language="rust"
-                    filename="src/main.rs"
-                    highlight=""
-                    code={r#"// Clean up effects when they are no longer needed"#}
-                />
-                <h2>Advanced Patterns</h2>
-                <h3>Effect Cleanup</h3>
-                <p>"Effects can return a cleanup function that is called when the effect is no longer needed:"</p>
-                <CodeBlock
-                    language="rust"
-                    filename="src/main.rs"
-                    highlight=""
-                    code={r#"// Effect with cleanup"#}
-                />
-                <h3>Effect Dependencies</h3>
-                <p>"Effects can depend on multiple signals, and they will only run when any of their dependencies change:"</p>
-                <CodeBlock
-                    language="rust"
-                    filename="src/main.rs"
-                    highlight=""
-                    code={r#"// Effect with multiple dependencies"#}
-                />
-                <h3>Effect Ordering</h3>
-                <p>"Effects are executed in the order they are created, and their cleanup functions are executed in reverse order:"</p>
-                <CodeBlock
-                    language="rust"
-                    filename="src/main.rs"
-                    highlight=""
-                    code={r#"// Effect ordering"#}
-                />
-                <h2>Best Practices</h2>
-                <ul>
-                    <li>"Keep effects as lightweight as possible"</li>
-                    <li>"Avoid creating effects inside loops or other complex logic"</li>
-                    <li>"Use cleanup functions to avoid memory leaks"</li>
-                    <li>"Use " <code>"create_effect"</code> " for simple effects"</li>
-                </ul>
-                <div class="mt-12 flex items-center justify-between border-t border-gray-200 dark:border-gray-800 pt-6">
-                    <a href="#" class="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200">
-                        "← Signals"
-                    </a>
-                    <a href="#" class="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200">
-                        "Resources →"
                     </a>
                 </div>
             </section>
@@ -903,43 +1851,378 @@ fn main() {
     }
 }
 
-// Stub implementations
 #[component]
-fn TutorialPage() -> Node {
-    rsx! { <div class="p-8">"Tutorial page..."</div> }
+fn ComponentsPage() -> Node {
+    rsx! {
+        <article class="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
+            <header class="mb-12">
+                <h1 class="text-4xl font-bold text-gray-900 dark:text-gray-100">Components</h1>
+                <p class="mt-4 text-lg text-gray-600 dark:text-gray-400">
+                    "Components are reusable pieces of UI logic marked with the #[component] attribute."
+                </p>
+            </header>
+
+            <section class="prose prose-gray dark:prose-invert max-w-none">
+                <h2>Introduction</h2>
+                <p>
+                    "Components in Momenta are functions that return a Node. They can accept props and maintain
+                    internal state using signals and other reactive primitives."
+                </p>
+
+                <h2>Basic Component</h2>
+                <CodeBlock
+                    language="rust"
+                    filename="src/components/button.rs"
+                    highlight=""
+                    code={r#"use momenta::prelude::*;
+
+#[component]
+fn Button() -> Node {
+    rsx! {
+        <button class="btn">
+            "Click me"
+        </button>
+    }
+}
+
+// Usage
+#[component]
+fn App() -> Node {
+    rsx! {
+        <div>
+            <Button />
+        </div>
+    }
+}"#}
+                />
+
+                <h2>Components with Props</h2>
+                <CodeBlock
+                    language="rust"
+                    filename="src/components/button.rs"
+                    highlight=""
+                    code={r#"pub struct ButtonProps {
+    pub text: &'static str,
+    pub variant: &'static str,
+    pub on_click: Box<dyn Fn()>,
 }
 
 #[component]
-fn ResourcesPage() -> Node {
-    rsx! { <div class="p-8">"Resources page..."</div> }
+fn Button(props: &ButtonProps) -> Node {
+    let class = format!("btn btn-{}", props.variant);
+    
+    rsx! {
+        <button class={class} on_click={props.on_click}>
+            {props.text}
+        </button>
+    }
 }
+
+// Usage
 #[component]
-fn ContextPage() -> Node {
-    rsx! { <div class="p-8">"Context page..."</div> }
+fn App() -> Node {
+    let count = create_signal(0);
+    
+    rsx! {
+        <div>
+            <p>Count: {count}</p>
+            <Button 
+                text="Increment"
+                variant="primary"
+                on_click={Box::new(move || count += 1)}
+            />
+        </div>
+    }
+}"#}
+                />
+
+                <h2>Components with State</h2>
+                <CodeBlock
+                    language="rust"
+                    filename="src/components/toggle.rs"
+                    highlight=""
+                    code={r#"#[component]
+fn Toggle() -> Node {
+    let is_on = create_signal(false);
+    
+    let toggle = move |_| {
+        is_on.set(!is_on.get());
+    };
+    
+    rsx! {
+        <div class="toggle">
+            <button 
+                class={if is_on.get() { "toggle-on" } else { "toggle-off" }}
+                on_click={toggle}
+            >
+                {if is_on.get() { "ON" } else { "OFF" }}
+            </button>
+        </div>
+    }
+}"#}
+                />
+
+                <h2>Component Composition</h2>
+                <CodeBlock
+                    language="rust"
+                    filename="src/components/card.rs"
+                    highlight=""
+                    code={r#"pub struct CardProps {
+    pub title: &'static str,
+    pub children: Vec<Node>,
 }
+
 #[component]
-fn StoresPage() -> Node {
-    rsx! { <div class="p-8">"Stores page..."</div> }
+fn Card(props: &CardProps) -> Node {
+    rsx! {
+        <div class="card">
+            <div class="card-header">
+                <h3>{props.title}</h3>
+            </div>
+            <div class="card-body">
+                {props.children}
+            </div>
+        </div>
+    }
 }
+
+// Usage
+#[component]
+fn App() -> Node {
+    rsx! {
+        <Card title="User Profile">
+            <p>"Name: John Doe"</p>
+            <p>"Email: john@example.com"</p>
+            <Button text="Edit Profile" variant="secondary" />
+        </Card>
+    }
+}"#}
+                />
+
+                <h2>Best Practices</h2>
+                <ul>
+                    <li>"Keep components focused on a single responsibility"</li>
+                    <li>"Use props for data that changes between instances"</li>
+                    <li>"Use signals for component-local state"</li>
+                    <li>"Prefer composition over complex prop drilling"</li>
+                    <li>"Name components with PascalCase"</li>
+                </ul>
+
+                <Note variant="tip">
+                    <p>
+                        <strong>"Performance:"</strong> " Components in Momenta have minimal overhead.
+                        They're just functions that return JSX, so don't hesitate to break your UI into small, reusable pieces."
+                    </p>
+                </Note>
+            </section>
+        </article>
+    }
+}
+
 #[component]
 fn ShowPage() -> Node {
-    rsx! { <div class="p-8">"Show page..."</div> }
-}
+    rsx! {
+        <article class="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
+            <header class="mb-12">
+                <h1 class="text-4xl font-bold text-gray-900 dark:text-gray-100">Conditional Rendering</h1>
+                <p class="mt-4 text-lg text-gray-600 dark:text-gray-400">
+                    "Use either! macro for conditional rendering based on reactive values."
+                </p>
+            </header>
+
+            <section class="prose prose-gray dark:prose-invert max-w-none">
+                <h2>Introduction</h2>
+                <p>
+                    "The either! macro provides a clean way to conditionally render different UI based on
+                    reactive values. It's similar to ternary operators but integrates seamlessly with Momenta's reactivity."
+                </p>
+
+                <h2>Basic Usage</h2>
+                <CodeBlock
+                    language="rust"
+                    filename="src/main.rs"
+                    highlight=""
+                    code={r#"use momenta::prelude::*;
+
 #[component]
-fn ForPage() -> Node {
-    rsx! { <div class="p-8">"For page..."</div> }
-}
-#[component]
-fn ReactivityPage() -> Node {
-    rsx! { <div class="p-8">"Reactivity page..."</div> }
-}
-#[component]
-fn CounterExample() -> Node {
-    rsx! { <div class="p-8">"Counter example..."</div> }
+fn App() -> Node {
+    let is_logged_in = create_signal(false);
+    
+    rsx! {
+        <div>
+            {either!(is_logged_in.get() =>
+                <div>
+                    <h1>Welcome back!</h1>
+                    <button on_click={move |_| is_logged_in.set(false)}>
+                        "Logout"
+                    </button>
+                </div>
+            else
+                <div>
+                    <h1>Please log in</h1>
+                    <button on_click={move |_| is_logged_in.set(true)}>
+                        "Login"
+                    </button>
+                </div>
+            )}
+        </div>
+    }
+}"#}
+                />
+
+                <h2>Complex Conditions</h2>
+                <CodeBlock
+                    language="rust"
+                    filename="src/main.rs"
+                    highlight=""
+                    code={r#"let user_role = create_signal("guest");
+let is_loading = create_signal(false);
+
+rsx! {
+    <div>
+        {either!(is_loading.get() =>
+            <div class="spinner">Loading...</div>
+        else either!(user_role.get() == "admin" =>
+            <AdminPanel />
+        else either!(user_role.get() == "user" =>
+            <UserDashboard />
+        else
+            <GuestLanding />
+        )))}
+    </div>
+}"#}
+                />
+
+                <h2>Show Components</h2>
+                <CodeBlock
+                    language="rust"
+                    filename="src/main.rs"
+                    highlight=""
+                    code={r#"pub struct ShowProps {
+    pub when: bool,
+    pub children: Vec<Node>,
 }
 
 #[component]
-fn Counter() -> Node {
+fn Show(props: &ShowProps) -> Node {
+    if props.when {
+        rsx! { <div>{props.children}</div> }
+    } else {
+        rsx! { <div></div> }
+    }
+}
+
+// Usage
+let show_details = create_signal(false);
+
+rsx! {
+    <div>
+        <button on_click={move |_| show_details.set(!show_details.get())}>
+            "Toggle Details"
+        </button>
+        <Show when={show_details.get()}>
+            <p>These are the details!</p>
+            <p>Only visible when show_details is true.</p>
+        </Show>
+    </div>
+}"#}
+                />
+
+                <h2>Advanced Patterns</h2>
+
+                <h3>Loading States</h3>
+                <CodeBlock
+                    language="rust"
+                    filename="src/main.rs"
+                    highlight=""
+                    code={r#"#[derive(Clone, Copy, PartialEq)]
+enum LoadingState {
+    Idle,
+    Loading,
+    Success,
+    Error,
+}
+
+let state = create_signal(LoadingState::Idle);
+
+rsx! {
+    <div>
+        {either!(state.get() == LoadingState::Loading =>
+            <div class="loading">
+                <i class="fas fa-spinner fa-spin"></i>
+                " Loading..."
+            </div>
+        else either!(state.get() == LoadingState::Success =>
+            <div class="success">
+                <i class="fas fa-check"></i>
+                " Success!"
+            </div>
+        else either!(state.get() == LoadingState::Error =>
+            <div class="error">
+                <i class="fas fa-exclamation-triangle"></i>
+                " Something went wrong"
+            </div>
+        else
+            <button on_click={move |_| state.set(LoadingState::Loading)}>
+                "Start Operation"
+            </button>
+        )))}
+    </div>
+}"#}
+                />
+
+                <h3>Permission-Based Rendering</h3>
+                <CodeBlock
+                    language="rust"
+                    filename="src/main.rs"
+                    highlight=""
+                    code={r#"pub struct PermissionProps {
+    pub required_permission: &'static str,
+    pub children: Vec<Node>,
+}
+
+#[component]
+fn RequirePermission(props: &PermissionProps) -> Node {
+    let user_permissions = use_context::<Vec<String>>();
+    
+    let has_permission = user_permissions
+        .iter()
+        .any(|p| p == props.required_permission);
+    
+    rsx! {
+        {either!(has_permission =>
+            <div>{props.children}</div>
+        else
+            <div class="permission-denied">
+                "You don't have permission to view this content."
+            </div>
+        )}
+    }
+}
+
+// Usage
+rsx! {
+    <RequirePermission required_permission="admin">
+        <AdminSettings />
+    </RequirePermission>
+}"#}
+                />
+
+                <h2>Best Practices</h2>
+                <ul>
+                    <li>"Use either! for simple boolean conditions"</li>
+                    <li>"Consider creating Show/Hide components for reusable patterns"</li>
+                    <li>"Avoid deeply nested conditional rendering"</li>
+                    <li>"Use match expressions for complex state-based rendering"</li>
+                    <li>"Keep condition logic readable and maintainable"</li>
+                </ul>
+            </section>
+        </article>
+    }
+}
+
+#[component]
+fn CounterExample() -> Node {
     let mut count = create_signal(0);
 
     rsx! {
