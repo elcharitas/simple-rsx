@@ -96,7 +96,7 @@ fn App() -> Node {
     });
 
     rsx! {
-        <div class={format!("min-h-screen bg-white dark:bg-gray-950 {}", if theme.get() == "dark" { "dark" } else { "" })}>
+        <div class={format!("min-h-screen bg-white dark:bg-gray-950 {}", if theme == "dark" { "dark" } else { "" })}>
             <Header {current_page} {theme} {mobile_menu_open} />
 
             <div class="flex">
@@ -164,11 +164,7 @@ fn Header(props: &HeaderProps) -> Node {
     let mobile_menu_open = props.mobile_menu_open;
 
     let toggle_theme = move |_| {
-        theme.set(if theme.get() == "dark" {
-            "light"
-        } else {
-            "dark"
-        });
+        theme.set(if theme == "dark" { "light" } else { "dark" });
     };
 
     rsx! {
@@ -176,15 +172,13 @@ fn Header(props: &HeaderProps) -> Node {
             <div class="flex h-14 items-center px-4 sm:px-6 lg:px-8">
                 <button
                     class="lg:hidden p-2 -ml-2"
-                    on_click={move |_| mobile_menu_open.set(!mobile_menu_open.get())}
+                    on_click={move |_| mobile_menu_open.set(!mobile_menu_open)}
                 >
                     <i class="fas fa-bars"></i>
                 </button>
 
                 <a href="#" on_click={move |_| current_page.set(Page::Home)} class="flex items-center space-x-2 ml-2 lg:ml-0">
-                    <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center text-white">
-                        <i class="fas fa-bolt"></i>
-                    </div>
+                    <img src="./static/icon.svg" alt="Momenta Logo" class="w-8 h-8" />
                     <span class="font-bold text-lg">Momenta</span>
                 </a>
 
@@ -208,7 +202,7 @@ fn Header(props: &HeaderProps) -> Node {
                         on_click={toggle_theme}
                         class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                     >
-                        {when!(theme.get() == "dark" =>
+                        {when!(theme == "dark" =>
                             <i class="fas fa-sun text-yellow-500"></i>
                         else
                             <i class="fas fa-moon text-gray-600"></i>
@@ -231,7 +225,7 @@ fn Navigation(props: &NavigationProps) -> Node {
     let current = props.current_page;
 
     let nav_link = move |page: Page, label: &'static str| {
-        let is_active = current.get() == page;
+        let is_active = current == page;
         let class = if is_active {
             "block px-3 py-1.5 text-sm font-medium text-blue-600 dark:text-blue-400"
         } else {
@@ -671,7 +665,7 @@ fn TodoList() -> Node {
             <div class="mt-4 flex">
                 <input 
                     type_="text" 
-                    value={new_todo_text.get()}
+                    value={new_todo_text}
                     on_input={move |e| new_todo_text.set(e.value())}
                     placeholder="Add a new todo"
                     class="border p-2 rounded-l"
@@ -705,7 +699,7 @@ rsx! {
             <label class="mr-4">
                 <input 
                     type_="checkbox" 
-                    checked={show_even_only.get()}
+                    checked={show_even_only}
                     on_change={move |_| show_even_only.set(!show_even_only.get())}
                     class="mr-2"
                 />
@@ -715,7 +709,7 @@ rsx! {
             <label>
                 <input 
                     type_="checkbox" 
-                    checked={sort_ascending.get()}
+                    checked={sort_ascending}
                     on_change={move |_| sort_ascending.set(!sort_ascending.get())}
                     class="mr-2"
                 />
@@ -1193,15 +1187,7 @@ let list = rsx! {
                     language="rust"
                     filename="src/main.rs"
                     highlight=""
-                    code={r#"// Using fragments (implicit)
-let elements = rsx! {
-    <h1>"Title"</h1>
-    <p>"Paragraph 1"</p>
-    <p>"Paragraph 2"</p>
-};
-
-// Fragments are automatically created when you have multiple root elements
-// This is equivalent to:
+                    code={r#"// Using fragments
 let elements = rsx! {
     <>
         <h1>"Title"</h1>
@@ -1541,7 +1527,7 @@ fn App() -> Node {
             <h1>Hello, {name}!</h1>
             <input 
                 type_="text"
-                value={name.get()}
+                value={name}
                 on_input={move |e| name.set(e.value())}
                 placeholder="Enter your name"
             />
@@ -1671,6 +1657,11 @@ fn App() -> Node {
     }
 }"#}
                 />
+                <Note variant="info">
+                    <p>
+                        <strong>"Good to know:"</strong> " Props must always be passed by reference or excluded totally. This ensures that the component can be re-rendered when the props change. "
+                    </p>
+                </Note>
 
                 <h2 class="font-bold uppercase">Components with State</h2>
                 <CodeBlock
@@ -1786,7 +1777,7 @@ fn App() -> Node {
     
     rsx! {
         <div>
-            {when!(is_logged_in.get() =>
+            {when!(is_logged_in =>
                 <div>
                     <h1>Welcome back!</h1>
                     <button on_click={move |_| is_logged_in.set(false)}>
@@ -1816,11 +1807,11 @@ let is_loading = create_signal(false);
 
 rsx! {
     <div>
-        {when!(is_loading.get() =>
+        {when!(is_loading =>
             <div class="spinner">Loading...</div>
-        else when!(user_role.get() == "admin" =>
+        else when!(user_role == "admin" =>
             <AdminPanel />
-        else when!(user_role.get() == "user" =>
+        else when!(user_role == "user" =>
             <UserDashboard />
         else
             <GuestLanding />

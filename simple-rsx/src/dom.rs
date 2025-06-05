@@ -300,9 +300,9 @@ macro_rules! derive_elements {
                     /// The title attribute specifies extra information about an element (displayed as a tooltip)
                     pub title: Option<String>,
                     /// The width attribute specifies the width of the image
-                    pub width: Option<String>,
+                    pub width: String,
                     /// The height attribute specifies the height of the image
-                    pub height: Option<String>,
+                    pub height: String,
 
                     /// Specifies whether an element is draggable or not
                     pub draggable: bool,

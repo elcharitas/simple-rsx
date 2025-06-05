@@ -8,7 +8,7 @@ use alloc::{
 use core::{
     any::Any,
     marker::PhantomData,
-    ops::{AddAssign, DivAssign, MulAssign, SubAssign},
+    ops::{AddAssign, DivAssign, MulAssign, Not, SubAssign},
 };
 use spin::Mutex;
 
@@ -121,6 +121,13 @@ pub struct Signal<T> {
 impl<T: SignalValue + PartialEq + 'static> PartialEq<T> for Signal<T> {
     fn eq(&self, other: &T) -> bool {
         self.with(|val| val == other).unwrap_or(false)
+    }
+}
+
+impl<T: SignalValue + Not<Output = bool> + Clone + 'static> Not for Signal<T> {
+    type Output = bool;
+    fn not(self) -> Self::Output {
+        !self.get()
     }
 }
 
