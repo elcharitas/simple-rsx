@@ -112,7 +112,7 @@ impl<T: SignalValue + 'static> SignalValue for Option<T> {
 //==============================================================================
 
 /// Reactive value that triggers re-renders when changed
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Copy, Debug, PartialEq, Eq)]
 pub struct Signal<T> {
     id: (usize, usize),
     _marker: PhantomData<T>,
@@ -121,6 +121,15 @@ pub struct Signal<T> {
 impl<T: SignalValue + PartialEq + 'static> PartialEq<T> for Signal<T> {
     fn eq(&self, other: &T) -> bool {
         self.with(|val| val == other).unwrap_or(false)
+    }
+}
+
+impl<T> Clone for Signal<T> {
+    fn clone(&self) -> Self {
+        Signal {
+            id: self.id,
+            _marker: PhantomData,
+        }
     }
 }
 
@@ -284,7 +293,7 @@ where
 {
     let scope_id = get_current_scope()
         .ok_or(SignalCreationError::OutsideScope)
-        .unwrap();
+        .unwrap(); // safe, we want to panic if not in scope
     let signal_id = get_next_signal_id_for_scope(scope_id);
     let signal = Signal {
         id: (scope_id, signal_id),
@@ -323,7 +332,7 @@ struct Effect {
 pub fn create_effect(effect: impl Fn() + Send + 'static) {
     let scope_id = get_current_scope()
         .ok_or(SignalCreationError::OutsideScope)
-        .unwrap();
+        .unwrap(); // safe, we want to panic if not in scope
     let effect_id = get_next_effect_id_for_scope(scope_id);
     let effect_struct = Effect {
         id: (scope_id, effect_id),
@@ -525,6 +534,82 @@ fn process_pending_renders() {
             None => break,
         };
     }
+}
+
+//==============================================================================
+// RESOURCE
+//==============================================================================
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ResourceStatus {
+    Idle,
+    Pending,
+    Loading,
+    Resolved,
+}
+
+impl SignalValue for ResourceStatus {
+    fn as_any(&self) -> Option<&dyn Any> {
+        Some(self)
+    }
+}
+
+pub struct Resource<T> {
+    status: Signal<ResourceStatus>,
+    value: Signal<Option<T>>,
+}
+
+impl<T: SignalValue + PartialEq + 'static> Resource<T> {
+    pub fn status(&self) -> Signal<ResourceStatus> {
+        self.status
+    }
+
+    pub fn get(&self) -> Option<T>
+    where
+        T: Clone,
+    {
+        self.value.get()
+    }
+
+    pub fn with<R>(&self, f: impl FnOnce(&T) -> R) -> Option<R> {
+        self.value.with(|v| v.as_ref().map(f)).unwrap_or_default()
+    }
+
+    pub fn retry(&self) {
+        self.status.set(ResourceStatus::Pending);
+    }
+}
+
+#[allow(unused_variables)]
+/// Create a resource that can be asynchronously loaded
+pub fn create_resource<T, F>(fetcher: F) -> Resource<T>
+where
+    T: SignalValue + PartialEq + 'static,
+    F: AsyncFn() -> T + Send + Clone + 'static,
+    Option<T>: Copy,
+{
+    let value = create_signal(None);
+    let status = create_signal(ResourceStatus::Idle);
+
+    create_effect(move || {
+        if status.get() == ResourceStatus::Idle || status.get() == ResourceStatus::Pending {
+            status.set(ResourceStatus::Loading);
+
+            #[cfg(feature = "wasm")]
+            let fetcher = fetcher.clone();
+            #[cfg(feature = "wasm")]
+            let value = value.clone();
+
+            #[cfg(feature = "wasm")]
+            wasm_bindgen_futures::spawn_local(async move {
+                let val = fetcher().await;
+                value.set(Some(val));
+                status.set(ResourceStatus::Resolved);
+            });
+        }
+    });
+
+    Resource { status, value }
 }
 
 //==============================================================================
