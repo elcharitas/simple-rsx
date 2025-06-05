@@ -105,17 +105,13 @@ fn App() -> Node {
 
     rsx! {
         <div class={format!("min-h-screen bg-white dark:bg-gray-950 {}", if theme.get() == "dark" { "dark" } else { "" })}>
-            <Header
-                current_page={current_page}
-                theme={theme}
-                mobile_menu_open={mobile_menu_open}
-            />
+            <Header {current_page} {theme} {mobile_menu_open} />
 
             <div class="flex">
                 // Sidebar Navigation
                 {either!(current_page != Page::Home => <aside class="hidden lg:block w-64 shrink-0 border-r border-gray-200 dark:border-gray-800">
                         <div class="sticky top-14 h-[calc(100vh-3.5rem)] overflow-y-auto py-8">
-                            <Navigation current_page={current_page} />
+                            <Navigation {current_page} />
                         </div>
                     </aside>
                 )}
@@ -132,7 +128,7 @@ fn App() -> Node {
                                 </button>
                             </div>
                             <div class="overflow-y-auto p-4">
-                                <Navigation current_page={current_page} />
+                                <Navigation {current_page} />
                             </div>
                         </div>
                     </div>
@@ -141,7 +137,7 @@ fn App() -> Node {
                 // Main Content
                 <main class="flex-1 min-w-0">
                     {either!(current_page.get() {
-                        Page::Home => <HomePage />,
+                        Page::Home => <HomePage {current_page} />,
                         Page::GettingStarted => <GettingStartedPage />,
                         Page::Philosophy => <PhilosophyPage />,
                         Page::Signals => <SignalsPage />,
@@ -160,7 +156,7 @@ fn App() -> Node {
                 // Right Sidebar (TOC)
                 {either!(current_page != Page::Home => <aside class="hidden xl:block w-64 shrink-0">
                         <div class="sticky top-14 h-[calc(100vh-3.5rem)] overflow-y-auto p-8">
-                            // <TableOfContents current_page={current_page} />
+                            // <TableOfContents {current_page} />
                         </div>
                     </aside>
                 )}
@@ -172,9 +168,9 @@ fn App() -> Node {
 // Header Component
 #[component]
 fn Header(props: &HeaderProps) -> Node {
-    let current_page = props.current_page.clone();
-    let theme = props.theme.clone();
-    let mobile_menu_open = props.mobile_menu_open.clone();
+    let current_page = props.current_page;
+    let theme = props.theme;
+    let mobile_menu_open = props.mobile_menu_open;
 
     let toggle_theme = move |_| {
         theme.set(if theme.get() == "dark" {
@@ -241,7 +237,7 @@ fn Header(props: &HeaderProps) -> Node {
 // Navigation Component
 #[component]
 fn Navigation(props: &NavigationProps) -> Node {
-    let current = props.current_page.clone();
+    let current = props.current_page;
 
     let nav_link = move |page: Page, label: &'static str| {
         let is_active = current.get() == page;
@@ -395,7 +391,8 @@ fn Playground(props: &PlaygroundProps) -> Node {
 
 // Page Components
 #[component]
-fn HomePage() -> Node {
+fn HomePage(props: &NavigationProps) -> Node {
+    let current_page = props.current_page;
     rsx! {
         <div class="mx-auto max-w-4xl px-4 py-16 sm:px-6 lg:px-8">
             <div class="text-center py-16">
@@ -406,7 +403,7 @@ fn HomePage() -> Node {
                     "Momenta makes it simple to build high-performance, reactive user interfaces using Rust's type system and ownership model."
                 </p>
                 <div class="mt-10 flex items-center justify-center gap-4">
-                    <a href="#" class="rounded-lg bg-blue-600 px-6 py-3 text-sm font-semibold text-white hover:bg-blue-700">
+                    <a href="#" on_click={move |_| current_page.set(Page::GettingStarted)} class="rounded-lg bg-blue-600 px-6 py-3 text-sm font-semibold text-white hover:bg-blue-700">
                         "Get Started"
                     </a>
                     <a href={GITHUB_LINK} class="rounded-lg border border-gray-300 dark:border-gray-700 px-6 py-3 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-900">
@@ -646,8 +643,8 @@ fn TodoList() -> Node {
             let next_id = todos.map(|todo| todo.id).max().unwrap_or(0) + 1;
             todos.push(Todo {
                 id: next_id,
-                text: text.clone(),
                 completed: false,
+                text,
             });
             new_todo_text.set(String::new());
         }
@@ -675,7 +672,7 @@ fn TodoList() -> Node {
                                 on_change={move |_| toggle_todo(id)}
                                 class="mr-2"
                             />
-                            {todo.text.clone()}
+                            {todo.text}
                         </li>
                     }
                 })}
@@ -738,7 +735,7 @@ rsx! {
         
         <ul class="grid grid-cols-3 gap-2">
             {{
-                let mut filtered = numbers.get().clone();
+                let mut filtered = numbers.get();
                 
                 // Apply filtering if needed
                 if show_even_only.get() {
@@ -888,7 +885,7 @@ let value = count.get(); // 5
 
 // Use in reactive context
 create_effect(move || {
-    println!("Count is: {}", count);
+    log!("Count is: {}", count);
 });
 
 // Use with closures
@@ -901,12 +898,12 @@ let user = create_signal(User {
 });
 
 // Access a property
-let name = user.get().name.clone();
+let name = user.get().name;
 
 // In reactive contexts, the entire signal is tracked
 create_effect(move || {
-    println!("User name: {}", user.get().name);
-    println!("User age: {}", user.get().age);
+    log!("User name: {}", user.get().name);
+    log!("User age: {}", user.get().age);
 });"#}
                 />
 
@@ -1214,7 +1211,7 @@ fn PhilosophyPage() -> Node {
             </header>
 
             <section class="prose prose-gray dark:prose-invert max-w-none">
-                <h2 class="text-xl my-1">Core Principles</h2>
+                <h2 class="font-bold uppercase">Core Principles</h2>
 
                 <h3>1. Element-Level Reactivity</h3>
                 <p>
@@ -1476,7 +1473,7 @@ fn Counter() -> Node {
     
     // This effect will run whenever count changes
     create_effect(move || {
-        println!("Count changed to: {}", count.get());
+        log!("Count changed to: {}", count.get());
     });
     
     rsx! {
@@ -1499,7 +1496,7 @@ let name = create_signal("Alice".to_string());
 // This effect will run once immediately and then
 // whenever any of its dependencies change
 create_effect(move || {
-    println!("Hello, {}", name.get());
+    log!("Hello, {}", name.get());
 });
 
 // Effects can access multiple signals
@@ -1508,7 +1505,7 @@ let multiplier = create_signal(2);
 
 create_effect(move || {
     let result = count.get() * multiplier.get();
-    println!("Result: {}", result);
+    log!("Result: {}", result);
 });"#}
                 />
                 <h2 class="font-bold uppercase">Advanced Patterns</h2>
@@ -1525,7 +1522,7 @@ let last_name = create_signal("Doe".to_string());
 create_effect(move || {
     // This effect depends on both first_name and last_name
     let full_name = format!("{} {}", first_name.get(), last_name.get());
-    println!("Full name: {}", full_name);
+    log!("Full name: {}", full_name);
 });
 
 // Changing either signal will trigger the effect
@@ -1542,18 +1539,14 @@ last_name.set("Smith".to_string()); // Effect runs again"#}
 let count = create_signal(0);
 
 create_effect(move || {
-    println!("Effect 1: {}", count.get());
-    move || println!("Cleanup 1")
+    log!("Effect 1: {}", count.get());
 });
 
 create_effect(move || {
-    println!("Effect 2: {}", count.get());
-    move || println!("Cleanup 2")
+    log!("Effect 2: {}", count.get());
 });
 
 // When count changes, the output will be:
-// Cleanup 2
-// Cleanup 1
 // Effect 1: 1
 // Effect 2: 1"#}
                 />
@@ -1655,7 +1648,7 @@ let value = count.get(); // 5
 
 // Use in reactive context
 create_effect(move || {
-    println!("Count is: {}", count);
+    log!("Count is: {}", count);
 });
 
 // Use with closures
