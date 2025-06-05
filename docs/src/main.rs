@@ -13,7 +13,6 @@ pub enum Page {
 
     // Start Here
     GettingStarted,
-    Reactivity,
     Philosophy,
 
     // Core Concepts
@@ -24,8 +23,8 @@ pub enum Page {
     Components,
 
     // Control Flow
-    Show,
-    For,
+    When,
+    Lists,
 
     // Guides
     Performance,
@@ -137,10 +136,9 @@ fn App() -> Node {
                         Page::Effects => <EffectsPage />,
                         Page::Rsx => <RsxPage />,
                         Page::Resources => <ResourcesPage />,
-                        Page::Show => <ShowPage />,
-                        Page::For => <ForPage />,
+                        Page::When => <ShowPage />,
+                        Page::Lists => <ForPage />,
                         Page::Components => <ComponentsPage />,
-                        Page::Reactivity => <ReactivityPage />,
                         Page::Counter => <CounterExample />,
                         _ => <div class="p-8">"Page under construction..."</div>,
                     })}
@@ -264,7 +262,6 @@ fn Navigation(props: &NavigationProps) -> Node {
         <nav class="px-2">
             {section("Start Here", vec![
                 nav_link(Page::GettingStarted, "Getting Started"),
-                nav_link(Page::Reactivity, "Reactivity"),
                 nav_link(Page::Philosophy, "Philosophy"),
             ])}
 
@@ -277,8 +274,8 @@ fn Navigation(props: &NavigationProps) -> Node {
             ])}
 
             {section("Control Flow", vec![
-                nav_link(Page::Show, "when!"),
-                nav_link(Page::For, ".iter().map()"),
+                nav_link(Page::When, "when!"),
+                nav_link(Page::Lists, ".iter().map()"),
             ])}
 
             {section("Guides", vec![
@@ -779,55 +776,6 @@ rsx! {
                     </a>
                     <a href="#" class="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200">
                         "Reactivity →"
-                    </a>
-                </div>
-            </section>
-        </article>
-    }
-}
-
-#[component]
-fn ReactivityPage() -> Node {
-    rsx! {
-        <article class="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
-            <header class="mb-12">
-                <h1 class="text-4xl font-bold text-gray-900 dark:text-gray-100">Reactivity</h1>
-                <p class="mt-4 text-lg text-gray-600 dark:text-gray-400">
-                    "Reactivity is the core of Momenta's reactive programming model."
-                </p>
-            </header>
-            <section class="prose prose-gray dark:prose-invert max-w-none">
-                <h2 class="font-bold uppercase">Introduction</h2>
-                <p>
-                    "Reactivity is the core of Momenta's reactive programming model. It allows you to create reactive values and effects that automatically update when their dependencies change."
-                </p>
-                <h2 class="font-bold uppercase">Basic Syntax</h2>
-                <p>
-                    "The basic pattern for creating reactive values and effects in Momenta is:"
-                </p>
-                <CodeBlock
-                    language="rust"
-                    filename="src/main.rs"
-                    highlight=""
-                    code={r#"// Basic reactive value and effect creation
-    let count = create_signal(0);"#}
-                />
-                <p>
-                    "You can also create effects that automatically update when their dependencies change:"
-                </p>
-                <CodeBlock
-                    language="rust"
-                    filename="src/main.rs"
-                    highlight=""
-                    code={r#"// Basic reactive effect creation"#}
-                />
-
-                <div class="mt-12 flex items-center justify-between border-t border-gray-200 dark:border-gray-800 pt-6">
-                    <a href="#" class="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200">
-                        "← Getting Started"
-                    </a>
-                    <a href="#" class="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200">
-                        "Philosophy →"
                     </a>
                 </div>
             </section>
