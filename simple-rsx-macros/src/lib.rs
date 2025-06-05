@@ -1,6 +1,6 @@
 use proc_macro::TokenStream;
 use proc_macro2::{Span, TokenStream as TokenStream2};
-use quote::quote;
+use quote::{ToTokens, quote};
 use syn::braced;
 use syn::punctuated::Punctuated;
 use syn::spanned::Spanned;
@@ -297,7 +297,7 @@ enum RsxNode {
     Fragment(Vec<RsxNode>),
     Component {
         name: Ident,
-        props: Vec<(Ident, Option<Expr>)>,
+        props: Vec<(Option<Ident>, Option<Expr>)>,
         children: Vec<RsxNode>,
         close_tag: Option<Ident>,
     },
@@ -307,91 +307,84 @@ enum RsxNode {
     Comment(Expr), // HTML comments
 }
 
-struct NodeBlock {
-    expr: Option<Expr>,
-    value: Option<Block>,
-}
-
-impl Parse for NodeBlock {
-    fn parse(input: ParseStream) -> Result<Self> {
-        if input.peek(LitStr) {
-            let parsed: LitStr = input.parse()?;
-            return Ok(NodeBlock {
-                value: None,
-                expr: Some(syn::Expr::Lit(ExprLit {
-                    attrs: Vec::new(),
-                    lit: Lit::Str(parsed),
-                })),
-            });
-        }
-
-        let is_block = input.to_string().trim().starts_with('{');
-
-        if is_block {
-            let value: Block = input.parse()?;
-            return Ok(NodeBlock {
-                value: Some(value),
-                expr: None,
-            });
-        }
-
-        if input.lookahead1().peek(Token![<]) {
-            // Found a non-literal '<', stop here without consuming it
-            return Ok(NodeBlock {
-                value: None,
-                expr: None,
-            });
-        }
-
-        match input.parse::<proc_macro2::TokenTree>() {
-            Ok(token) => match &token {
-                proc_macro2::TokenTree::Group(group) => {
-                    let stream = group.stream();
-                    let expr = syn::parse2::<Expr>(stream)?;
-                    Ok(NodeBlock {
-                        value: None,
-                        expr: Some(expr),
-                    })
-                }
-                _ => {
-                    let value = token.to_string();
-                    let str_expr = syn::Expr::Lit(ExprLit {
-                        attrs: Vec::new(),
-                        lit: Lit::Str(LitStr::new(&value, token.span())),
-                    });
-                    Ok(NodeBlock {
-                        value: None,
-                        expr: Some(str_expr),
-                    })
-                }
-            },
-            Err(e) => Err(e), // End of input
-        }
-    }
-}
-
 /// Represents an attribute name-value pair
 struct NodeValue {
-    name: Ident,
-    value: Option<Block>,
+    name: Option<Ident>,
+    expr: Option<Expr>,
 }
 
 impl Parse for NodeValue {
     fn parse(input: ParseStream) -> Result<Self> {
-        let name = input.parse()?;
-        if !input.peek(Token![=]) {
-            return Ok(NodeValue { name, value: None });
+        // Handle `{ident}` and `{..ident}` patterns
+        if input.peek(Brace) {
+            let content;
+            braced!(content in input);
+
+            // Check for `{..ident}` pattern
+            if content.peek(Token![..]) {
+                content.parse::<Token![..]>()?;
+                let ident: Ident = content.parse()?;
+                // Create token stream for `..ident` manually
+                let mut tokens = proc_macro2::TokenStream::new();
+                tokens.extend(std::iter::once(proc_macro2::TokenTree::Punct(
+                    proc_macro2::Punct::new('.', proc_macro2::Spacing::Joint),
+                )));
+                tokens.extend(std::iter::once(proc_macro2::TokenTree::Punct(
+                    proc_macro2::Punct::new('.', proc_macro2::Spacing::Alone),
+                )));
+                tokens.extend(ident.to_token_stream());
+
+                return Ok(NodeValue {
+                    name: Some(ident),
+                    expr: Some(syn::Expr::Verbatim(tokens)),
+                });
+            }
+
+            // Handle `{expression}` pattern
+            let parsed: Ident = content.parse()?;
+            return Ok(NodeValue {
+                expr: Some(syn::Expr::Verbatim(parsed.to_token_stream())),
+                name: Some(parsed),
+            });
         }
+
+        // Handle `name={expression or block}` and `name` patterns
+        let name: Ident = input.parse()?;
+
+        // If no `=`, just return the name
+        if !input.peek(Token![=]) {
+            return Ok(NodeValue {
+                name: Some(name),
+                expr: None,
+            });
+        }
+
+        // Parse the `=` and then the expression/block
         input.parse::<Token![=]>()?;
-        let NodeBlock { value, expr } = input.parse()?;
+
+        // check if next token is a literal
+        if input.peek(Lit) {
+            let lit: Lit = input.parse()?;
+            return Ok(NodeValue {
+                name: Some(name),
+                expr: Some(syn::Expr::Lit(ExprLit {
+                    attrs: Vec::new(),
+                    lit,
+                })),
+            });
+        }
+
+        // Parse any expression (including braced blocks)
+        let block: Block = input.parse()?;
+        let expr = block.stmts.into_iter().next();
+        let expr = match expr {
+            Some(Stmt::Expr(expr, _)) => expr,
+            _ => panic!("Expected expression"),
+        };
+
         Ok(NodeValue {
-            name,
-            value: value.or_else(|| {
-                expr.map(|expr| Block {
-                    brace_token: Brace::default(),
-                    stmts: vec![syn::Stmt::Expr(expr, None)],
-                })
-            }),
+            name: Some(name),
+            expr: Some(expr),
         })
     }
 }
@@ -512,44 +505,8 @@ impl Parse for RsxNode {
 
             let mut attributes = Vec::with_capacity(4);
             while !input.peek(Token![>]) && !input.peek(Token![/]) {
-                if input.to_string().trim().starts_with('{') {
-                    let expr = input.parse::<Block>()?;
-                    // check if expr matches {Ident} pattern
-                    if let Some(Stmt::Expr(expr, ..)) = expr.stmts.first() {
-                        if let Expr::Path(expr_path) = expr {
-                            match expr_path.path.segments.first() {
-                                Some(segment) => {
-                                    let ident = segment.ident.clone();
-                                    attributes.push((ident, Some(expr.clone())));
-                                }
-                                _ => {
-                                    return Err(syn::Error::new(
-                                        expr_path.span(),
-                                        "Only Ident expressions are supported",
-                                    ));
-                                }
-                            }
-                        }
-                    }
-                } else {
-                    match input.parse::<NodeValue>() {
-                        Ok(attr) => attributes.push((
-                            attr.name,
-                            attr.value.map(|v| match v.stmts.first() {
-                                Some(Stmt::Expr(expr, ..)) => {
-                                    return expr.clone();
-                                }
-                                _ => {
-                                    return Expr::Lit(syn::ExprLit {
-                                        attrs: vec![],
-                                        lit: syn::Lit::Str(LitStr::new("true", input.span())),
-                                    });
-                                }
-                            }),
-                        )),
-                        Err(e) => return Err(e),
-                    }
-                }
+                let NodeValue { name, expr: value } = input.parse::<NodeValue>()?;
+                attributes.push((name, value));
             }
 
             // Self-closing tag: <tag ... /> or <Component... />
@@ -637,9 +594,11 @@ impl RsxNode {
                     });
 
                 let data_props = (is_element
-                    && props
-                        .iter()
-                        .any(|(name, _)| name.to_string().starts_with("data_")))
+                    && props.iter().any(|(name, _)| {
+                        name.as_ref()
+                            .map(|name| name.to_string().starts_with("data_"))
+                            .unwrap_or(false)
+                    }))
                 .then(|| {
                     let timestamp = std::time::SystemTime::now()
                         .duration_since(std::time::UNIX_EPOCH)
@@ -650,7 +609,11 @@ impl RsxNode {
                         syn::Ident::new(&format!("attr_data_{}", timestamp), Span::call_site());
                     let data = attrs
                         .clone()
-                        .filter(|(name, _)| name.to_string().starts_with("data_"))
+                        .filter(|(name, _)| {
+                            name.as_ref()
+                                .map(|name| name.to_string().starts_with("data_"))
+                                .unwrap_or(false)
+                        })
                         .map(|(name, value)| {
                             quote! {
                                 let #name = #value;
@@ -668,8 +631,20 @@ impl RsxNode {
                     }
                 });
                 let props_tokens = attrs
-                    .filter(|(name, _)| !(is_element && name.to_string().starts_with("data_"))) // filter out data- attributes for elements
-                    .map(|(name, value)| quote! { #name: {#value}.into(), });
+                    .filter(|(name, _)| {
+                        !(is_element
+                            // filter out data- attributes for elements
+                            && name
+                                .as_ref()
+                                .map(|name| name.to_string().starts_with("data_"))
+                                .unwrap_or(false))
+                    }) // filter out data- attributes for elements
+                    .map(|(name, value)| {
+                        if name.is_none() {
+                            return quote! {#value};
+                        }
+                        quote! { #name: {#value}.into(), }
+                    });
 
                 let children_tokens = if children.len() > 0 || is_element {
                     let child_tokens = children.iter().map(|child| child.to_tokens());
