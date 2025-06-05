@@ -1,4 +1,7 @@
-use crate::{Component, Node, signals::run_scope};
+use crate::{
+    nodes::{Component, Node},
+    signals::run_scope,
+};
 
 #[cfg(feature = "wasm")]
 #[wasm_bindgen::prelude::wasm_bindgen]
@@ -45,24 +48,24 @@ trait WasmRender {
 }
 
 #[cfg(feature = "wasm")]
-impl WasmRender for crate::Element {
+impl WasmRender for crate::nodes::Element {
     fn render(&self, mount: &web_sys::Element) -> Option<web_sys::Element> {
         let element = web_sys::window()
-            .map(|window| window.document().map(|doc| doc.create_element(&self.tag)))
+            .map(|window| window.document().map(|doc| doc.create_element(self.tag())))
             .flatten()
             .and_then(|el| el.ok());
 
         if let Some(element) = element {
             let _ = mount.append_child(&element);
-            for child in &self.children {
+            for child in self.children() {
                 child.render(&element);
             }
             // add attributes
-            for (name, value) in &self.attributes {
+            for (name, value) in self.attributes() {
                 let _ = element.set_attribute(name, value);
             }
             // attach events
-            for (event_type, callback) in &self.events {
+            for (event_type, callback) in self.events() {
                 attach_event_handler(&element, event_type, callback.clone());
             }
 
@@ -214,7 +217,7 @@ where
 fn attach_event_handler(
     element: &web_sys::Element,
     event_type: &str,
-    mut callback: crate::EventCallback,
+    mut callback: crate::nodes::EventCallback,
 ) {
     use alloc::boxed::Box;
     use wasm_bindgen::prelude::*;
@@ -600,7 +603,14 @@ macro_rules! derive_elements {
 }
 
 pub mod elements {
-    use crate::*;
+    use crate::nodes::*;
+    use alloc::{
+        collections::BTreeMap,
+        format,
+        string::{String, ToString},
+        vec::Vec,
+    };
+
     derive_elements! {
         /// HTML `<html>` element - Root element of an HTML document
         html {

@@ -1,4 +1,4 @@
-use crate::Node;
+use crate::nodes::Node;
 use alloc::{
     boxed::Box,
     collections::{BTreeMap, BTreeSet},

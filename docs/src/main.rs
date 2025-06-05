@@ -3,14 +3,7 @@
 
 extern crate alloc;
 use alloc::{format, vec, vec::Vec};
-
-use simple_rsx::Node;
-use simple_rsx::component;
-use simple_rsx::dom::render_root;
-use simple_rsx::rsx;
-use simple_rsx::signals::create_effect;
-use simple_rsx::signals::{Signal, SignalValue, create_signal};
-use simple_rsx::when;
+use simple_rsx::prelude::*;
 
 static GITHUB_LINK: &str = "https://github.com/elcharitas/simple-rsx";
 

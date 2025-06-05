@@ -18,7 +18,7 @@ use syn::{FnArg, PatType, Signature, Stmt, Type, TypeReference};
 ///
 /// # Examples
 /// ```rust
-/// use simple_rsx::*;
+/// use simple_rsx::prelude::*;
 ///
 /// let show = true;
 /// let result: Result<i32, String> = Ok(42);
@@ -190,7 +190,7 @@ impl Either {
 /// # Examples
 ///
 /// ```rust
-/// use simple_rsx::*;
+/// use simple_rsx::prelude::*;
 ///
 /// #[component]
 /// fn HelloWorld() -> Node {
@@ -238,7 +238,7 @@ pub fn component(_attr: TokenStream, input: TokenStream) -> TokenStream {
     let prop_type = if let Some(prop_ty) = prop_ty {
         quote! {type Props = #prop_ty;}
     } else {
-        quote! {type Props = ::simple_rsx::DefaultProps;}
+        quote! {type Props = ::simple_rsx::nodes::DefaultProps;}
     };
 
     if inputs.is_empty() {
@@ -253,7 +253,7 @@ pub fn component(_attr: TokenStream, input: TokenStream) -> TokenStream {
     let expanded = quote! {
         #vis #(#attrs)* struct #ident;
 
-        impl ::simple_rsx::Component for #ident {
+        impl ::simple_rsx::nodes::Component for #ident {
             #prop_type
             #fn_token render(#inputs) #output #block
         }
@@ -267,7 +267,7 @@ pub fn component(_attr: TokenStream, input: TokenStream) -> TokenStream {
 /// # Examples
 ///
 /// ```rust
-/// use simple_rsx::*;
+/// use simple_rsx::prelude::*;
 /// // Fragment
 /// rsx!(<>"Hello World"</>);
 ///
@@ -675,7 +675,7 @@ impl RsxNode {
 
                 quote! {
                     {
-                        type Props = <#component as ::simple_rsx::Component>::Props;
+                        type Props = <#component as ::simple_rsx::nodes::Component>::Props;
                         {
                             #close_tag
                             ::simple_rsx::dom::component::<#component>(
@@ -695,30 +695,30 @@ impl RsxNode {
 
                 quote! {
                     {
-                        ::simple_rsx::Node::Fragment(vec![#(#children_tokens),*])
+                        ::simple_rsx::nodes::Node::Fragment(vec![#(#children_tokens),*])
                     }
                 }
             }
             RsxNode::Text(expr) => {
                 quote! {
                     {
-                        ::simple_rsx::Node::from(#expr)
+                        ::simple_rsx::nodes::Node::from(#expr)
                     }
                 }
             }
             RsxNode::Empty => {
                 quote! {
-                    ::simple_rsx::Node::Empty
+                    ::simple_rsx::nodes::Node::Empty
                 }
             }
             RsxNode::Comment(expr) => {
                 quote! {
-                    ::simple_rsx::Node::Comment(#expr)
+                    ::simple_rsx::nodes::Node::Comment(#expr)
                 }
             }
             RsxNode::Block(block) => {
                 quote! {
-                    ::simple_rsx::Node::from(#block)
+                    ::simple_rsx::nodes::Node::from(#block)
                 }
             }
         }
