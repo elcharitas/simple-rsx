@@ -25,7 +25,7 @@
 //!
 //! ```rust
 //! extern crate alloc;
-//! use simple_rsx::*;
+//! use simple_rsx::prelude::*;
 //!
 //! // Create your first component - looks familiar, right?
 //! let greeting = rsx!(
@@ -45,7 +45,7 @@
 //!
 //! ```rust
 //! extern crate alloc;
-//! use simple_rsx::*;
+//! use simple_rsx::prelude::*;
 //!
 //! // Self-closing tags? Check!
 //! let img = rsx!(<img src="image.jpg" alt="An image" />);
@@ -71,7 +71,7 @@
 //!
 //! ```rust
 //! extern crate alloc;
-//! use simple_rsx::*;
+//! use simple_rsx::prelude::*;
 //!
 //! let name = "World";
 //! let count = 42;
@@ -116,7 +116,7 @@
 //!
 //! ```rust
 //! extern crate alloc;
-//! use simple_rsx::*;
+//! use simple_rsx::prelude::*;
 //!
 //! // Define your props - just like React's PropTypes
 //! #[derive(Default)]
@@ -152,7 +152,7 @@
 //!
 //! ```rust ignore
 //! extern crate alloc;
-//! use simple_rsx::*;
+//! use simple_rsx::prelude::*;
 //!
 //! // Data attributes? No problem!
 //! let element = rsx!(

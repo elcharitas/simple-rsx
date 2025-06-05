@@ -1,9 +1,6 @@
 #![allow(unused_braces)]
 
-use simple_rsx::dom::render_root;
-use simple_rsx::rsx;
-use simple_rsx::signals::*;
-use simple_rsx::{Node, component};
+use simple_rsx::prelude::*;
 
 struct CounterProps {
     count: Signal<i32>,
@@ -48,30 +45,28 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
+    use simple_rsx::prelude::*;
+
     #[test]
     fn test_basic_rsx() {
-        use simple_rsx::*;
         let rsx = rsx!(<></>);
         assert!(rsx.to_string().is_empty())
     }
 
     #[test]
     fn test_text_rsx() {
-        use simple_rsx::*;
         let rsx = rsx!(<>Hello World</>);
         assert_eq!(rsx.to_string(), "Hello World")
     }
 
     #[test]
     fn test_rsx_comment() {
-        use simple_rsx::*;
         let rsx = rsx!(<!-- This is a comment -->);
         assert_eq!(rsx.to_string(), "<!-- This is a comment -->")
     }
 
     #[test]
     fn test_div_rsx() {
-        use simple_rsx::*;
         let rsx = rsx!(<div class="container" id="app" />);
         match rsx {
             Node::Element(element) => {
@@ -93,8 +88,6 @@ mod tests {
 
     #[test]
     fn test_div_children_rsx() {
-        use simple_rsx::rsx;
-
         let rsx = rsx!(
             <div class="container">
                 <h1>Title</h1>
@@ -109,7 +102,6 @@ mod tests {
 
     #[test]
     fn test_div_children_rsx_with_text() {
-        use simple_rsx::*;
         let name = "World";
         let rsx = rsx!(<div>Hello: {name}</div>);
         assert_eq!(rsx.to_string(), "<div>Hello:World</div>") // expressions don't preserve whitespace
@@ -117,7 +109,6 @@ mod tests {
 
     #[test]
     fn test_div_children_rsx_with_text_and_attribute() {
-        use simple_rsx::*;
         let rsx = rsx!(<input type_="text" placeholder={"Enter name".to_string()} required />);
         match rsx {
             Node::Element(element) => {
@@ -138,7 +129,6 @@ mod tests {
 
     #[test]
     fn test_div_children_rsx_with_text_and_attribute_and_fragment() {
-        use simple_rsx::*;
         let count = 42;
         let rsx = rsx!(
             <div class="mixed">
@@ -155,7 +145,6 @@ mod tests {
 
     #[test]
     fn test_div_children_rsx_with_if() {
-        use simple_rsx::*;
         let show = true;
         let rsx = rsx!(
             <div>
@@ -166,8 +155,8 @@ mod tests {
     }
 
     #[test]
+
     fn test_rsx_looping() {
-        use simple_rsx::*;
         let items = &["Item 1", "Item 2", "Item 3"];
         let list = rsx!(
             <ul>
@@ -182,7 +171,6 @@ mod tests {
 
     #[test]
     fn test_rsx_looping_with_index() {
-        use simple_rsx::*;
         let items = &["Item 1", "Item 2", "Item 3"];
         let list = rsx!(
             <ul>
@@ -199,7 +187,6 @@ mod tests {
 
     #[test]
     fn test_attribute_value_expression() {
-        use simple_rsx::*;
         let class = "container";
         let rsx = rsx!(<div class={format!("{class}-large")} />);
         assert_eq!(rsx.to_string(), "<div class=\"container-large\"></div>")
@@ -207,7 +194,6 @@ mod tests {
 
     #[test]
     fn test_component_rendering() {
-        use simple_rsx::*;
         fn some_component() -> Node {
             rsx!(<div>Some component</div>)
         }
@@ -221,8 +207,6 @@ mod tests {
 
     #[test]
     fn test_component_rendering_with_props() {
-        use simple_rsx::*;
-
         struct MyComponent;
 
         struct Props {
@@ -253,8 +237,6 @@ mod tests {
 
     #[test]
     fn test_fn_component_rendering_with_props() {
-        use simple_rsx::*;
-
         struct Props {
             message: String,
             children: Vec<Node>, // always required in components
@@ -281,7 +263,6 @@ mod tests {
 
     #[test]
     fn test_attribute_binding() {
-        use simple_rsx::*;
         let disabled = true;
         let rsx = rsx!(<button {disabled} />); // notice how we don't need to use assignment?
         assert_eq!(rsx.to_string(), "<button disabled=\"true\"></button>")

@@ -25,7 +25,7 @@
 //!
 //! ```rust
 //! extern crate alloc;
-//! use simple_rsx::*;
+//! use simple_rsx::prelude::*;
 //!
 //! // Create your first component - looks familiar, right?
 //! let greeting = rsx!(
@@ -45,7 +45,7 @@
 //!
 //! ```rust
 //! extern crate alloc;
-//! use simple_rsx::*;
+//! use simple_rsx::prelude::*;
 //!
 //! // Self-closing tags? Check!
 //! let img = rsx!(<img src="image.jpg" alt="An image" />);
@@ -71,7 +71,7 @@
 //!
 //! ```rust
 //! extern crate alloc;
-//! use simple_rsx::*;
+//! use simple_rsx::prelude::*;
 //!
 //! let name = "World";
 //! let count = 42;
@@ -116,7 +116,7 @@
 //!
 //! ```rust
 //! extern crate alloc;
-//! use simple_rsx::*;
+//! use simple_rsx::prelude::*;
 //!
 //! // Define your props - just like React's PropTypes
 //! #[derive(Default)]
@@ -152,7 +152,7 @@
 //!
 //! ```rust ignore
 //! extern crate alloc;
-//! use simple_rsx::*;
+//! use simple_rsx::prelude::*;
 //!
 //! // Data attributes? No problem!
 //! let element = rsx!(
@@ -189,7 +189,7 @@ use alloc::{boxed::Box, sync::Arc};
 /// # Example
 ///
 /// ```rust
-/// use simple_rsx::*;
+/// use simple_rsx::prelude::*;
 ///
 /// let element = rsx!(<div id="my-id" hidden={true} />);
 /// ```
@@ -205,7 +205,7 @@ pub trait Attribute {
 /// # Example
 ///
 /// ```rust
-/// use simple_rsx::*;
+/// use simple_rsx::prelude::*;
 ///
 /// let maybe_title = Some("Hello".to_string());
 /// let element = rsx!(<div title={maybe_title} />);
@@ -239,7 +239,7 @@ impl<T: ToString> OptionAttribute for Option<T> {
 /// You typically won't create Elements directly, but rather use the `rsx!` macro:
 ///
 /// ```rust
-/// use simple_rsx::*;
+/// use simple_rsx::prelude::*;
 ///
 /// let element = rsx!(
 ///     <div class="container">
@@ -312,7 +312,7 @@ impl Element {
 /// # Example
 ///
 /// ```rust
-/// use simple_rsx::*;
+/// use simple_rsx::prelude::*;
 ///
 /// struct Card;
 /// #[derive(Default)]
@@ -356,7 +356,7 @@ pub struct DefaultProps;
 /// # Example
 ///
 /// ```rust
-/// use simple_rsx::*;
+/// use simple_rsx::prelude::*;
 ///
 /// let text_node = Node::Text("Hello".to_string());
 /// let fragment = Node::Fragment(vec![text_node]);
