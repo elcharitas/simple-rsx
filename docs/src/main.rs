@@ -798,196 +798,43 @@ fn ReactivityPage() -> Node {
     rsx! {
         <article class="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
             <header class="mb-12">
-                <h1 class="text-4xl font-bold text-gray-900 dark:text-gray-100">Signals</h1>
+                <h1 class="text-4xl font-bold text-gray-900 dark:text-gray-100">Reactivity</h1>
                 <p class="mt-4 text-lg text-gray-600 dark:text-gray-400">
-                    "Signals are the most basic reactive primitive in Momenta. They contain values that change over time."
+                    "Reactivity is the core of Momenta's reactive programming model."
                 </p>
             </header>
-
             <section class="prose prose-gray dark:prose-invert max-w-none">
-                <h2 id="introduction">Introduction</h2>
+                <h2 class="font-bold uppercase">Introduction</h2>
                 <p>
-                    "When you create a signal, you get a getter and setter function. The getter tracks any scope it's called in,
-                    and the setter triggers updates to any computations that depend on the signal's value."
+                    "Reactivity is the core of Momenta's reactive programming model. It allows you to create reactive values and effects that automatically update when their dependencies change."
                 </p>
-
-                <h2 id="basic-example">Basic Example</h2>
+                <h2 class="font-bold uppercase">Basic Syntax</h2>
+                <p>
+                    "The basic pattern for creating reactive values and effects in Momenta is:"
+                </p>
                 <CodeBlock
                     language="rust"
                     filename="src/main.rs"
                     highlight=""
-                    code={r#"use momenta::prelude::*;
-
-#[component]
-fn App() -> Node {
-    // Create a signal with initial value 0
-    let count = create_signal(0);
-    
-    rsx! {
-        <div>
-            <p>Count: {count}</p>
-            <button on_click={move |_| count += 1}>
-                "Increment"
-            </button>
-        </div>
-    }
-}"#}
+                    code={r#"// Basic reactive value and effect creation
+    let count = create_signal(0);"#}
                 />
-
-                <Note variant="info">
-                    <p>
-                        <strong>"Good to know:"</strong> " Unlike other frameworks, You  accessing a signal's value requires calling "
-                        <code>".get()"</code> ". This explicit call enables Momenta's element-level reactivity system to track dependencies precisely."
-                    </p>
-                </Note>
-
-                <h2 id="api-reference">API Reference</h2>
-
-                <h3 id="creating-signals">Creating Signals</h3>
+                <p>
+                    "You can also create effects that automatically update when their dependencies change:"
+                </p>
                 <CodeBlock
                     language="rust"
                     filename="src/main.rs"
                     highlight=""
-                    code={r#"// Basic signal creation
-let count = create_signal(0);
-let name = create_signal("Alice".to_string());
-let todos = create_signal(vec![]);
-
-// With type annotations
-let typed: Signal<i32> = create_signal(0);
-let items: Signal<Vec<String>> = create_signal(vec![]);
-
-// Creating mutable signals
-let mut count = create_signal(0); // Note the mut keyword
-let mut name = create_signal("Alice".to_string());
-
-// Creating signals with complex types
-struct User {
-    name: String,
-    age: u32,
-}
-
-let user = create_signal(User {
-    name: "Alice".to_string(),
-    age: 30,
-});"#}
+                    code={r#"// Basic reactive effect creation"#}
                 />
-
-                <h3 id="reading-values">Reading Values</h3>
-                <CodeBlock
-                    language="rust"
-                    filename="src/main.rs"
-                    highlight=""
-                    code={r#"let count = create_signal(5);
-
-// Get current value
-let value = count.get(); // 5
-
-// Use in reactive context
-create_effect(move || {
-    log!("Count is: {}", count);
-});
-
-// Use with closures
-let doubled = move || count * 2;
-
-// Accessing nested properties
-let user = create_signal(User {
-    name: "Alice".to_string(),
-    age: 30,
-});
-
-// Access a property
-let name = user.get().name;
-
-// In reactive contexts, the entire signal is tracked
-create_effect(move || {
-    log!("User name: {}", user.get().name);
-    log!("User age: {}", user.get().age);
-});"#}
-                />
-
-                <h3 id="updating-values">Updating Values</h3>
-                <CodeBlock
-                    language="rust"
-                    filename="src/main.rs"
-                    highlight=""
-                    code={r#"let mut count = create_signal(0);
-
-// Override the value
-count.set(5); // Now count is 5
-
-// Update based on previous value
-count += 1; // Now count is 6
-
-// Updating complex types
-let mut user = create_signal(User {
-    name: "Alice".to_string(),
-    age: 30,
-});
-
-// create a new instance
-user.set(User {
-    name: "Bob".to_string(),
-    age: 25,
-});"#}
-                />
-                <Note variant="tip">
-                    <p>
-                        <strong>"Performance tip:"</strong> " When updating complex objects, consider using the update method
-                        to modify only the properties that have changed, rather than creating entirely new objects."
-                    </p>
-                </Note>
-
-                <h3>Signal Utilities</h3>
-                <CodeBlock
-                    language="rust"
-                    filename="src/main.rs"
-                    highlight=""
-                    code={r#"// Check if signals are equal
-let a = create_signal(5);
-let b = create_signal(5);
-let are_equal = a == b; // true
-
-// Derived signals
-let count = create_signal(0);
-let doubled = move || count.get() * 2;
-let is_even = move || count.get() % 2 == 0;
-
-// Combining signals
-let first_name = create_signal("John".to_string());
-let last_name = create_signal("Doe".to_string());
-let full_name = move || format!("{} {}", first_name.get(), last_name.get());
-
-// Batch updates
-let mut count = create_signal(0);
-let mut name = create_signal("Alice".to_string());
-
-// Update multiple signals at once
-batch(|| {
-    count.set(5);
-    name.set("Bob".to_string());
-    // UI will only update once after both changes
-});"#}
-                />
-
-                <h2 class="font-bold uppercase">Best Practices</h2>
-                <ul>
-                    <li>"Keep signals at the appropriate scope - not everything needs to be global state"</li>
-                    <li>"Prefer element-level signals over large state objects for better performance"</li>
-                    <li>"Group related signals into structs for better organization"</li>
-                    <li>"Use derived values (closures that read signals) instead of creating redundant signals"</li>
-                    <li>"When updating complex objects, use the update method to modify only what changed"</li>
-                    <li>"Use batch updates when changing multiple signals that affect the same UI elements"</li>
-                    <li>"Consider using custom signal types for domain-specific state management"</li>
-                </ul>
 
                 <div class="mt-12 flex items-center justify-between border-t border-gray-200 dark:border-gray-800 pt-6">
                     <a href="#" class="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200">
                         "← Getting Started"
                     </a>
                     <a href="#" class="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200">
-                        "Effects →"
+                        "Philosophy →"
                     </a>
                 </div>
             </section>
@@ -1690,8 +1537,10 @@ let are_equal = a == b; // true
                 <h2 class="font-bold uppercase">Best Practices</h2>
                 <ul>
                     <li>"Keep signals at the appropriate scope - not everything needs to be global state"</li>
-                    <li>Prefer</li>
+                    <li>"Prefer fine-grained signals over large state objects for better performance"</li>
                     <li>"Group related signals into structs for better organization"</li>
+                    <li>"Use derived values (closures that read signals) instead of creating redundant signals"</li>
+                    <li>"Consider using custom signal types for domain-specific state management"</li>
                 </ul>
 
                 <div class="mt-12 flex items-center justify-between border-t border-gray-200 dark:border-gray-800 pt-6">
