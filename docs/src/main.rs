@@ -7,10 +7,10 @@ use alloc::{format, vec, vec::Vec};
 use simple_rsx::Node;
 use simple_rsx::component;
 use simple_rsx::dom::render_root;
-use simple_rsx::either;
 use simple_rsx::rsx;
 use simple_rsx::signals::create_effect;
 use simple_rsx::signals::{Signal, SignalValue, create_signal};
+use simple_rsx::when;
 
 static GITHUB_LINK: &str = "https://github.com/elcharitas/simple-rsx";
 
@@ -109,7 +109,7 @@ fn App() -> Node {
 
             <div class="flex">
                 // Sidebar Navigation
-                {either!(current_page != Page::Home => <aside class="hidden lg:block w-64 shrink-0 border-r border-gray-200 dark:border-gray-800">
+                {when!(current_page != Page::Home => <aside class="hidden lg:block w-64 shrink-0 border-r border-gray-200 dark:border-gray-800">
                         <div class="sticky top-14 h-[calc(100vh-3.5rem)] overflow-y-auto py-8">
                             <Navigation {current_page} />
                         </div>
@@ -117,7 +117,7 @@ fn App() -> Node {
                 )}
 
                 // Mobile Navigation
-                {either!(mobile_menu_open.get() =>
+                {when!(mobile_menu_open.get() =>
                     <div class="lg:hidden fixed inset-0 z-50 flex">
                         <div class="fixed inset-0 bg-black/20 dark:bg-black/40" on_click={move |_| mobile_menu_open.set(false)}></div>
                         <div class="relative flex w-full max-w-xs flex-col bg-white dark:bg-gray-950">
@@ -136,7 +136,7 @@ fn App() -> Node {
 
                 // Main Content
                 <main class="flex-1 min-w-0">
-                    {either!(current_page.get() {
+                    {when!(current_page.get() {
                         Page::Home => <HomePage {current_page} />,
                         Page::GettingStarted => <GettingStartedPage />,
                         Page::Philosophy => <PhilosophyPage />,
@@ -154,7 +154,7 @@ fn App() -> Node {
                 </main>
 
                 // Right Sidebar (TOC)
-                {either!(current_page != Page::Home => <aside class="hidden xl:block w-64 shrink-0">
+                {when!(current_page != Page::Home => <aside class="hidden xl:block w-64 shrink-0">
                         <div class="sticky top-14 h-[calc(100vh-3.5rem)] overflow-y-auto p-8">
                             // <TableOfContents {current_page} />
                         </div>
@@ -217,7 +217,7 @@ fn Header(props: &HeaderProps) -> Node {
                         on_click={toggle_theme}
                         class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                     >
-                        {either!(theme.get() == "dark" =>
+                        {when!(theme.get() == "dark" =>
                             <i class="fas fa-sun text-yellow-500"></i>
                         else
                             <i class="fas fa-moon text-gray-600"></i>
@@ -284,7 +284,7 @@ fn Navigation(props: &NavigationProps) -> Node {
             ])}
 
             {section("Control Flow", vec![
-                nav_link(Page::Show, "either!"),
+                nav_link(Page::Show, "when!"),
                 nav_link(Page::For, ".iter().map()"),
             ])}
 
@@ -1223,11 +1223,11 @@ let element = rsx! {
     </div>
 };
 
-// Conditional rendering with either! macro
+// Conditional rendering with when! macro
 let is_logged_in = create_signal(true);
 let element = rsx! {
     <div>
-        {either!(is_logged_in.get() =>
+        {when!(is_logged_in.get() =>
             <p>"Welcome back!"</p>
         else
             <p>"Please log in"</p>
@@ -1275,7 +1275,7 @@ let elements = rsx! {
                     <li>"Keep your components small and focused on a single responsibility"</li>
                     <li>"Use signals for state that changes over time"</li>
                     <li>"Extract repeated patterns into reusable components"</li>
-                    <li>"Use the either! macro for conditional rendering"</li>
+                    <li>"Use the when! macro for conditional rendering"</li>
                     <li>"Use iterators with .map() for rendering lists"</li>
                 </ul>
 
@@ -1747,10 +1747,10 @@ fn Toggle() -> Node {
     rsx! {
         <div class="toggle">
             <button 
-                class={either!(is_on => "toggle-on" else "toggle-off")}
+                class={when!(is_on => "toggle-on" else "toggle-off")}
                 on_click={toggle}
             >
-                {either!(is_on => "On" else "Off")}
+                {when!(is_on => "On" else "Off")}
             </button>
         </div>
     }
@@ -1821,14 +1821,14 @@ fn ShowPage() -> Node {
             <header class="mb-12">
                 <h1 class="text-4xl font-bold text-gray-900 dark:text-gray-100">Conditional Rendering</h1>
                 <p class="mt-4 text-lg text-gray-600 dark:text-gray-400">
-                    "Use either! macro for conditional rendering based on reactive values."
+                    "Use when! macro for conditional rendering based on reactive values."
                 </p>
             </header>
 
             <section class="prose prose-gray dark:prose-invert max-w-none">
                 <h2 class="font-bold uppercase">Introduction</h2>
                 <p>
-                    "The either! macro provides a clean way to conditionally render different UI based on
+                    "The when! macro provides a clean way to conditionally render different UI based on
                     reactive values. It's similar to ternary operators but integrates seamlessly with Momenta's reactivity."
                 </p>
 
@@ -1845,7 +1845,7 @@ fn App() -> Node {
     
     rsx! {
         <div>
-            {either!(is_logged_in.get() =>
+            {when!(is_logged_in.get() =>
                 <div>
                     <h1>Welcome back!</h1>
                     <button on_click={move |_| is_logged_in.set(false)}>
@@ -1875,11 +1875,11 @@ let is_loading = create_signal(false);
 
 rsx! {
     <div>
-        {either!(is_loading.get() =>
+        {when!(is_loading.get() =>
             <div class="spinner">Loading...</div>
-        else either!(user_role.get() == "admin" =>
+        else when!(user_role.get() == "admin" =>
             <AdminPanel />
-        else either!(user_role.get() == "user" =>
+        else when!(user_role.get() == "user" =>
             <UserDashboard />
         else
             <GuestLanding />
@@ -1942,7 +1942,7 @@ let state = create_signal(LoadingState::Idle);
 
 rsx! {
     <div>
-        {either!(state.get() {
+        {when!(state.get() {
             LoadingState::Loading => <div class="loading">
                 <i class="fas fa-spinner fa-spin"></i>
                 " Loading..."
@@ -1982,7 +1982,7 @@ fn RequirePermission(props: &PermissionProps) -> Node {
         .any(|p| p == props.required_permission);
     
     rsx! {
-        {either!(has_permission =>
+        {when!(has_permission =>
             <div>{&props.children}</div>
         else
             <div class="permission-denied">
@@ -2002,7 +2002,7 @@ rsx! {
 
                 <h2 class="font-bold uppercase">Best Practices</h2>
                 <ul>
-                    <li>"Use either! for simple boolean conditions"</li>
+                    <li>"Use when! for simple boolean conditions"</li>
                     <li>"Consider creating Show/Hide components for reusable patterns"</li>
                     <li>"Avoid deeply nested conditional rendering"</li>
                     <li>"Use match expressions for complex state-based rendering"</li>

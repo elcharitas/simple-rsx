@@ -84,9 +84,9 @@
 //!     </div>
 //! );
 //!
-//! // Conditional rendering? Use the either! macro
+//! // Conditional rendering? Use the when! macro
 //! let show = true;
-//! let conditional = either!(show =>
+//! let conditional = when!(show =>
 //!     <p>Now you see me</p>
 //! else
 //!     <p>Now you don&apos;t</p>
@@ -182,7 +182,7 @@ use alloc::{
 use core::{fmt::Display, iter::FromIterator};
 use signals::{Signal, SignalValue};
 
-pub use simple_rsx_macros::{component, either, rsx};
+pub use simple_rsx_macros::{component, rsx, when};
 
 #[cfg(feature = "wasm")]
 use alloc::{boxed::Box, sync::Arc};

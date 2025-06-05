@@ -87,7 +87,7 @@ let expression = rsx!(<p>Count: {count}</p>);
 let show = true;
 let conditional = rsx!(
     <div>
-        {either!(show => <p>This is shown.</p>) else <p>This is hidden.</p>}
+        {when!(show => <p>This is shown.</p>) else <p>This is hidden.</p>}
     </div>
 );
 

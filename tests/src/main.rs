@@ -159,7 +159,7 @@ mod tests {
         let show = true;
         let rsx = rsx!(
             <div>
-                {either!(show => <p>Show me</p>)}
+                {when!(show => <p>Show me</p>)}
             </div>
         );
         assert_eq!(rsx.to_string(), "<div><p>Show me</p></div>")

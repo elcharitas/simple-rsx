@@ -24,21 +24,21 @@ use syn::{FnArg, PatType, Signature, Stmt, Type, TypeReference};
 /// let result: Result<i32, String> = Ok(42);
 ///
 /// // Conditional syntax with RSX nodes
-/// either!(show => <p>"Show me"</p>);
-/// either!(show => <p>"Show me"</p> else <p>"Hidden"</p>);
+/// when!(show => <p>"Show me"</p>);
+/// when!(show => <p>"Show me"</p> else <p>"Hidden"</p>);
 ///
 /// // Conditional syntax with literals
-/// either!(show => "Visible text");
-/// either!(show => "Visible" else "Hidden");
+/// when!(show => "Visible text");
+/// when!(show => "Visible" else "Hidden");
 ///
 /// // Match syntax
-/// either!(result {
+/// when!(result {
 ///     Ok(val) => <div>{val}</div>,
 ///     Err(_) => <p>"Error occurred"</p>
 /// });
 /// ```
 #[proc_macro]
-pub fn either(input: TokenStream) -> TokenStream {
+pub fn when(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as Either);
     let expanded = input.to_tokens();
     expanded.into()
