@@ -33,7 +33,8 @@ checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 name = "docs"
 version = "0.1.0"
 dependencies = [
- "simple-rsx",
+ "momenta",
+ "wasm-bindgen",
 ]
 
 [[package]]
@@ -67,6 +68,36 @@ name = "memchr"
 version = "2.7.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "78ca9ab1a0babb1e7d5695e3530886289c18cf2f87ec19a575a0abdce112e3a3"
+
+[[package]]
+name = "momenta"
+version = "0.2.0"
+dependencies = [
+ "momenta-macros",
+ "paste",
+ "spin",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
+]
+
+[[package]]
+name = "momenta-macros"
+version = "0.2.0"
+dependencies = [
+ "momenta",
+ "proc-macro2",
+ "quote",
+ "regex",
+ "syn",
+]
+
+[[package]]
+name = "momenta-test"
+version = "0.1.0"
+dependencies = [
+ "momenta",
+]
 
 [[package]]
 name = "once_cell"
@@ -140,38 +171,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "94143f37725109f92c262ed2cf5e59bce7498c01bcc1502d7b9afe439a4e9f49"
 
 [[package]]
-name = "simple-rsx"
-version = "0.1.9"
-dependencies = [
- "js-sys",
- "paste",
- "simple-rsx-macros",
- "spin",
- "thread_local",
- "wasm-bindgen",
- "wasm-bindgen-futures",
- "web-sys",
-]
-
-[[package]]
-name = "simple-rsx-macros"
-version = "0.1.9"
-dependencies = [
- "proc-macro2",
- "quote",
- "regex",
- "simple-rsx",
- "syn",
-]
-
-[[package]]
-name = "simple-rsx-test"
-version = "0.1.0"
-dependencies = [
- "simple-rsx",
-]
-
-[[package]]
 name = "spin"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -189,16 +188,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "unicode-ident",
-]
-
-[[package]]
-name = "thread_local"
-version = "1.1.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8b9ef9bad013ada3808854ceac7b46812a6465ba368859a37e2100283d2d719c"
-dependencies = [
- "cfg-if",
- "once_cell",
 ]
 
 [[package]]

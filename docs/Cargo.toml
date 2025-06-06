@@ -5,7 +5,8 @@ edition = "2024"
 metadata.workspace = true
 
 [dependencies]
-simple-rsx = { path = "../simple-rsx", features = ["wasm"] }
+momenta = { path = "../momenta", features = ["wasm"] }
+wasm-bindgen = { version = "0.2" }
 
 # Build script for wasm-opt
 [package.metadata.wasm-pack.profile.release]

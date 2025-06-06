@@ -1,657 +1,262 @@
-//! Simple RSX - A React-inspired JSX Library for Rust (no_std)
-//!
-//! I created Simple RSX to bring the familiar feel of React's JSX to Rust projects. If you're coming
-//! from a React background, you'll feel right at home. And if you're new to both, don't worry - I've made
-//! it super intuitive while keeping all the type safety and performance benefits of Rust.
-//!
-//! # Why Simple RSX?
-//!
-//! I started this project while attempting to transit my [portfolio](https://elcharitas.wtf) from Next.js to Rust.
-//! I wanted to keep my codebase as simple as possible, and I wanted to use Rust's powerful type system
-//! to ensure that my components were always correct. I tried existing libraries like `yew` and `sycamore`,
-//! but they were either too complex or didn't feel quite like React. And so, here we are.
-//!
-//! I know what you're thinking - "Another UI library?" But here's what makes Simple RSX special:
-//!
-//! - **React-like Syntax**: Write your templates using the `rsx!` macro - it's just like JSX!
-//! - **Type Safety**: Get compile-time checks for your components and props
-//! - **Zero Runtime Overhead**: All the magic happens at compile time
-//! - **Familiar Patterns**: Components, props, fragments - all the React concepts you love
-//! - **No-std Support**: Works in embedded and resource-constrained environments
-//!
-//! # Let's Get Started!
-//!
-//! Here's a quick taste of what you can do:
-//!
-//! ```rust
-//! use simple_rsx::*;
-//!
-//! // Create your first component - looks familiar, right?
-//! let greeting = rsx!(
-//!     <div class="greeting">
-//!         <h1>Hello, {"World"}!</h1>
-//!         <p>Welcome to Simple RSX</p>
-//!     </div>
-//! );
-//!
-//! // Turn it into HTML - perfect for server-side rendering (P.S: This to me is my favorite feature)
-//! println!("{}", greeting);
-//! ```
-//!
-//! # Features You'll Love
-//!
-//! ## JSX-style Elements - Write HTML, Get Rust
-//!
-//! ```rust
-//! use simple_rsx::*;
-//!
-//! // Self-closing tags? Check!
-//! let img = rsx!(<img src="image.jpg" alt="An image" />);
-//!
-//! // Nested elements? Of course!
-//! let card = rsx!(
-//!     <div class="card">
-//!         <h2>Title</h2>
-//!         <p>Content</p>
-//!     </div>
-//! );
-//!
-//! // Fragments? No problem! Just use <> and the children will be flattened
-//! let fragment = rsx!(
-//!     <>
-//!         <h1>Title</h1>
-//!         <p>No wrapper needed</p>
-//!     </>
-//! );
-//! ```
-//!
-//! ## Dynamic Content - Make It Come Alive
-//!
-//! ```rust
-//! use simple_rsx::*;
-//!
-//! let name = "World";
-//! let count = 42;
-//!
-//! // Drop in any Rust expression with {}
-//! let dynamic = rsx!(
-//!     <div>
-//!         <h1>Hello, {name}!</h1>
-//!         <p>Count: {count}</p>
-//!     </div>
-//! );
-//!
-//! // Conditional rendering? Use the either! macro
-//! let show = true;
-//! let conditional = either!(show =>
-//!     <p>Now you see me</p>
-//! else
-//!     <p>Now you don&apos;t</p>
-//! );
-//!
-//! // Conditional classes? Easy!
-//! let is_active = true;
-//! let button = rsx!(
-//!     <button class={if is_active { "active" } else { "" }}>
-//!         Toggle
-//!     </button>
-//! );
-//!
-//! // Render lists with iterator magic
-//! let items = vec!["A", "B", "C"];
-//! let list = rsx!(
-//!     <ul>
-//!         {items.iter().map(|item| {
-//!             let item = item.to_string();
-//!             rsx!(<li>{item}</li>)
-//!         })}
-//!     </ul>
-//! );
-//! ```
-//!
-//! ## Components and Props - Build Reusable UI
-//!
-//! ```rust
-//! use simple_rsx::*;
-//!
-//! // Define your props - just like React's PropTypes
-//! #[derive(Default)]
-//! struct ButtonProps {
-//!     text: String,
-//!     variant: String,
-//!     children: Vec<Node>,
-//! }
-//!
-//! // Create a component - clean and simple
-//! #[component]
-//! fn Button(props: ButtonProps) -> Node {
-//!     rsx!(
-//!         <button class={format!("btn btn-{}", props.variant)}>
-//!             {props.text}
-//!             {props.children}
-//!         </button>
-//!     )
-//! }
-//!
-//! // Use it anywhere!
-//! let button = rsx!(
-//!     <Button text="Click me" variant="primary">
-//!         <span>"→"</span>
-//!     </Button>
-//! );
-//! ```
-//!
-//! ## HTML Data attributes
-//!
-//! With simple RSX, HTML data attributes are the only props which do not get validated by the compiler.
-//! This allows you to use any valid literal or expression in the value of a data attribute.
-//!
-//! ```rust
-//! use simple_rsx::*;
-//!
-//! // Data attributes? No problem!
-//! let element = rsx!(
-//!     <div
-//!         data_user="john"
-//!         data_role="admin"
-//!     />
-//! );
-//! ```
-//!
-
-#![no_std]
-
-extern crate alloc;
-
-pub mod dom;
-pub mod signals;
-
-// For no_std, we need to use alloc collections instead of std
-use alloc::{
-    borrow::Cow,
-    collections::BTreeMap,
-    format,
-    string::{String, ToString},
-    vec::Vec,
+use crate::{
+    nodes::{Component, Node},
+    signals::run_scope,
 };
-use core::{fmt::Display, iter::FromIterator};
-
-pub use simple_rsx_macros::{component, either, rsx};
 
 #[cfg(feature = "wasm")]
-use alloc::{boxed::Box, sync::Arc};
-
-/// A trait for converting values into HTML attribute strings.
-///
-/// This trait is automatically implemented for any type that implements `ToString`,
-/// making it easy to use various types as attribute values.
-///
-/// # Example
-///
-/// ```rust
-/// use simple_rsx::*;
-///
-/// let element = rsx!(<div id="my-id" hidden={true} />);
-/// ```
-pub trait Attribute {
-    fn value(&self) -> String;
+#[wasm_bindgen::prelude::wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(js_namespace = console)]
+    pub fn log(s: &str);
 }
 
-/// A trait for handling optional attribute values.
-///
-/// This trait is automatically implemented for `Option<T>` where T implements `ToString`.
-/// It allows for graceful handling of optional attributes, rendering them as empty strings when None.
-///
-/// # Example
-///
-/// ```rust
-/// use simple_rsx::*;
-///
-/// let maybe_title = Some("Hello".to_string());
-/// let element = rsx!(<div title={maybe_title} />);
-/// ```
-pub trait OptionAttribute {
-    fn value(&self) -> String;
-}
+#[cfg(feature = "wasm")]
+mod element_cache {
+    use alloc::{collections::BTreeMap, string::String};
+    use core::cell::UnsafeCell;
 
-impl<T: ToString> Attribute for T {
-    fn value(&self) -> String {
-        self.to_string()
+    #[derive(Debug)]
+    // UnsafeCell wrapper for WASM single-threaded environment
+    struct ElementCache {
+        inner: UnsafeCell<Option<BTreeMap<String, web_sys::Element>>>,
     }
-}
 
-impl<T: ToString> OptionAttribute for Option<T> {
-    fn value(&self) -> String {
-        match self {
-            Some(t) => t.to_string(),
-            None => String::new(),
+    unsafe impl Sync for ElementCache {}
+
+    static ELEMENT_CACHE: ElementCache = ElementCache {
+        inner: UnsafeCell::new(None),
+    };
+
+    // Safe in WASM because it's single-threaded
+    pub(crate) fn with_cache<F, R>(f: F) -> R
+    where
+        F: FnOnce(&mut BTreeMap<String, web_sys::Element>) -> R,
+    {
+        unsafe {
+            let cache = &mut *ELEMENT_CACHE.inner.get();
+            if cache.is_none() {
+                *cache = Some(BTreeMap::new());
+            }
+            f(cache.as_mut().unwrap())
         }
     }
 }
 
-#[derive(Clone)]
-/// Represents an HTML element with its tag name, attributes, and children.
-///
-/// Elements are the building blocks of the RSX tree structure. Each element
-/// can have attributes (like class, id, etc.) and can contain other elements
-/// or text nodes as children.
-///
-/// You typically won't create Elements directly, but rather use the `rsx!` macro:
-///
-/// ```rust
-/// use simple_rsx::*;
-///
-/// let element = rsx!(
-///     <div class="container">
-///         <p>Hello world!</p>
-///     </div>
-/// );
-/// ```
-pub struct Element {
-    key: String,
-    tag: Cow<'static, str>,
-    attributes: BTreeMap<String, String>,
-    children: Vec<Node>,
-    #[cfg(feature = "wasm")]
-    events: BTreeMap<String, EventCallback>,
-    #[cfg(not(feature = "wasm"))]
-    #[allow(unused)]
-    events: BTreeMap<String, String>,
+#[cfg(feature = "wasm")]
+trait WasmRender {
+    fn render(&self, mount: &web_sys::Element) -> Option<web_sys::Element>;
 }
 
-impl Element {
-    pub fn parse_tag_with_attributes(
-        key: &str,
-        tag: &'static str,
-        attributes: BTreeMap<String, String>,
-        #[cfg(feature = "wasm")] events: BTreeMap<String, EventCallback>,
-        #[cfg(not(feature = "wasm"))] events: BTreeMap<String, String>,
-        children: Vec<Node>,
-    ) -> Node {
-        Node::Element(Element {
-            tag: Cow::Borrowed(tag),
-            key: key.to_string(),
-            attributes,
-            events,
-            children,
-        })
-    }
+#[cfg(feature = "wasm")]
+impl WasmRender for crate::nodes::Element {
+    fn render(&self, mount: &web_sys::Element) -> Option<web_sys::Element> {
+        let element = web_sys::window()
+            .map(|window| window.document().map(|doc| doc.create_element(self.tag())))
+            .flatten()
+            .and_then(|el| el.ok());
 
-    pub fn key(&self) -> &str {
-        &self.key
-    }
+        if let Some(element) = element {
+            let _ = mount.append_child(&element);
+            for child in self.children() {
+                child.render(&element);
+            }
+            // add attributes
+            for (name, value) in self.attributes() {
+                let _ = element.set_attribute(name, value);
+            }
+            // attach events
+            for (event_type, callback) in self.events() {
+                attach_event_handler(&element, event_type, callback.clone());
+            }
 
-    pub fn tag(&self) -> &str {
-        &self.tag
-    }
-
-    pub fn attributes(&self) -> &BTreeMap<String, String> {
-        &self.attributes
-    }
-
-    pub fn children(&self) -> &Vec<Node> {
-        &self.children
+            element_cache::with_cache(|cache| {
+                use alloc::string::ToString;
+                cache.insert(self.key().to_string(), element.clone());
+            });
+            return Some(element);
+        }
+        None
     }
 }
 
-/// A trait for creating reusable components.
-///
-/// Components are the heart of RSX's reusability model. They allow you to create
-/// custom elements with their own logic and state.
+#[cfg(feature = "wasm")]
+impl WasmRender for Node {
+    fn render(&self, mount: &web_sys::Element) -> Option<web_sys::Element> {
+        match self {
+            Node::Text(text) => {
+                let current_text = mount.text_content().unwrap_or_default();
+                mount.set_text_content(Some(&(current_text + &text)));
+                return None;
+            }
+            Node::Element(el) => {
+                return el.render(mount);
+            }
+            Node::Fragment(fragment) => {
+                for child in fragment {
+                    child.render(mount);
+                }
+                return None;
+            }
+            Node::Comment(_) => {
+                // TODO: implement comment rendering
+                return None;
+            }
+            _ => None,
+        }
+    }
+}
+
+/// Renders a component with the given props
 ///
 /// # Example
 ///
-/// ```rust
-/// use simple_rsx::*;
+/// ```rust ignore
+/// use momenta::{dom::component, signals::create_signal, *};
 ///
-/// struct Card;
-/// #[derive(Default)]
-/// struct CardProps {
-///     title: String,
-///     children: Vec<Node>,
-/// }
+/// #[component]
+/// fn App() -> Node {
+///     let count = create_signal(0);
 ///
-/// impl Component for Card {
-///     type Props = CardProps;
-///     fn render(props: Self::Props) -> Node {
-///         rsx!(
-///             <div class="card">
-///                 <h2>{props.title}</h2>
-///                 <div class="card-content">{props.children}</div>
-///             </div>
-///         )
+///     rsx! {
+///         <div>
+///             <h1>Hello World</h1>
+///             Count: {count}
+///         </div>
 ///     }
 /// }
-/// ```
-pub trait Component {
-    /// The type of props this component accepts
-    type Props;
-
-    /// Renders the component with the given props
-    fn render(props: &Self::Props) -> Node;
-}
-
-#[derive(Default)]
-pub struct PropWithChildren {
-    pub children: Vec<Node>,
-}
-
-#[derive(Clone)]
-/// Represents a node in the RSX tree.
 ///
-/// Nodes are the fundamental building blocks of RSX. They can be:
-/// - Elements (like `<div>` or `<p>`)
-/// - Text content
-/// - Fragments (groups of nodes)
-/// - Comments
+/// fn main() {
+///     let node = component::<App>(Default::default());
+///     println!("{}", node.to_string());
+/// }
+/// ```
+pub fn component<C: Component>(props: C::Props) -> Node
+where
+    <C as Component>::Props: Send + Sync + 'static,
+{
+    render_component::<C>(props, |_| {})
+}
+
+#[cfg(feature = "wasm")]
+/// Renders the root component to the specified selector
 ///
 /// # Example
 ///
-/// ```rust
-/// use simple_rsx::*;
+/// ```rust ignore
+/// use momenta::{dom::render_root, signals::create_signal, *};
 ///
-/// let text_node = Node::Text("Hello".to_string());
-/// let element_node = Element::parse_tag("div");
-/// let fragment = Node::Fragment(vec![text_node, element_node]);
+/// #[component]
+/// fn App() -> Node {
+///     let count = create_signal(0);
+///
+///     rsx! {
+///         <div>
+///             <h1>Hello World</h1>
+///             Count: {count}
+///         </div>
+///     }
+/// }
+///
+/// fn main() {
+///     render_root::<App>("#app");
+/// }
 /// ```
-pub enum Node {
-    /// An HTML element with a tag name, attributes, and children
-    Element(Element),
-    /// Plain text content
-    Text(String),
-    /// A group of nodes without a wrapper element
-    Fragment(Vec<Node>),
-    /// An HTML comment
-    Comment(String),
-    Empty,
-}
-
-impl Node {
-    /// Attempts to get a mutable reference to the underlying Element if this node is an Element.
-    ///
-    /// Returns None if the node is not an Element (e.g., if it's Text or Fragment).
-    pub fn as_element_mut(&mut self) -> Option<&mut Element> {
-        match self {
-            Node::Element(el) => Some(el),
-            _ => None,
-        }
-    }
-
-    pub fn as_element(&self) -> Option<&Element> {
-        match self {
-            Node::Element(el) => Some(el),
-            _ => None,
-        }
-    }
-
-    pub fn as_text(&self) -> Option<&str> {
-        match self {
-            Node::Text(text) => Some(text),
-            _ => None,
-        }
-    }
-
-    /// Adds a child node if this node is an Element.
-    ///
-    /// This method has no effect if the node is not an Element.
-    pub fn append_child(&mut self, node: Node) {
-        if let Node::Element(el) = self {
-            el.children.push(node);
-        }
-    }
-}
-
-impl From<String> for Node {
-    fn from(value: String) -> Self {
-        Node::Text(value)
-    }
-}
-
-impl From<&String> for Node {
-    fn from(value: &String) -> Self {
-        Node::Text(value.to_string())
-    }
-}
-
-impl From<&str> for Node {
-    fn from(value: &str) -> Self {
-        Node::Text(value.to_string())
-    }
-}
-
-impl From<&&str> for Node {
-    fn from(value: &&str) -> Self {
-        Node::Text(value.to_string())
-    }
-}
-
-impl<T> From<Vec<T>> for Node
+pub fn render_root<C: Component>(selectors: &'static str)
 where
-    Node: From<T>,
+    <C as Component>::Props: Default,
+    <C as Component>::Props: Send + Sync + 'static,
 {
-    fn from(value: Vec<T>) -> Self {
-        Node::Fragment(value.into_iter().map(|t| Node::from(t)).collect())
-    }
+    render_component::<C>(Default::default(), move |node| {
+        let window = web_sys::window().expect("no global `window` exists");
+        let document = window.document().expect("should have a document on window");
+        let mount_point = document
+            .query_selector(&selectors)
+            .expect("couldn't find element")
+            .expect("couldn't find element");
+        // clear mount point
+        while let Some(child) = mount_point.first_child() {
+            mount_point.remove_child(&child).ok();
+        }
+        node.render(&mount_point);
+    });
 }
 
-impl<T: Clone> From<&Vec<T>> for Node
+#[cfg(feature = "wasm")]
+/// Mounts the root component to the body element
+///
+/// # Example
+///
+/// ```rust ignore
+/// use momenta::{dom::mount_to_body, signals::create_signal, *};
+///
+/// #[component]
+/// fn App() -> Node {
+///     let count = create_signal(0);
+///
+///     rsx! {
+///         <div>
+///             <h1>Hello World</h1>
+///             Count: {count}
+///         </div>
+///     }
+/// }
+///
+/// fn main() {
+///     mount_to_body::<App>();
+/// }
+/// ```
+pub fn mount_to_body<C: Component>()
 where
-    Node: From<T>,
+    <C as Component>::Props: Default,
+    <C as Component>::Props: Send + Sync + 'static,
 {
-    fn from(value: &Vec<T>) -> Self {
-        Node::Fragment(value.clone().into_iter().map(|t| Node::from(t)).collect())
-    }
+    render_root::<C>("body");
 }
 
-impl<T: ToString> From<Option<T>> for Node {
-    fn from(value: Option<T>) -> Self {
-        match value {
-            Some(t) => Node::Text(t.to_string()),
-            _ => Node::Empty,
-        }
-    }
+#[cfg(feature = "wasm")]
+fn attach_event_handler(
+    element: &web_sys::Element,
+    event_type: &str,
+    mut callback: crate::nodes::EventCallback,
+) {
+    use alloc::boxed::Box;
+    use wasm_bindgen::prelude::*;
+
+    let closure = Closure::wrap(Box::new(move |event: web_sys::Event| {
+        callback.call(event);
+    }) as Box<dyn FnMut(web_sys::Event)>);
+
+    element
+        .add_event_listener_with_callback(event_type, closure.as_ref().unchecked_ref())
+        .expect("Failed to add event listener");
+
+    closure.forget(); // Keep the closure alive
 }
 
-impl From<i32> for Node {
-    fn from(value: i32) -> Self {
-        Node::Text(value.to_string())
-    }
-}
-
-impl From<u32> for Node {
-    fn from(value: u32) -> Self {
-        Node::Text(value.to_string())
-    }
-}
-
-impl From<u64> for Node {
-    fn from(value: u64) -> Self {
-        Node::Text(value.to_string())
-    }
-}
-
-impl FromIterator<u32> for Node {
-    fn from_iter<T: IntoIterator<Item = u32>>(iter: T) -> Self {
-        let mut result = Vec::new();
-        for item in iter {
-            result.push(Node::Text(item.to_string()));
-        }
-        Node::Fragment(result)
-    }
-}
-
-impl FromIterator<u64> for Node {
-    fn from_iter<T: IntoIterator<Item = u64>>(iter: T) -> Self {
-        let mut result = Vec::new();
-        for item in iter {
-            result.push(Node::Text(item.to_string()));
-        }
-        Node::Fragment(result)
-    }
-}
-
-impl FromIterator<i32> for Node {
-    fn from_iter<T: IntoIterator<Item = i32>>(iter: T) -> Self {
-        let mut result = Vec::new();
-        for item in iter {
-            result.push(Node::Text(item.to_string()));
-        }
-        Node::Fragment(result)
-    }
-}
-
-impl From<f32> for Node {
-    fn from(value: f32) -> Self {
-        Node::Text(value.to_string())
-    }
-}
-
-impl From<bool> for Node {
-    fn from(value: bool) -> Self {
-        Node::Text(value.to_string())
-    }
-}
-
-impl<I, F, R> From<core::iter::Map<I, F>> for Node
+fn render_component<C: Component>(
+    props: C::Props,
+    callback: impl Fn(&Node) + Send + Sync + 'static,
+) -> Node
 where
-    I: Iterator,
-    F: FnMut(I::Item) -> R,
-    R: Into<Node>,
-    Vec<Node>: FromIterator<R>,
+    <C as Component>::Props: Send + Sync + 'static,
 {
-    fn from(iter: core::iter::Map<I, F>) -> Self {
-        let nodes: Vec<Node> = iter.collect();
-        Node::from(nodes)
-    }
-}
-
-impl<I, F, R> From<&core::iter::Map<I, F>> for Node
-where
-    I: Iterator + Clone,
-    F: FnMut(I::Item) -> R + Clone,
-    R: Into<Node>,
-    Vec<Node>: FromIterator<R>,
-{
-    fn from(iter: &core::iter::Map<I, F>) -> Self {
-        let nodes: Vec<Node> = iter.clone().collect();
-        Node::from(nodes)
-    }
-}
-
-impl Display for Node {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        match self {
-            Node::Element(el) => {
-                write!(f, "<{}", el.tag)?;
-                for (key, value) in &el.attributes {
-                    write!(f, " {}=\"{}\"", key, value)?;
+    run_scope(
+        move || C::render(&props),
+        move |node| {
+            #[cfg(feature = "wasm")]
+            if let Node::Element(el) = node {
+                if let Some(element) =
+                    element_cache::with_cache(|cache| cache.get(el.key()).cloned())
+                {
+                    if let Some(parent) = element.parent_element() {
+                        parent.remove_child(&element).ok();
+                        el.render(&parent);
+                    }
                 }
-                write!(f, ">")?;
-                for child in &el.children {
-                    write!(f, "{}", child)?;
-                }
-                write!(f, "</{}>", el.tag)?;
-                Ok(())
             }
-            Node::Text(text) => {
-                write!(f, "{}", sanitize_html(text))?;
-                Ok(())
-            }
-            Node::Fragment(nodes) => {
-                for node in nodes {
-                    write!(f, "{}", node)?;
-                }
-                Ok(())
-            }
-            Node::Comment(comment) => {
-                write!(f, "<!--{}-->", comment)?;
-                Ok(())
-            }
-            Node::Empty => {
-                write!(f, "")?;
-                Ok(())
-            }
-        }
-    }
-}
-
-fn sanitize_html(input: &str) -> String {
-    let mut result = String::new();
-    for c in input.chars() {
-        match c {
-            '<' => {
-                result.push_str("&lt;");
-            }
-            '>' => {
-                result.push_str("&gt;");
-            }
-            '&' => {
-                result.push_str("&amp;");
-            }
-            '"' => {
-                result.push_str("&quot;");
-            }
-            '\'' => {
-                result.push_str("&#39;");
-            }
-            '/' => {
-                result.push_str("&#x2F;");
-            }
-            _ => {
-                result.push(c);
-            }
-        };
-    }
-    result
-}
-
-#[cfg(feature = "wasm")]
-pub struct EventCallback(Option<Arc<spin::Mutex<Box<dyn FnMut(web_sys::Event) + Send + Sync>>>>);
-
-#[cfg(feature = "wasm")]
-impl Default for EventCallback {
-    fn default() -> Self {
-        Self(None)
-    }
-}
-
-#[cfg(feature = "wasm")]
-impl EventCallback {
-    pub fn new<F>(callback: F) -> Self
-    where
-        F: FnMut(web_sys::Event) + Send + Sync + 'static,
-    {
-        Self(Some(Arc::new(spin::Mutex::new(Box::new(callback)))))
-    }
-
-    pub fn has_callback(&self) -> bool {
-        self.0.is_some()
-    }
-
-    pub fn call(&mut self, event: web_sys::Event) {
-        if let Some(cb) = &mut self.0 {
-            let mut cb = cb.lock();
-            cb(event);
-        }
-    }
-}
-
-#[cfg(feature = "wasm")]
-impl Clone for EventCallback {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
-}
-
-// For convenience with Fn closures
-#[cfg(feature = "wasm")]
-impl<F> From<F> for EventCallback
-where
-    F: FnMut(web_sys::Event) + Send + Sync + 'static,
-{
-    fn from(callback: F) -> Self {
-        Self::new(callback)
-    }
+            callback(node)
+        },
+    )
 }
 
 macro_rules! derive_elements {
@@ -695,9 +300,9 @@ macro_rules! derive_elements {
                     /// The title attribute specifies extra information about an element (displayed as a tooltip)
                     pub title: Option<String>,
                     /// The width attribute specifies the width of the image
-                    pub width: Option<String>,
+                    pub width: String,
                     /// The height attribute specifies the height of the image
-                    pub height: Option<String>,
+                    pub height: String,
 
                     /// Specifies whether an element is draggable or not
                     pub draggable: bool,
@@ -977,7 +582,6 @@ macro_rules! derive_elements {
                     fn get_events(&self) -> BTreeMap<String, String> {
                         BTreeMap::new()
                     }
-
                 }
 
                 impl Component for $tag {
@@ -999,7 +603,14 @@ macro_rules! derive_elements {
 }
 
 pub mod elements {
-    use super::*;
+    use crate::nodes::*;
+    use alloc::{
+        collections::BTreeMap,
+        format,
+        string::{String, ToString},
+        vec::Vec,
+    };
+
     derive_elements! {
         /// HTML `<html>` element - Root element of an HTML document
         html {
@@ -1121,11 +732,7 @@ pub mod elements {
         ///
         /// Example:
         ///
-        /// ```<pre>
-        ///     This is
-        ///     preformatted
-        ///     text.
-        /// </pre>```
+        /// `<pre> This is preformatted text.</pre>`
         pre {}
         /// HTML `<code>` element - Represents a piece of computer code
         ///
@@ -1320,10 +927,10 @@ pub mod elements {
         td {
             /// The colspan attribute specifies how many columns a cell should span
             /// Example: colspan="3" (cell spans 3 columns)
-            colspan: i32,
+            colspan: Option<i32>,
             /// The rowspan attribute specifies how many rows a cell should span
             /// Example: rowspan="2" (cell spans 2 rows)
-            rowspan: i32,
+            rowspan: Option<i32>,
             /// The headers attribute associates data cells with header cells
             /// Example: headers="col1 row1" (associates with those header IDs)
             headers: String,
@@ -1340,10 +947,10 @@ pub mod elements {
         th {
             /// The colspan attribute specifies how many columns a cell should span
             /// Example: colspan="3" (header spans 3 columns)
-            colspan: i32,
+            colspan: Option<i32>,
             /// The rowspan attribute specifies how many rows a cell should span
             /// Example: rowspan="2" (header spans 2 rows)
-            rowspan: i32,
+            rowspan: Option<i32>,
             /// The headers attribute associates data cells with header cells
             /// Example: headers="col1 row1" (associates with those header IDs)
             headers: String,

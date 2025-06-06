@@ -1,8 +1,8 @@
 [package]
-name = "simple-rsx-test"
+name = "momenta-test"
 version = "0.1.0"
 edition = "2024"
 metadata.workspace = true
 
 [dependencies]
-simple-rsx = { path = "../simple-rsx", features = ["wasm"] }
+momenta = { path = "../momenta", features = ["wasm"] }

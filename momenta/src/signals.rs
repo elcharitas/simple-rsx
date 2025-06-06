@@ -1,14 +1,14 @@
-use crate::Node;
+use crate::nodes::Node;
 use alloc::{
     boxed::Box,
     collections::{BTreeMap, BTreeSet},
-    string::String,
+    string::{String, ToString},
     sync::Arc,
 };
 use core::{
     any::Any,
     marker::PhantomData,
-    ops::{AddAssign, DivAssign, MulAssign, SubAssign},
+    ops::{AddAssign, DivAssign, MulAssign, Not, SubAssign},
 };
 use spin::Mutex;
 
@@ -95,6 +95,12 @@ impl_signal_value!(
     ()
 );
 
+impl<T: SignalValue + 'static> SignalValue for alloc::vec::Vec<T> {
+    fn as_any(&self) -> Option<&dyn Any> {
+        Some(self)
+    }
+}
+
 impl<T: SignalValue + 'static> SignalValue for Option<T> {
     fn as_any(&self) -> Option<&dyn Any> {
         Some(self)
@@ -106,11 +112,35 @@ impl<T: SignalValue + 'static> SignalValue for Option<T> {
 //==============================================================================
 
 /// Reactive value that triggers re-renders when changed
-#[derive(Copy, Debug)]
+#[derive(Copy, Debug, PartialEq, Eq)]
 pub struct Signal<T> {
     id: (usize, usize),
     _marker: PhantomData<T>,
 }
+
+impl<T: SignalValue + PartialEq + 'static> PartialEq<T> for Signal<T> {
+    fn eq(&self, other: &T) -> bool {
+        self.with(|val| val == other).unwrap_or(false)
+    }
+}
+
+impl<T: SignalValue + Not<Output = bool> + Clone + 'static> Not for Signal<T> {
+    type Output = bool;
+    fn not(self) -> Self::Output {
+        !self.get()
+    }
+}
+
+impl<T: SignalValue + Clone + 'static> Signal<T> {
+    pub fn then<R, F: FnOnce() -> R>(self, f: F) -> Option<R>
+    where
+        Signal<T>: Not<Output = bool>,
+    {
+        if !!self { Some(f()) } else { None }
+    }
+}
+
+// implement .then for Signal
 
 impl<T> Clone for Signal<T> {
     fn clone(&self) -> Self {
@@ -153,7 +183,18 @@ impl<T: SignalValue + PartialEq + Clone + core::ops::Div<Output = T> + 'static> 
     }
 }
 
-impl<T: SignalValue + PartialEq + 'static> Signal<T> {
+// impl iter for Signal where T is a vec
+impl<T: SignalValue + PartialEq + Clone + 'static, R: SignalValue> Iterator for Signal<T>
+where
+    T: IntoIterator<Item = R>,
+{
+    type Item = R;
+    fn next(&mut self) -> Option<Self::Item> {
+        self.get().into_iter().next()
+    }
+}
+
+impl<T: SignalValue + 'static> Signal<T> {
     /// Access signal value immutably
     pub fn with<R>(&self, f: impl FnOnce(&T) -> R) -> Option<R> {
         if let Some(current_scope) = get_current_scope() {
@@ -186,7 +227,10 @@ impl<T: SignalValue + PartialEq + 'static> Signal<T> {
     }
 
     /// Update signal value and trigger re-renders if changed
-    pub fn set(&self, value: T) {
+    pub fn set(&self, value: T)
+    where
+        T: PartialEq,
+    {
         let mut changed = false;
 
         {
@@ -326,7 +370,7 @@ pub fn create_effect(effect: impl Fn() + Send + 'static) {
 pub(crate) fn run_scope(
     scope_fn: impl FnMut() -> Node + Send + 'static,
     callback: impl Fn(&Node) + Send + Sync + 'static,
-) -> Option<Node> {
+) -> Node {
     let scope_id = {
         let mut next_id = NEXT_SCOPE_ID.lock();
         let current = *next_id;
@@ -391,7 +435,7 @@ impl Drop for ScopeGuard {
     }
 }
 
-fn render_scope(scope_id: usize) -> Option<Node> {
+fn render_scope(scope_id: usize) -> Node {
     let _guard = ScopeGuard {
         previous_scope: get_current_scope(),
     };
@@ -428,10 +472,13 @@ fn render_scope(scope_id: usize) -> Option<Node> {
     };
 
     let node = scope_fn.map(|mut fnc| {
-        let node = fnc();
+        let mut node = fnc();
         {
             let mut scope_functions = SCOPE_FUNCTIONS.lock();
             scope_functions.insert(scope_id, fnc);
+        }
+        if let Some(el) = node.as_element_mut() {
+            el.key = scope_id.to_string();
         }
         node
     });
@@ -475,7 +522,7 @@ fn render_scope(scope_id: usize) -> Option<Node> {
         }
     }
 
-    node
+    node.unwrap_or(Node::Empty)
 }
 
 fn run_scope_effects(scope_id: usize) {

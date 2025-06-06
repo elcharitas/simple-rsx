@@ -1,0 +1,29 @@
+[package]
+name = "momenta"
+version = "0.2.0"
+edition = "2024"
+description = "A framework for building element level reactive ui"
+authors = ["Jonathan Irhodia <jonathanirhodia@gmail.com>"]
+license = "MIT"
+repository = "https://github.com/elcharitas/momenta"
+keywords = ["jsx", "react", "template", "markup", "html"]
+categories = ["template-engine", "web-programming"]
+documentation = "https://docs.rs/momenta"
+
+[dependencies]
+paste = "1.0"
+momenta-macros = { path = "../momenta-macros", version = "0.2.0" }
+spin = { version = "0.10" }
+wasm-bindgen = { version = "0.2", optional = true }
+wasm-bindgen-futures = { version = "0.4", optional = true }
+web-sys = { version = "0.3", optional = true, features = [
+    "Document",
+    "Element",
+    "HtmlElement",
+    "Window",
+    "Event",
+] }
+
+[features]
+default = []
+wasm = ["wasm-bindgen", "wasm-bindgen-futures", "web-sys"]

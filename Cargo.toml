@@ -1,5 +1,5 @@
 [workspace]
-members = ["simple-rsx-macros", "simple-rsx", "tests", "docs"]
+members = ["momenta-macros", "momenta", "tests", "docs"]
 resolver = "3"
 
 [profile.release]

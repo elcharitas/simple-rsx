@@ -1,6 +1,8 @@
 use proc_macro::TokenStream;
 use proc_macro2::{Span, TokenStream as TokenStream2};
-use quote::quote;
+use quote::{ToTokens, quote};
+use syn::braced;
+use syn::punctuated::Punctuated;
 use syn::spanned::Spanned;
 use syn::token::Colon;
 use syn::{
@@ -11,57 +13,32 @@ use syn::{
 };
 use syn::{FnArg, PatType, Signature, Stmt, Type, TypeReference};
 
-/// A procedural macro that provides JSX-like syntax for creating HTML elements in Rust.
-///
-/// # Examples
-///
-/// ```rust
-/// use simple_rsx::*;
-/// // Fragment
-/// rsx!(<>"Hello World"</>);
-///
-/// // Self-closing tag
-/// rsx!(<div class="container" id="app" />);
-///
-/// // Tag with children
-/// rsx!(<div class="container">
-///     <h1>Title</h1>
-///     <p>Paragraph text</p>
-/// </div>);
-///
-/// // Expression
-/// let name = "World";
-/// rsx!(<div>Hello {name}</div>);
-/// ```
-#[proc_macro]
-pub fn rsx(input: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(input as RsxNode);
-    let expanded = input.to_tokens();
-    expanded.into()
-}
-
 /// A procedural macro that transforms a conditional expression into a JSX-like syntax.
-/// Supports both RSX nodes and literals.
+/// Supports both RSX nodes and literals, with conditional and match syntax.
 ///
 /// # Examples
 /// ```rust
-/// use simple_rsx::*;
+/// use momenta::prelude::*;
 ///
 /// let show = true;
+/// let result: Result<i32, String> = Ok(42);
 ///
-/// // With RSX nodes
-/// either!(show => <p>"Show me"</p>);
-/// either!(show => <p>"Show me"</p> else <p>"Hidden"</p>);
+/// // Conditional syntax with RSX nodes
+/// when!(show => <p>"Show me"</p>);
+/// when!(show => <p>"Show me"</p> else <p>"Hidden"</p>);
 ///
-/// // With literals
-/// either!(show => "Visible text");
-/// either!(show => "Visible" else "Hidden");
+/// // Conditional syntax with literals
+/// when!(show => "Visible text");
+/// when!(show => "Visible" else "Hidden");
 ///
-/// // Mixed usage
-/// either!(show => <div>"Complex"</div> else "Simple text");
+/// // Match syntax
+/// when!(result {
+///     Ok(val) => <div>{val}</div>,
+///     Err(_) => <p>"Error occurred"</p>
+/// });
 /// ```
 #[proc_macro]
-pub fn either(input: TokenStream) -> TokenStream {
+pub fn when(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as Either);
     let expanded = input.to_tokens();
     expanded.into()
@@ -96,49 +73,113 @@ impl EitherValue {
     }
 }
 
-struct Either {
-    condition: Expr,
-    true_value: EitherValue,
-    false_value: Option<EitherValue>,
+struct MatchArm {
+    pattern: Expr,
+    value: EitherValue,
+}
+
+impl Parse for MatchArm {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let pattern = input.parse()?;
+        input.parse::<Token![=>]>()?;
+        let value = input.parse()?;
+        Ok(MatchArm { pattern, value })
+    }
+}
+
+impl MatchArm {
+    fn to_tokens(&self) -> TokenStream2 {
+        let pattern = &self.pattern;
+        let value = self.value.to_tokens();
+        quote! { #pattern => #value }
+    }
+}
+
+enum Either {
+    Conditional {
+        condition: Expr,
+        true_value: EitherValue,
+        false_value: Option<EitherValue>,
+    },
+    Match {
+        expr: Expr,
+        arms: Vec<MatchArm>,
+    },
 }
 
 impl Parse for Either {
     fn parse(input: ParseStream) -> Result<Self> {
-        let condition = input.parse()?;
-        input.parse::<Token![=>]>()?;
-        let true_value = input.parse()?;
+        let expr = input.parse::<Expr>()?;
 
-        let false_value = if input.peek(Token![else]) {
-            input.parse::<Token![else]>()?;
-            Some(input.parse()?)
+        // Check if we have conditional syntax (=>) or match syntax ({)
+        if input.peek(Token![=>]) {
+            // Conditional syntax
+            input.parse::<Token![=>]>()?;
+            let true_value = input.parse()?;
+            let false_value = if input.peek(Token![else]) {
+                input.parse::<Token![else]>()?;
+                Some(input.parse()?)
+            } else {
+                None
+            };
+
+            Ok(Either::Conditional {
+                condition: expr,
+                true_value,
+                false_value,
+            })
+        } else if input.peek(Brace) {
+            // Match syntax
+            let content;
+            braced!(content in input);
+
+            let arms: Punctuated<MatchArm, Token![,]> =
+                content.parse_terminated(MatchArm::parse, Token![,])?;
+
+            Ok(Either::Match {
+                expr,
+                arms: arms.into_iter().collect(),
+            })
         } else {
-            None
-        };
-
-        Ok(Either {
-            condition,
-            true_value,
-            false_value,
-        })
+            Err(input.error("Expected '=>' for conditional or '{' for match syntax"))
+        }
     }
 }
 
 impl Either {
     fn to_tokens(&self) -> TokenStream2 {
-        let condition = &self.condition;
-        let true_value = self.true_value.to_tokens();
+        match self {
+            Either::Conditional {
+                condition,
+                true_value,
+                false_value,
+            } => {
+                let true_tokens = true_value.to_tokens();
+                let false_tokens = false_value
+                    .as_ref()
+                    .map(|v| v.to_tokens())
+                    .map(|v| quote! { else { #v }});
 
-        let false_value = self
-            .false_value
-            .as_ref()
-            .map(|v| v.to_tokens())
-            .unwrap_or_else(|| quote! { ::simple_rsx::Node::Fragment(vec![]) });
-
-        quote! {
-            if #condition {
-                #true_value
-            } else {
-                #false_value
+                if false_tokens.is_none() {
+                    quote! {
+                        (#condition).then(|| #true_tokens)
+                    }
+                } else {
+                    quote! {
+                        if #condition {
+                            #true_tokens
+                        }
+                        #false_tokens
+                    }
+                }
+            }
+            Either::Match { expr, arms } => {
+                let arm_tokens: Vec<_> = arms.iter().map(|arm| arm.to_tokens()).collect();
+                quote! {
+                    match #expr {
+                        #(#arm_tokens),*
+                    }
+                }
             }
         }
     }
@@ -149,7 +190,7 @@ impl Either {
 /// # Examples
 ///
 /// ```rust
-/// use simple_rsx::*;
+/// use momenta::prelude::*;
 ///
 /// #[component]
 /// fn HelloWorld() -> Node {
@@ -197,7 +238,7 @@ pub fn component(_attr: TokenStream, input: TokenStream) -> TokenStream {
     let prop_type = if let Some(prop_ty) = prop_ty {
         quote! {type Props = #prop_ty;}
     } else {
-        quote! {type Props = ::simple_rsx::PropWithChildren;}
+        quote! {type Props = ::momenta::nodes::DefaultProps;}
     };
 
     if inputs.is_empty() {
@@ -212,12 +253,41 @@ pub fn component(_attr: TokenStream, input: TokenStream) -> TokenStream {
     let expanded = quote! {
         #vis #(#attrs)* struct #ident;
 
-        impl ::simple_rsx::Component for #ident {
+        impl ::momenta::nodes::Component for #ident {
             #prop_type
             #fn_token render(#inputs) #output #block
         }
     };
 
+    expanded.into()
+}
+
+/// A procedural macro that provides JSX-like syntax for creating HTML elements in Rust.
+///
+/// # Examples
+///
+/// ```rust
+/// use momenta::prelude::*;
+/// // Fragment
+/// rsx!(<>"Hello World"</>);
+///
+/// // Self-closing tag
+/// rsx!(<div class="container" id="app" />);
+///
+/// // Tag with children
+/// rsx!(<div class="container">
+///     <h1>Title</h1>
+///     <p>Paragraph text</p>
+/// </div>);
+///
+/// // Expression
+/// let name = "World";
+/// rsx!(<div>Hello {name}</div>);
+/// ```
+#[proc_macro]
+pub fn rsx(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as RsxNode);
+    let expanded = input.to_tokens();
     expanded.into()
 }
 
@@ -227,7 +297,7 @@ enum RsxNode {
     Fragment(Vec<RsxNode>),
     Component {
         name: Ident,
-        props: Vec<(Ident, Option<Expr>)>,
+        props: Vec<(Option<Ident>, Option<Expr>)>,
         children: Vec<RsxNode>,
         close_tag: Option<Ident>,
     },
@@ -237,91 +307,84 @@ enum RsxNode {
     Comment(Expr), // HTML comments
 }
 
-struct NodeBlock {
-    expr: Option<Expr>,
-    value: Option<Block>,
-}
-
-impl Parse for NodeBlock {
-    fn parse(input: ParseStream) -> Result<Self> {
-        if input.peek(LitStr) {
-            let parsed: LitStr = input.parse()?;
-            return Ok(NodeBlock {
-                value: None,
-                expr: Some(syn::Expr::Lit(ExprLit {
-                    attrs: Vec::new(),
-                    lit: Lit::Str(parsed),
-                })),
-            });
-        }
-
-        let is_block = input.to_string().trim().starts_with('{');
-
-        if is_block {
-            let value: Block = input.parse()?;
-            return Ok(NodeBlock {
-                value: Some(value),
-                expr: None,
-            });
-        }
-
-        if input.lookahead1().peek(Token![<]) {
-            // Found a non-literal '<', stop here without consuming it
-            return Ok(NodeBlock {
-                value: None,
-                expr: None,
-            });
-        }
-
-        match input.parse::<proc_macro2::TokenTree>() {
-            Ok(token) => match &token {
-                proc_macro2::TokenTree::Group(group) => {
-                    let stream = group.stream();
-                    let expr = syn::parse2::<Expr>(stream)?;
-                    Ok(NodeBlock {
-                        value: None,
-                        expr: Some(expr),
-                    })
-                }
-                _ => {
-                    let value = token.to_string();
-                    let str_expr = syn::Expr::Lit(ExprLit {
-                        attrs: Vec::new(),
-                        lit: Lit::Str(LitStr::new(&value, token.span())),
-                    });
-                    Ok(NodeBlock {
-                        value: None,
-                        expr: Some(str_expr),
-                    })
-                }
-            },
-            Err(e) => Err(e), // End of input
-        }
-    }
-}
-
 /// Represents an attribute name-value pair
 struct NodeValue {
-    name: Ident,
-    value: Option<Block>,
+    name: Option<Ident>,
+    expr: Option<Expr>,
 }
 
 impl Parse for NodeValue {
     fn parse(input: ParseStream) -> Result<Self> {
-        let name = input.parse()?;
-        if !input.peek(Token![=]) {
-            return Ok(NodeValue { name, value: None });
+        // Handle `{ident}` and `{..ident}` patterns
+        if input.peek(Brace) {
+            let content;
+            braced!(content in input);
+
+            // Check for `{..ident}` pattern
+            if content.peek(Token![..]) {
+                content.parse::<Token![..]>()?;
+                let ident: Ident = content.parse()?;
+                // Create token stream for `..ident` manually
+                let mut tokens = proc_macro2::TokenStream::new();
+                tokens.extend(std::iter::once(proc_macro2::TokenTree::Punct(
+                    proc_macro2::Punct::new('.', proc_macro2::Spacing::Joint),
+                )));
+                tokens.extend(std::iter::once(proc_macro2::TokenTree::Punct(
+                    proc_macro2::Punct::new('.', proc_macro2::Spacing::Alone),
+                )));
+                tokens.extend(ident.to_token_stream());
+
+                return Ok(NodeValue {
+                    name: Some(ident),
+                    expr: Some(syn::Expr::Verbatim(tokens)),
+                });
+            }
+
+            // Handle `{expression}` pattern
+            let parsed: Ident = content.parse()?;
+            return Ok(NodeValue {
+                expr: Some(syn::Expr::Verbatim(parsed.to_token_stream())),
+                name: Some(parsed),
+            });
         }
+
+        // Handle `name={expression or block}` and `name` patterns
+        let name: Ident = input.parse()?;
+
+        // If no `=`, just return the name
+        if !input.peek(Token![=]) {
+            return Ok(NodeValue {
+                name: Some(name),
+                expr: None,
+            });
+        }
+
+        // Parse the `=` and then the expression/block
         input.parse::<Token![=]>()?;
-        let NodeBlock { value, expr } = input.parse()?;
+
+        // check if next token is a literal
+        if input.peek(Lit) {
+            let lit: Lit = input.parse()?;
+            return Ok(NodeValue {
+                name: Some(name),
+                expr: Some(syn::Expr::Lit(ExprLit {
+                    attrs: Vec::new(),
+                    lit,
+                })),
+            });
+        }
+
+        // Parse any expression (including braced blocks)
+        let block: Block = input.parse()?;
+        let expr = block.stmts.into_iter().next();
+        let expr = match expr {
+            Some(Stmt::Expr(expr, _)) => expr,
+            _ => panic!("Expected expression"),
+        };
+
         Ok(NodeValue {
-            name,
-            value: value.or_else(|| {
-                expr.map(|expr| Block {
-                    brace_token: Brace::default(),
-                    stmts: vec![syn::Stmt::Expr(expr, None)],
-                })
-            }),
+            name: Some(name),
+            expr: Some(expr),
         })
     }
 }
@@ -442,44 +505,8 @@ impl Parse for RsxNode {
 
             let mut attributes = Vec::with_capacity(4);
             while !input.peek(Token![>]) && !input.peek(Token![/]) {
-                if input.to_string().trim().starts_with('{') {
-                    let expr = input.parse::<Block>()?;
-                    // check if expr matches {Ident} pattern
-                    if let Some(Stmt::Expr(expr, ..)) = expr.stmts.first() {
-                        if let Expr::Path(expr_path) = expr {
-                            match expr_path.path.segments.first() {
-                                Some(segment) => {
-                                    let ident = segment.ident.clone();
-                                    attributes.push((ident, Some(expr.clone())));
-                                }
-                                _ => {
-                                    return Err(syn::Error::new(
-                                        expr_path.span(),
-                                        "Only Ident expressions are supported",
-                                    ));
-                                }
-                            }
-                        }
-                    }
-                } else {
-                    match input.parse::<NodeValue>() {
-                        Ok(attr) => attributes.push((
-                            attr.name,
-                            attr.value.map(|v| match v.stmts.first() {
-                                Some(Stmt::Expr(expr, ..)) => {
-                                    return expr.clone();
-                                }
-                                _ => {
-                                    return Expr::Lit(syn::ExprLit {
-                                        attrs: vec![],
-                                        lit: syn::Lit::Str(LitStr::new("true", input.span())),
-                                    });
-                                }
-                            }),
-                        )),
-                        Err(e) => return Err(e),
-                    }
-                }
+                let NodeValue { name, expr: value } = input.parse::<NodeValue>()?;
+                attributes.push((name, value));
             }
 
             // Self-closing tag: <tag ... /> or <Component... />
@@ -567,9 +594,11 @@ impl RsxNode {
                     });
 
                 let data_props = (is_element
-                    && props
-                        .iter()
-                        .any(|(name, _)| name.to_string().starts_with("data_")))
+                    && props.iter().any(|(name, _)| {
+                        name.as_ref()
+                            .map(|name| name.to_string().starts_with("data_"))
+                            .unwrap_or(false)
+                    }))
                 .then(|| {
                     let timestamp = std::time::SystemTime::now()
                         .duration_since(std::time::UNIX_EPOCH)
@@ -580,7 +609,11 @@ impl RsxNode {
                         syn::Ident::new(&format!("attr_data_{}", timestamp), Span::call_site());
                     let data = attrs
                         .clone()
-                        .filter(|(name, _)| name.to_string().starts_with("data_"))
+                        .filter(|(name, _)| {
+                            name.as_ref()
+                                .map(|name| name.to_string().starts_with("data_"))
+                                .unwrap_or(false)
+                        })
                         .map(|(name, value)| {
                             quote! {
                                 let #name = #value;
@@ -589,7 +622,7 @@ impl RsxNode {
                         });
                     quote! {
                         r#data: {
-                            let mut #ident = std::collections::HashMap::new();
+                            let mut #ident = ::alloc::collections::BTreeMap::new();
                             {
                                 #(#data)*
                             }
@@ -598,15 +631,31 @@ impl RsxNode {
                     }
                 });
                 let props_tokens = attrs
-                    .filter(|(name, _)| !(is_element && name.to_string().starts_with("data_"))) // filter out data- attributes for elements
-                    .map(|(name, value)| quote! { #name: {#value}.into(), });
+                    .filter(|(name, _)| {
+                        !(is_element
+                            // filter out data- attributes for elements
+                            && name
+                                .as_ref()
+                                .map(|name| name.to_string().starts_with("data_"))
+                                .unwrap_or(false))
+                    }) // filter out data- attributes for elements
+                    .map(|(name, value)| {
+                        if name.is_none() {
+                            return quote! {#value};
+                        }
+                        quote! { #name: {#value}.into(), }
+                    });
 
-                let child_tokens = children.iter().map(|child| child.to_tokens());
-                let children_tokens = quote! {
-                    children: vec![#(#child_tokens),*],
+                let children_tokens = if children.len() > 0 || is_element {
+                    let child_tokens = children.iter().map(|child| child.to_tokens());
+                    quote! {
+                        children: vec![#(#child_tokens),*],
+                    }
+                } else {
+                    quote! {}
                 };
 
-                let use_element = is_element.then(|| quote! {use ::simple_rsx::elements::#name;});
+                let use_element = is_element.then(|| quote! {use ::momenta::dom::elements::#name;});
                 let close_tag = close_tag.as_ref().map(|close_tag| {
                     quote! {
                         {
@@ -620,24 +669,23 @@ impl RsxNode {
                 let component = if !is_element {
                     quote! { #name }
                 } else {
-                    quote! { ::simple_rsx::elements::#name }
+                    quote! { ::momenta::dom::elements::#name }
                 };
 
                 quote! {
                     {
-                        type Props = <#component as ::simple_rsx::Component>::Props;
+                        type Props = <#component as ::momenta::nodes::Component>::Props;
                         {
                             #close_tag
-                            ::simple_rsx::dom::render_component::<#component>(
+                            ::momenta::dom::component::<#component>(
                                 Props {
                                     #(#props_tokens)*
                                     #children_tokens
                                     #data_props
                                     #default_props
-                                },
-                                |_| {},
+                                }
                             )
-                        }.unwrap()
+                        }
                     }
                 }
             }
@@ -646,30 +694,30 @@ impl RsxNode {
 
                 quote! {
                     {
-                        ::simple_rsx::Node::Fragment(vec![#(#children_tokens),*])
+                        ::momenta::nodes::Node::Fragment(vec![#(#children_tokens),*])
                     }
                 }
             }
             RsxNode::Text(expr) => {
                 quote! {
                     {
-                        ::simple_rsx::Node::from(#expr)
+                        ::momenta::nodes::Node::from(#expr)
                     }
                 }
             }
             RsxNode::Empty => {
                 quote! {
-                    ::simple_rsx::Node::Empty
+                    ::momenta::nodes::Node::Empty
                 }
             }
             RsxNode::Comment(expr) => {
                 quote! {
-                    ::simple_rsx::Node::Comment(#expr)
+                    ::momenta::nodes::Node::Comment(#expr)
                 }
             }
             RsxNode::Block(block) => {
                 quote! {
-                    ::simple_rsx::Node::from(#block)
+                    ::momenta::nodes::Node::from(#block)
                 }
             }
         }

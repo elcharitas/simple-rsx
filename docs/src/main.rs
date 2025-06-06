@@ -2,23 +2,41 @@
 #![allow(unused_braces)]
 
 extern crate alloc;
-use alloc::vec;
+use alloc::{format, vec, vec::Vec};
+use momenta::prelude::*;
 
-use simple_rsx::Node;
-use simple_rsx::component;
-use simple_rsx::dom::render_root;
-use simple_rsx::either;
-use simple_rsx::rsx;
-use simple_rsx::signals::SignalValue;
-use simple_rsx::signals::create_signal;
+static GITHUB_LINK: &str = "https://github.com/elcharitas/momenta";
 
 #[derive(Clone, Copy, PartialEq)]
-enum Page {
-    Landing,
-    Installation,
-    GetStarted,
+pub enum Page {
+    Home,
+
+    // Start Here
+    GettingStarted,
+    Philosophy,
+
+    // Core Concepts
+    Rsx,
+    Signals,
+    Effects,
+    Resources,
+    Components,
+
+    // Control Flow
+    When,
+    Lists,
+
+    // Guides
+    Performance,
+    Rust,
+    Testing,
+    Deployment,
+
+    // Examples
     Counter,
-    Concepts,
+    TodoMVC,
+    HackerNews,
+    RealWorld,
 }
 
 impl SignalValue for Page {
@@ -27,812 +45,1948 @@ impl SignalValue for Page {
     }
 }
 
-fn navbar_class(is_active: bool) -> &'static str {
-    either!(is_active => "navbar-item has-text-grey-dark {}" else "navbar-item has-text-weight-semibold")
+// Component Props
+pub struct HeaderProps {
+    pub current_page: Signal<Page>,
+    pub theme: Signal<&'static str>,
+    pub mobile_menu_open: Signal<bool>,
 }
 
+pub struct NavigationProps {
+    pub current_page: Signal<Page>,
+}
+
+pub struct CodeBlockProps {
+    pub code: &'static str,
+    pub language: &'static str,
+    pub filename: Option<&'static str>,
+    pub highlight: Option<&'static str>,
+}
+
+pub struct TabsProps {
+    pub tabs: Vec<(&'static str, &'static str)>,
+    pub children: Vec<Node>,
+}
+
+pub struct PlaygroundProps {
+    pub code: &'static str,
+}
+
+pub struct NoteProps {
+    pub variant: &'static str,
+    pub children: Vec<Node>,
+}
+
+// WASM bindings for highlight.js
+#[wasm_bindgen::prelude::wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(js_namespace = hljs)]
+    pub fn highlightAll();
+}
+
+// Main App
 #[component]
 fn App() -> Node {
-    let current_page = create_signal(Page::Landing);
-    let nav = move |page: Page| {
-        move |_| {
-            current_page.set(page);
+    let current_page = create_signal(Page::Home);
+    let theme = create_signal("light");
+    let mobile_menu_open = create_signal(false);
+
+    create_effect(|| {
+        highlightAll();
+    });
+
+    rsx! {
+        <div class={format!("min-h-screen bg-white dark:bg-gray-950 {}", if theme == "dark" { "dark" } else { "" })}>
+            <Header {current_page} {theme} {mobile_menu_open} />
+
+            <div class="flex">
+                // Sidebar Navigation
+                {when!(current_page != Page::Home => <aside class="hidden lg:block w-64 shrink-0 border-r border-gray-200 dark:border-gray-800">
+                        <div class="sticky top-14 h-[calc(100vh-3.5rem)] overflow-y-auto py-8">
+                            <Navigation {current_page} />
+                        </div>
+                    </aside>
+                )}
+
+                // Mobile Navigation
+                {when!(mobile_menu_open =>
+                    <div class="lg:hidden fixed inset-0 z-50 flex">
+                        <div class="fixed inset-0 bg-black/20 dark:bg-black/40" on_click={move |_| mobile_menu_open.set(false)}></div>
+                        <div class="relative flex w-full max-w-xs flex-col bg-white dark:bg-gray-950">
+                            <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800">
+                                <span class="text-lg font-semibold">Navigation</span>
+                                <button on_click={move |_| mobile_menu_open.set(false)} class="p-2">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <div class="overflow-y-auto p-4">
+                                <Navigation {current_page} />
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                // Main Content
+                <main class="flex-1 min-w-0">
+                    {when!(current_page.get() {
+                        Page::Home => <HomePage {current_page} />,
+                        Page::GettingStarted => <GettingStartedPage />,
+                        Page::Philosophy => <PhilosophyPage />,
+                        Page::Signals => <SignalsPage />,
+                        Page::Effects => <EffectsPage />,
+                        Page::Rsx => <RsxPage />,
+                        Page::Resources => <ResourcesPage />,
+                        Page::When => <ShowPage />,
+                        Page::Lists => <ForPage />,
+                        Page::Components => <ComponentsPage />,
+                        Page::Counter => <CounterExample />,
+                        _ => <div class="p-8">"Page under construction..."</div>,
+                    })}
+                </main>
+
+                // Right Sidebar (TOC)
+                {when!(current_page != Page::Home => <aside class="hidden xl:block w-64 shrink-0">
+                        <div class="sticky top-14 h-[calc(100vh-3.5rem)] overflow-y-auto p-8">
+                            // <TableOfContents {current_page} />
+                        </div>
+                    </aside>
+                )}
+            </div>
+        </div>
+    }
+}
+
+// Header Component
+#[component]
+fn Header(props: &HeaderProps) -> Node {
+    let current_page = props.current_page;
+    let theme = props.theme;
+    let mobile_menu_open = props.mobile_menu_open;
+
+    let toggle_theme = move |_| {
+        theme.set(if theme == "dark" { "light" } else { "dark" });
+    };
+
+    rsx! {
+        <header class="sticky top-0 z-40 w-full border-b border-gray-200 dark:border-gray-800 bg-white/95 dark:bg-gray-950/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 dark:supports-[backdrop-filter]:bg-gray-950/60">
+            <div class="flex h-14 items-center px-4 sm:px-6 lg:px-8">
+                <button
+                    class="lg:hidden p-2 -ml-2"
+                    on_click={move |_| mobile_menu_open.set(!mobile_menu_open)}
+                >
+                    <i class="fas fa-bars"></i>
+                </button>
+
+                <a href="#" on_click={move |_| current_page.set(Page::Home)} class="flex items-center space-x-2 ml-2 lg:ml-0">
+                    <img src="./static/icon.svg" alt="Momenta Logo" class="w-8 h-8" />
+                    <span class="font-bold text-lg">Momenta</span>
+                </a>
+
+                <div class="ml-auto flex items-center space-x-4">
+                    <nav class="hidden md:flex items-center space-x-6 mr-6">
+                        <a href="#" on_click={move |_| current_page.set(Page::Performance)}
+                           class="text-sm font-medium transition-colors hover:text-blue-600 dark:hover:text-blue-400">
+                            Guides
+                        </a>
+                        <a href="#" on_click={move |_| current_page.set(Page::GettingStarted)}
+                           class="text-sm font-medium transition-colors hover:text-blue-600 dark:hover:text-blue-400">
+                            Documentation
+                        </a>
+                        <a href="#"
+                           class="text-sm font-medium transition-colors hover:text-blue-600 dark:hover:text-blue-400">
+                            Playground
+                        </a>
+                    </nav>
+
+                    <button
+                        on_click={toggle_theme}
+                        class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                    >
+                        {when!(theme == "dark" =>
+                            <i class="fas fa-sun text-yellow-500"></i>
+                        else
+                            <i class="fas fa-moon text-gray-600"></i>
+                        )}
+                    </button>
+
+                    <a href={GITHUB_LINK}
+                       class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                        <i class="fab fa-github"></i>
+                    </a>
+                </div>
+            </div>
+        </header>
+    }
+}
+
+// Navigation Component
+#[component]
+fn Navigation(props: &NavigationProps) -> Node {
+    let current = props.current_page;
+
+    let nav_link = move |page: Page, label: &'static str| {
+        let is_active = current == page;
+        let class = if is_active {
+            "block px-3 py-1.5 text-sm font-medium text-blue-600 dark:text-blue-400"
+        } else {
+            "block px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200"
+        };
+
+        rsx! {
+            <a href="#" on_click={move |_| current.set(page)} class={class}>
+                {label}
+            </a>
+        }
+    };
+
+    let section = move |title: &'static str, children: Vec<Node>| {
+        rsx! {
+            <div class="mb-6">
+                <h5 class="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-gray-900 dark:text-gray-100">
+                    {title}
+                </h5>
+                <div class="space-y-1">
+                    {children}
+                </div>
+            </div>
         }
     };
 
     rsx! {
-        <div class="has-background-white">
-            // Modern header inspired by TailwindCSS docs
-            <header class="navbar is-white is-fixed-top" style="border-bottom: 1px solid #e5e7eb; backdrop-filter: blur(8px);">
-                <div class="container is-fluid">
-                    <div class="navbar-brand">
-                        <div class="navbar-item">
-                            <a class="is-flex is-align-items-center" on_click={nav(Page::Landing)}>
-                                <div class="icon is-medium mr-3" style="color: #06B6D4;">
-                                    <i class="fas fa-code fa-lg"></i>
-                                </div>
-                                <div>
-                                    <h1 class="title is-5 mb-0 has-text-grey-darker">Simple RSX</h1>
-                                </div>
-                            </a>
-                        </div>
-                    </div>
-                    <div class="navbar-menu">
-                        <div class="navbar-start">
-                            <a class={navbar_class(current_page.get() == Page::Installation)}
-                               href="#" on_click={nav(Page::Installation)} style="font-size: 0.9rem;">
-                                Installation
-                            </a>
-                            <a class={navbar_class(current_page.get() == Page::GetStarted)}
-                               href="#" on_click={nav(Page::GetStarted)} style="font-size: 0.9rem;">
-                                Get Started
-                            </a>
-                            <a class={navbar_class(current_page.get() == Page::Counter)}
-                               href="#" on_click={nav(Page::Counter)} style="font-size: 0.9rem;">
-                                Examples
-                            </a>
-                            <a class={navbar_class(current_page.get() == Page::Concepts)}
-                               href="#" on_click={nav(Page::Concepts)} style="font-size: 0.9rem;">
-                                Concepts
-                            </a>
-                        </div>
-                        <div class="navbar-end">
-                            <div class="navbar-item">
-                                <a class="button is-small is-outlined" href="https://github.com/elcharitas/simple-rsx" target="_blank" style="border-color: #d1d5db; color: #6b7280;">
-                                    <span class="icon is-small"><i class="fab fa-github"></i></span>
-                                    <span>GitHub</span>
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </header>
+        <nav class="px-2">
+            {section("Start Here", vec![
+                nav_link(Page::GettingStarted, "Getting Started"),
+                nav_link(Page::Philosophy, "Philosophy"),
+            ])}
 
-            // Main content area
-            <div style="padding-top: 3.25rem; min-height: 100vh;" class="has-background-white">
-                {
-                    match current_page.get() {
-                        Page::Landing => rsx! { <LandingPage /> },
-                        Page::Installation => rsx! { <InstallationPage /> },
-                        Page::GetStarted => rsx! { <GetStartedPage /> },
-                        Page::Counter => rsx! { <CounterAppPage /> },
-                        Page::Concepts => rsx! { <div /> },
-                    }
+            {section("Reactive Primitives", vec![
+                nav_link(Page::Rsx, "rsx!"),
+                nav_link(Page::Components, "#[component]"),
+                nav_link(Page::Signals, "create_signal"),
+                nav_link(Page::Effects, "create_effect"),
+                nav_link(Page::Resources, "create_resource"),
+            ])}
+
+            {section("Control Flow", vec![
+                nav_link(Page::When, "when!"),
+                nav_link(Page::Lists, ".iter().map()"),
+            ])}
+
+            {section("Guides", vec![
+                nav_link(Page::Performance, "Performance"),
+                nav_link(Page::Rust, "Rust"),
+                nav_link(Page::Testing, "Testing"),
+                nav_link(Page::Deployment, "Deployment"),
+            ])}
+        </nav>
+    }
+}
+
+// Reusable Components
+#[component]
+fn CodeBlock(props: &CodeBlockProps) -> Node {
+    rsx! {
+        <div class="my-6 overflow-hidden rounded-lg border border-gray-200 dark:border-gray-800">
+            {if let Some(filename) = props.filename {
+                rsx! {
+                    <div class="flex items-center justify-between border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 px-4 py-2">
+                        <span class="text-xs font-medium text-gray-600 dark:text-gray-400">{filename}</span>
+                        <button class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                            <i class="fas fa-copy text-xs"></i>
+                        </button>
+                    </div>
                 }
+            } else {
+                rsx! { <div></div> }
+            }}
+            <div class="bg-gray-50 dark:bg-gray-900">
+                <pre class="overflow-x-auto">
+                    <code class={format!("language-{} text-sm", props.language)}>{props.code}</code>
+                </pre>
             </div>
-
-            // Minimal footer
-            <footer class="section py-5 has-background-grey-lighter" style="border-top: 1px solid #e5e7eb;">
-                <div class="container">
-                    <div class="has-text-centered">
-                        <p class="has-text-grey is-size-7">
-                            Built with Simple RSX Open source on <a href="https://github.com/elcharitas/simple-rsx" class="has-text-link">GitHub</a>
-                        </p>
-                    </div>
-                </div>
-            </footer>
         </div>
     }
 }
 
 #[component]
-fn LandingPage() -> Node {
+fn Note(props: &NoteProps) -> Node {
+    let (bg, border, icon) = match props.variant {
+        "info" => (
+            "bg-blue-50 dark:bg-blue-950/30",
+            "border-blue-200 dark:border-blue-800",
+            "fa-info-circle text-blue-600",
+        ),
+        "warning" => (
+            "bg-amber-50 dark:bg-amber-950/30",
+            "border-amber-200 dark:border-amber-800",
+            "fa-exclamation-triangle text-amber-600",
+        ),
+        "tip" => (
+            "bg-green-50 dark:bg-green-950/30",
+            "border-green-200 dark:border-green-800",
+            "fa-lightbulb text-green-600",
+        ),
+        _ => (
+            "bg-gray-50 dark:bg-gray-900",
+            "border-gray-200 dark:border-gray-800",
+            "fa-info-circle text-gray-600",
+        ),
+    };
+
+    rsx! {
+        <div class={format!("my-6 rounded-lg border {} {} p-4", border, bg)}>
+            <div class="flex">
+                <i class={format!("fas {} mr-3 mt-0.5", icon)}></i>
+                <div class="text-sm">
+                    {&props.children}
+                </div>
+            </div>
+        </div>
+    }
+}
+
+#[component]
+fn Playground(props: &PlaygroundProps) -> Node {
+    rsx! {
+        <div class="my-8 overflow-hidden rounded-lg border border-gray-200 dark:border-gray-800">
+            <div class="flex flex-col md:flex-row items-stretch h-full">
+                <div class="w-1/2 border-r border-gray-200 dark:border-gray-800 flex flex-col">
+                    <div class="border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 px-4 py-2">
+                        <span class="text-xs font-medium text-gray-600 dark:text-gray-400">Code</span>
+                    </div>
+                    <div class="bg-gray-50 dark:bg-gray-900 flex-1">
+                        <pre class="overflow-x-auto h-full">
+                            <code class="language-rust text-xs overflow-x">{props.code}</code>
+                        </pre>
+                    </div>
+                </div>
+                <div class="w-1/2 flex flex-col">
+                    <div class="border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 px-4 py-2">
+                        <span class="text-xs font-medium text-gray-600 dark:text-gray-400">Output</span>
+                    </div>
+                    <div class="flex-1 text-sm text-gray-600 dark:text-gray-400">
+                        <CounterExample />
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+}
+
+// Page Components
+#[component]
+fn HomePage(props: &NavigationProps) -> Node {
+    let current_page = props.current_page;
+    rsx! {
+        <div class="mx-auto max-w-4xl px-4 py-16 sm:px-6 lg:px-8">
+            <div class="text-center py-16">
+                <h1 class="text-4xl font-bold tracking-tight text-gray-900 dark:text-gray-100 sm:text-5xl">
+                    "Simple and performant reactivity for building user interfaces"
+                </h1>
+                <p class="mt-6 text-lg text-gray-600 dark:text-gray-400">
+                    "Momenta makes it simple to build high-performance, reactive user interfaces using Rust's type system and ownership model."
+                </p>
+                <div class="mt-10 flex items-center justify-center gap-4">
+                    <a href="#" on_click={move |_| current_page.set(Page::GettingStarted)} class="rounded-lg bg-blue-600 px-6 py-3 text-sm font-semibold text-white hover:bg-blue-700">
+                        "Get Started"
+                    </a>
+                    <a href={GITHUB_LINK} class="rounded-lg border border-gray-300 dark:border-gray-700 px-6 py-3 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-900">
+                        "View on GitHub"
+                    </a>
+                </div>
+            </div>
+
+            <div class="mt-24 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+                <Feature
+                    icon="fas fa-zap"
+                    title="Element-Level Reactivity"
+                    description="Automatically track dependencies and update only what has changed."
+                />
+                <Feature
+                    icon="fas fa-code"
+                    title="Familiar API"
+                    description="Inspired by React with a Rust-first approach to reactive programming."
+                />
+                <Feature
+                    icon="fas fa-shield-alt"
+                    title="Type Safe"
+                    description="Leverage Rust's type system for compile-time guarantees and better DX."
+                />
+                <Feature
+                    icon="fas fa-feather"
+                    title="Lightweight"
+                    description="Small runtime with minimal overhead. Your apps stay fast."
+                />
+                <Feature
+                    icon="fas fa-server"
+                    title="SSR Ready"
+                    description="Server-side rendering support out of the box for better performance."
+                />
+                <Feature
+                    icon="fas fa-puzzle-piece"
+                    title="Composable"
+                    description="Build complex UIs from simple, reusable reactive primitives."
+                />
+            </div>
+
+            <div class="mt-24">
+                <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">Quick Example</h2>
+                <Playground
+                    code={r#"use momenta::prelude::*;
+
+#[component]
+fn CounterExample() -> Node {
+    let mut count = create_signal(0);
+    rsx! {
+        <div class="bg-gradient-to-br from-purple-400 to-blue-600 flex items-center justify-center p-4">
+            <div class="bg-white/20 backdrop-blur-lg rounded-3xl p-8 shadow-2xl border border-white/30">
+                <h1 class="text-3xl font-bold text-white mb-6 text-center">
+                    "Momenta Counter"
+                </h1>
+                <div class="text-6xl font-bold text-center mb-8 transition-all duration-300 text-white">
+                    {count}
+                </div>
+                <div class="flex gap-4 justify-center">
+                    <button
+                        class="px-6 py-3 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg"
+                        on_click={move |_| count -= 1}
+                    >
+                        "− Decrease"
+                    </button>
+                    <button
+                        class="px-6 py-3 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg"
+                        on_click={move |_| count += 1}
+                    >
+                        "+ Increase"
+                    </button>
+                </div>
+                <button
+                    class="w-full mt-4 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
+                    on_click={move |_| count.set(0)}
+                >
+                    "Reset Count: " {count}
+                </button>
+            </div>
+        </div>
+    }
+}"#} />
+            </div>
+        </div>
+    }
+}
+
+#[component]
+fn Feature(props: &FeatureProps) -> Node {
+    rsx! {
+        <div class="rounded-lg border border-gray-200 dark:border-gray-800 p-6">
+            <div class="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
+                <i class={props.icon}></i>
+            </div>
+            <h3 class="mb-2 font-semibold text-gray-900 dark:text-gray-100">{props.title}</h3>
+            <p class="text-sm text-gray-600 dark:text-gray-400">{props.description}</p>
+        </div>
+    }
+}
+
+pub struct FeatureProps {
+    pub icon: &'static str,
+    pub title: &'static str,
+    pub description: &'static str,
+}
+
+#[component]
+fn ForPage() -> Node {
+    rsx! {
+        <article class="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
+            <header class="mb-12">
+                <h1 class="text-4xl font-bold text-gray-900 dark:text-gray-100">List Rendering</h1>
+                <p class="mt-4 text-lg text-gray-600 dark:text-gray-400">
+                    "Rendering lists of items efficiently using Rust's iterators."
+                </p>
+            </header>
+            <section class="prose prose-gray dark:prose-invert max-w-none">
+                <h2 id="introduction">Introduction</h2>
+                <p>
+                    "List rendering is a common task in UI development. Momenta leverages Rust's powerful iterator system to provide efficient and type-safe list rendering."
+                </p>
+
+                <h2 id="basic-example">Basic Example</h2>
+                <CodeBlock
+                    language="rust"
+                    filename="src/main.rs"
+                    highlight=""
+                    code={r#"use momenta::prelude::*;
+
+#[component]
+fn FruitList() -> Node {
+    let mut fruits = create_signal(vec![
+        "Apple".to_string(),
+        "Banana".to_string(),
+        "Cherry".to_string(),
+    ]);
+    
     rsx! {
         <div>
-            // Hero section - TailwindCSS docs style
-            <section class="section py-6 has-background-white">
-                <div class="container">
-                    <div class="columns is-centered">
-                        <div class="column is-8 has-text-centered">
-                            <div class="mb-6">
-                                <div class="icon is-large mb-4" style="color: #06B6D4;">
-                                    <i class="fas fa-code fa-3x"></i>
-                                </div>
-                                <h1 class="title is-1 has-text-grey-darker mb-4" style="font-weight: 800; letter-spacing: -0.025em;">
-                                    Simple RSX
-                                </h1>
-                                <p class="subtitle is-4 has-text-grey-dark mb-6" style="font-weight: 400; line-height: 1.5;">
-                                    A React-inspired JSX Library for Rust
-                                </p>
-                                <p class="is-size-5 has-text-grey mb-6" style="line-height: 1.75; max-width: 42rem; margin: 0 auto;">
-                                    Build modern, reactive user interfaces in Rust with familiar JSX syntax, reactive signals, and zero-cost abstractions.
-                                </p>
-                                <div class="buttons is-centered">
-                                    <button class="button is-medium mr-3" style="background-color: #06B6D4; color: white; border: 0; font-weight: 600; padding: 0.75rem 1.5rem;">
-                                        Get Started
-                                    </button>
-                                    <button class="button is-medium is-outlined" style="border-color: #d1d5db; color: #6b7280; font-weight: 600; padding: 0.75rem 1.5rem;">
-                                        View on GitHub
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            // Features section
-            <section class="section py-6" style="background-color: #f9fafb;">
-                <div class="container">
-                    <div class="has-text-centered mb-6">
-                        <h2 class="title is-2 has-text-grey-darker mb-4" style="font-weight: 700;">
-                            Why Simple RSX?
-                        </h2>
-                        <p class="subtitle is-5 has-text-grey-dark" style="font-weight: 400;">
-                            Experience the power of Rust with the familiarity of React
-                        </p>
-                    </div>
-                    <div class="columns is-multiline">
-                        <div class="column is-4">
-                            <div class="box has-background-white p-6" style="border: 1px solid #e5e7eb; box-shadow: none; border-radius: 0.75rem;">
-                                <div class="has-text-centered mb-4">
-                                    <div class="icon is-large mb-3" style="color: #06B6D4;">
-                                        <i class="fas fa-bolt fa-2x"></i>
-                                    </div>
-                                    <h3 class="title is-4 has-text-grey-darker mb-3" style="font-weight: 600;">Lightning Fast</h3>
-                                    <p class="has-text-grey-dark" style="line-height: 1.6; font-size: 0.95rem;">
-                                        Zero-cost abstractions with compile-time optimizations. No runtime overhead, just pure Rust performance.
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="column is-4">
-                            <div class="box has-background-white p-6" style="border: 1px solid #e5e7eb; box-shadow: none; border-radius: 0.75rem;">
-                                <div class="has-text-centered mb-4">
-                                    <div class="icon is-large mb-3" style="color: #06B6D4;">
-                                        <i class="fas fa-code fa-2x"></i>
-                                    </div>
-                                    <h3 class="title is-4 has-text-grey-darker mb-3" style="font-weight: 600;">Familiar Syntax</h3>
-                                    <p class="has-text-grey-dark" style="line-height: 1.6; font-size: 0.95rem;">
-                                        JSX-like syntax that feels natural to React developers, with the power and safety of Rusts type system.
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="column is-4">
-                            <div class="box has-background-white p-6" style="border: 1px solid #e5e7eb; box-shadow: none; border-radius: 0.75rem;">
-                                <div class="has-text-centered mb-4">
-                                    <div class="icon is-large mb-3" style="color: #06B6D4;">
-                                        <i class="fas fa-shield-alt fa-2x"></i>
-                                    </div>
-                                    <h3 class="title is-4 has-text-grey-darker mb-3" style="font-weight: 600;">Memory Safe</h3>
-                                    <p class="has-text-grey-dark" style="line-height: 1.6; font-size: 0.95rem;">
-                                        Rusts ownership system ensures memory safety without garbage collection or runtime checks.
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
+            <h2 class="font-bold uppercase">"Fruit List"</h2>
+            <ul>
+                {fruits.map(|fruit| rsx! {
+                    <li>{fruit}</li>
+                })}
+            </ul>
+            <button on_click={move |_| {
+                fruits.push("Orange".to_string());
+            }}>
+                "Add Orange"
+            </button>
         </div>
     }
+}"#}
+                />
+
+                <Note variant="info">
+                    <p>
+                        <strong>"Good to know:"</strong> " When rendering lists, Momenta efficiently updates only the items that have changed, added, or removed."
+                    </p>
+                </Note>
+
+                <h2 id="syntax">Basic Syntax</h2>
+                <p>"The basic pattern for rendering lists in Momenta uses Rust's iterator methods:"</p>
+                <CodeBlock
+                    language="rust"
+                    filename="src/main.rs"
+                    highlight=""
+                    code={r#"// Basic list rendering pattern
+let items = vec!["Item 1", "Item 2", "Item 3"];
+
+rsx! {
+    <ul>
+        {items.map(|item| rsx! {
+            <li>{item}</li>
+        })}
+    </ul>
+}
+
+// With a signal
+let items = create_signal(vec!["Item 1", "Item 2", "Item 3"]);
+
+rsx! {
+    <ul>
+        {items.map(|item| rsx! {
+            <li>{item}</li>
+        })}
+    </ul>
+}"#}
+                />
+
+                <h2 id="advanced-patterns">Advanced Patterns</h2>
+
+                <h3 id="with-indices">Working with Indices</h3>
+                <p>"Sometimes you need the index of each item in the list:"</p>
+                <CodeBlock
+                    language="rust"
+                    filename="src/main.rs"
+                    highlight=""
+                    code={r#"// Using enumerate() to get indices
+let items = create_signal(vec!["Apple", "Banana", "Cherry"]);
+
+rsx! {
+    <ul>
+        {items.enumerate().map(|(index, item)| rsx! {
+            <li>"Item #" {index + 1} ": " {item}</li>
+        })}
+    </ul>
+}"#}
+                />
+
+                <h3 id="complex-items">Complex Item Types</h3>
+                <p>"You can render lists of complex types:"</p>
+                <CodeBlock
+                    language="rust"
+                    filename="src/main.rs"
+                    highlight=""
+                    code={r#"// Define a struct for list items
+struct Todo {
+    id: usize,
+    text: String,
+    completed: bool,
 }
 
 #[component]
-fn InstallationPage() -> Node {
+fn TodoList() -> Node {
+    let todos = create_signal(vec![
+        Todo { id: 1, text: "Learn Momenta".to_string(), completed: false },
+        Todo { id: 2, text: "Build an app".to_string(), completed: false },
+        Todo { id: 3, text: "Share with friends".to_string(), completed: true },
+    ]);
+    
+    let new_todo_text = create_signal(String::new());
+    
+    let add_todo = move |_| {
+        let text = new_todo_text.get();
+        if !text.is_empty() {
+            let next_id = todos.map(|todo| todo.id).max().unwrap_or(0) + 1;
+            todos.push(Todo {
+                id: next_id,
+                completed: false,
+                text,
+            });
+            new_todo_text.set(String::new());
+        }
+    };
+    
+    let toggle_todo = move |id: usize| {
+        if let Some(todo) = todos.iter_mut().find(|todo| todo.id == id) {
+            todo.completed = !todo.completed;
+        }
+    };
+    
     rsx! {
-        <section class="section py-6 has-background-white">
-            <div class="container">
-                <div class="columns">
-                    <div class="column is-8 is-offset-2">
-                        <div class="mb-6">
-                            <h1 class="title is-1 has-text-grey-darker mb-4" style="font-weight: 800;">
-                                Installation
-                            </h1>
-                            <p class="subtitle is-5 has-text-grey-dark" style="font-weight: 400; line-height: 1.6;">
-                                Get Simple RSX up and running in your project
-                            </p>
-                        </div>
-
-                        <div class="content">
-                            <div class="mb-6">
-                                <h2 class="title is-3 has-text-grey-darker mb-4" style="font-weight: 700;">
-                                    Prerequisites
-                                </h2>
-                                <p class="has-text-grey-dark mb-4" style="line-height: 1.6;">
-                                    Make sure you have Rust installed on your system. If not, install it from <a href="https://rustup.rs/" target="_blank" class="has-text-link">rustup.rs</a>.
-                                </p>
-                                <div class="notification is-light" style="background-color: #eff6ff; border: 1px solid #bfdbfe; border-left: 4px solid #3b82f6;">
-                                    <p class="has-text-grey-darker">
-                                        <span class="icon has-text-link"><i class="fas fa-info-circle"></i></span>
-                                        <strong>Minimum Rust version:</strong> 1.70+
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div class="mb-6">
-                                <h2 class="title is-3 has-text-grey-darker mb-4" style="font-weight: 700;">
-                                    Add to Your Project
-                                </h2>
-                                <p class="has-text-grey-dark mb-4" style="line-height: 1.6;">
-                                    Add Simple RSX to your <code class="px-2 py-1" style="background-color: #f3f4f6; border-radius: 0.25rem; color: #1f2937;">Cargo.toml</code>:
-                                </p>
-
-                                <div style="border: 1px solid #e5e7eb; border-radius: 0.5rem; overflow: hidden;" class="mb-4">
-                                    <div style="background-color: #1e293b; padding: 1rem;">
-                                        <pre style="background: transparent; color: #e2e8f0; font-size: 0.9rem; line-height: 1.5;">
-                                            <div style="color: #f472b6; display: block">"[dependencies]"</div>
-                                            <span style="color: #34d399;">simple-rsx</span> = <span style="color: #fbbf24;">"0.1.0"</span>
-                                        </pre>
-                                    </div>
-                                </div>
-
-                                <p class="has-text-grey-dark mb-3" style="line-height: 1.6;">"Or use cargo add:"</p>
-                                <div style="border: 1px solid #e5e7eb; border-radius: 0.5rem; overflow: hidden;">
-                                    <div style="background-color: #1e293b; padding: 1rem;">
-                                        <pre style="background: transparent; color: #e2e8f0; font-size: 0.9rem;">
-                                            <span style="color: #34d399;">"$ cargo add simple-rsx"</span>
-                                        </pre>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="mb-6">
-                                <h2 class="title is-3 has-text-grey-darker mb-4" style="font-weight: 700;">
-                                    Feature Flags
-                                </h2>
-                                <p class="has-text-grey-dark mb-4" style="line-height: 1.6;">
-                                    Simple RSX supports several optional features:
-                                </p>
-
-                                <div class="table-container">
-                                    <table class="table is-fullwidth" style="border: 1px solid #e5e7eb; border-radius: 0.5rem;">
-                                        <thead style="background-color: #f9fafb;">
-                                            <tr>
-                                                <th class="has-text-grey-darker" style="font-weight: 600; border-bottom: 1px solid #e5e7eb;">Feature</th>
-                                                <th class="has-text-grey-darker" style="font-weight: 600; border-bottom: 1px solid #e5e7eb;">Description</th>
-                                                <th class="has-text-grey-darker" style="font-weight: 600; border-bottom: 1px solid #e5e7eb;">Default</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr style="border-bottom: 1px solid #f3f4f6;">
-                                                <td><code class="px-2 py-1" style="background-color: #f3f4f6; border-radius: 0.25rem; color: #06B6D4;">wasm</code></td>
-                                                <td class="has-text-grey-dark">Client rendering support</td>
-                                                <td><span class="tag is-small" style="background-color: #fee2e2; color: #dc2626;">No</span></td>
-                                            </tr>
-                                            <tr style="border-bottom: 1px solid #f3f4f6;">
-                                                <td><code class="px-2 py-1" style="background-color: #f3f4f6; border-radius: 0.25rem; color: #06B6D4;">router</code></td>
-                                                <td class="has-text-grey-dark">Client-side routing utilities</td>
-                                                <td><span class="tag is-small" style="background-color: #fee2e2; color: #dc2626;">No</span></td>
-                                            </tr>
-                                            <tr>
-                                                <td><code class="px-2 py-1" style="background-color: #f3f4f6; border-radius: 0.25rem; color: #06B6D4;">async</code></td>
-                                                <td class="has-text-grey-dark">Async component support</td>
-                                                <td><span class="tag is-small" style="background-color: #fee2e2; color: #dc2626;">No</span></td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-
-                            <div>
-                                <h2 class="title is-3 has-text-grey-darker mb-4" style="font-weight: 700;">
-                                    Verify Installation
-                                </h2>
-                                <p class="has-text-grey-dark mb-4" style="line-height: 1.6;">
-                                    Create a simple test to verify everything works:
-                                </p>
-
-                                <div style="border: 1px solid #e5e7eb; border-radius: 0.5rem; overflow: hidden;" class="mb-4">
-                                    <div style="background-color: #1e293b; padding: 1rem;">
-                                        <pre style="background: transparent; color: #e2e8f0; font-size: 0.9rem; line-height: 1.5;">
-                                            <code>
-                                            // TODO: verification code would go here
-                                            </code>
-                                        </pre>
-                                    </div>
-                                </div>
-
-                                <div class="notification is-light" style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-left: 4px solid #22c55e;">
-                                    <div class="is-flex is-align-items-center">
-                                        <span class="icon has-text-success mr-3"><i class="fas fa-check-circle"></i></span>
-                                        <div>
-                                            <strong class="has-text-grey-darker">Success!</strong>
-                                            <span class="has-text-grey-dark">Youre ready to start building with Simple RSX.</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+        <div>
+            <h2 class="font-bold uppercase">"Todo List"</h2>
+            <ul class="space-y-2">
+                {todos.map(|todo| {
+                    let id = todo.id;
+                    rsx! {
+                        <li class={format!("flex items-center {}", 
+                            if todo.completed { "line-through text-gray-400" } else { "" }
+                        )}>
+                            <input 
+                                type_="checkbox" 
+                                checked={todo.completed} 
+                                on_change={move |_| toggle_todo(id)}
+                                class="mr-2"
+                            />
+                            {todo.text}
+                        </li>
+                    }
+                })}
+            </ul>
+            
+            <div class="mt-4 flex">
+                <input 
+                    type_="text" 
+                    value={new_todo_text}
+                    on_input={move |e| new_todo_text.set(e.value())}
+                    placeholder="Add a new todo"
+                    class="border p-2 rounded-l"
+                />
+                <button 
+                    on_click={add_todo}
+                    class="bg-blue-500 text-white p-2 rounded-r"
+                >
+                    "Add"
+                </button>
             </div>
-        </section>
+        </div>
+    }
+}"#}
+                />
+
+                <h3 id="filtering-sorting">Filtering and Sorting</h3>
+                <p>"You can use Rust's iterator methods to filter and sort items before rendering:"</p>
+                <CodeBlock
+                    language="rust"
+                    filename="src/main.rs"
+                    highlight=""
+                    code={r#"// Filtering and sorting example
+let numbers = create_signal(vec![5, 2, 8, 1, 9, 3, 7, 4, 6]);
+let show_even_only = create_signal(false);
+let sort_ascending = create_signal(true);
+
+rsx! {
+    <div>
+        <div class="mb-4">
+            <label class="mr-4">
+                <input 
+                    type_="checkbox" 
+                    checked={show_even_only}
+                    on_change={move |_| show_even_only.set(!show_even_only.get())}
+                    class="mr-2"
+                />
+                "Show even numbers only"
+            </label>
+            
+            <label>
+                <input 
+                    type_="checkbox" 
+                    checked={sort_ascending}
+                    on_change={move |_| sort_ascending.set(!sort_ascending.get())}
+                    class="mr-2"
+                />
+                "Sort ascending"
+            </label>
+        </div>
+        
+        <ul class="grid grid-cols-3 gap-2">
+            {{
+                let mut filtered = numbers.get();
+                
+                // Apply filtering if needed
+                if show_even_only.get() {
+                    filtered.retain(|n| n % 2 == 0);
+                }
+                
+                // Apply sorting
+                if sort_ascending.get() {
+                    filtered.sort();
+                } else {
+                    filtered.sort_by(|a, b| b.cmp(a));
+                }
+                
+                // Map to nodes
+                filtered.iter().map(|n| rsx! {
+                    <li class="bg-gray-100 dark:bg-gray-800 p-2 rounded text-center">
+                        {n}
+                    </li>
+                })
+            }}
+        </ul>
+    </div>
+}"#}
+                />
+
+                <h2 id="performance">Performance Considerations</h2>
+                <p>"When rendering lists, keep these performance considerations in mind:"</p>
+                <ul>
+                    <li>"Use keys for list items when possible to help with efficient updates"</li>
+                    <li>"Avoid recreating the entire list when only a few items change"</li>
+                    <li>"For large lists, consider pagination or virtualization"</li>
+                    <li>"Minimize the amount of work done in the map function"</li>
+                    <li>"Pre-compute derived values outside of the render function"</li>
+                </ul>
+
+                <h2 class="font-bold uppercase">Best Practices</h2>
+                <ul>
+                    <li>"Use .iter().map() pattern for list rendering"</li>
+                    <li>"Extract complex item rendering into separate components"</li>
+                    <li>"Use signals for list data that changes over time"</li>
+                    <li>"Leverage Rust's powerful iterator methods for filtering, sorting, and transforming data"</li>
+                    <li>"Consider memoizing expensive computations for list items"</li>
+                </ul>
+
+                <div class="mt-12 flex items-center justify-between border-t border-gray-200 dark:border-gray-800 pt-6">
+                    <a href="#" class="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200">
+                        "← Conditional Rendering"
+                    </a>
+                    <a href="#" class="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200">
+                        "Reactivity →"
+                    </a>
+                </div>
+            </section>
+        </article>
     }
 }
 
 #[component]
-fn GetStartedPage() -> Node {
+fn ResourcesPage() -> Node {
     rsx! {
-        <section class="section py-6 has-background-white">
-            <div class="container">
-                <div class="columns">
-                    <div class="column is-8 is-offset-2">
-                        <div class="mb-6">
-                            <h1 class="title is-1 has-text-grey-darker mb-4" style="font-weight: 800;">
-                                Get Started
-                            </h1>
-                            <p class="subtitle is-5 has-text-grey-dark" style="font-weight: 400; line-height: 1.6;">
-                                Learn Simple RSX fundamentals step by step
-                            </p>
-                        </div>
+        <article class="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
+            <header class="mb-12">
+                <h1 class="text-4xl font-bold text-gray-900 dark:text-gray-100">Resources</h1>
+                <p class="mt-4 text-lg text-gray-600 dark:text-gray-400">
+                    "Resources handle asynchronous data fetching with built-in loading and error states."
+                </p>
+            </header>
 
-                        <div class="content">
-                            <div class="mb-6" style="border: 1px solid #e5e7eb; border-radius: 0.75rem; overflow: hidden;">
-                                <div class="px-5 py-4" style="background-color: #f9fafb; border-bottom: 1px solid #e5e7eb;">
-                                    <h2 class="title is-4 has-text-grey-darker mb-0" style="font-weight: 600;">
-                                        <span class="icon has-text-link mr-2"><i class="fas fa-puzzle-piece"></i></span>
-                                        Your First Component
-                                    </h2>
-                                </div>
-                                <div class="px-5 py-4">
-                                    <p class="has-text-grey-dark mb-4" style="line-height: 1.6;">
-                                        Lets create your first Simple RSX component. Components are the building blocks of your application.
-                                    </p>
-                                    <div style="border: 1px solid #e5e7eb; border-radius: 0.5rem; overflow: hidden;">
-                                        <div style="background-color: #1e293b; padding: 1rem;">
-                                            <pre style="background: transparent; color: #e2e8f0; font-size: 0.9rem; line-height: 1.5;">
-                                                <code>
-                                                    // TODO: component code would go here
-                                                </code>
-                                            </pre>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+            <section class="prose prose-gray dark:prose-invert max-w-none">
+                <h2 class="font-bold uppercase">Introduction</h2>
+                <p>
+                    "Resources are reactive primitives for handling asynchronous operations like API calls.
+                    They automatically track loading states, handle errors, and update when their dependencies change."
+                </p>
 
-                            <div class="mb-6" style="border: 1px solid #e5e7eb; border-radius: 0.75rem; overflow: hidden;">
-                                <div class="px-5 py-4" style="background-color: #f9fafb; border-bottom: 1px solid #e5e7eb;">
-                                    <h2 class="title is-4 has-text-grey-darker mb-0" style="font-weight: 600;">
-                                        <span class="icon mr-2" style="color: #06B6D4;"><i class="fas fa-broadcast-tower"></i></span>
-                                        Using Signals for State
-                                    </h2>
-                                </div>
-                                <div class="px-5 py-4">
-                                    <p class="has-text-grey-dark mb-4" style="line-height: 1.6;">
-                                        Signals provide reactive state management. When a signal changes, components automatically re-render.
-                                    </p>
-                                    <div style="border: 1px solid #e5e7eb; border-radius: 0.5rem; overflow: hidden;" class="mb-4">
-                                        <div style="background-color: #1e293b; padding: 1rem;">
-                                            <pre style="background: transparent; color: #e2e8f0; font-size: 0.9rem; line-height: 1.5;">
-                                                <code>
-                                                    // TODO: signals code would go here
-                                                </code>
-                                            </pre>
-                                        </div>
-                                    </div>
-                                    <div class="notification is-light" style="background-color: #eff6ff; border: 1px solid #bfdbfe; border-left: 4px solid #3b82f6;">
-                                        <p class="has-text-grey-darker">
-                                            <span class="icon has-text-link"><i class="fas fa-lightbulb"></i></span>
-                                            <strong>Pro Tip:</strong> Signals automatically track dependencies and only re-render affected components.
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
+                <h2 class="font-bold uppercase">Basic Example</h2>
+                <CodeBlock
+                    language="rust"
+                    filename="src/main.rs"
+                    highlight=""
+                    code={r#"use momenta::prelude::*;
 
-                            <div style="border: 1px solid #e5e7eb; border-radius: 0.75rem; overflow: hidden;">
-                                <div class="px-5 py-4" style="background-color: #f9fafb; border-bottom: 1px solid #e5e7eb;">
-                                    <h2 class="title is-4 has-text-grey-darker mb-0" style="font-weight: 600;">
-                                        <span class="icon mr-2" style="color: #10b981;"><i class="fas fa-mouse-pointer"></i></span>
-                                        Event Handling
-                                    </h2>
-                                </div>
-                                <div class="px-5 py-4">
-                                    <p class="has-text-grey-dark mb-4" style="line-height: 1.6;">
-                                        Handle user interactions with event handlers. Simple RSX supports all standard DOM events.
-                                    </p>
+async fn fetch_user(id: u32) -> Result<User, Error> {
+    // Simulate API call
+    let response = api_client.get(&format!("/users/{}", id)).await?;
+    Ok(response.json().await?)
+}
 
-                                    <div class="columns is-multiline">
-                                        <div class="column is-4">
-                                            <div class="box p-4" style="background-color: #fef3c7; border: 1px solid #fde68a;">
-                                                <h4 class="title is-6 has-text-grey-darker mb-3" style="font-weight: 600;">
-                                                    <span class="icon"><i class="fas fa-mouse"></i></span>
-                                                    <span>Mouse Events</span>
-                                                </h4>
-                                                <div class="tags">
-                                                    <span class="tag is-small" style="background-color: #fbbf24; color: white;"><code>on_click</code></span>
-                                                    <span class="tag is-small" style="background-color: #fbbf24; color: white;"><code>on_mouseenter</code></span>
-                                                    <span class="tag is-small" style="background-color: #fbbf24; color: white;"><code>on_mouseleave</code></span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="column is-4">
-                                            <div class="box p-4" style="background-color: #dbeafe; border: 1px solid #bfdbfe;">
-                                                <h4 class="title is-6 has-text-grey-darker mb-3" style="font-weight: 600;">
-                                                    <span class="icon"><i class="fas fa-keyboard"></i></span>
-                                                    <span>Keyboard Events</span>
-                                                </h4>
-                                                <div class="tags">
-                                                    <span class="tag is-small" style="background-color: #3b82f6; color: white;"><code>on_keydown</code></span>
-                                                    <span class="tag is-small" style="background-color: #3b82f6; color: white;"><code>on_keyup</code></span>
-                                                    <span class="tag is-small" style="background-color: #3b82f6; color: white;"><code>on_keypress</code></span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="column is-4">
-                                            <div class="box p-4" style="background-color: #d1fae5; border: 1px solid #a7f3d0;">
-                                                <h4 class="title is-6 has-text-grey-darker mb-3" style="font-weight: 600;">
-                                                    <span class="icon"><i class="fas fa-edit"></i></span>
-                                                    <span>Form Events</span>
-                                                </h4>
-                                                <div class="tags">
-                                                    <span class="tag is-small" style="background-color: #10b981; color: white;"><code>on_input</code></span>
-                                                    <span class="tag is-small" style="background-color: #10b981; color: white;"><code>on_change</code></span>
-                                                    <span class="tag is-small" style="background-color: #10b981; color: white;"><code>on_submit</code></span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div class="notification is-light" style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-left: 4px solid #22c55e;">
-                                        <p class="has-text-grey-darker">
-                                            <span class="icon has-text-success"><i class="fas fa-info-circle"></i></span>
-                                            <strong>Pro Tip:</strong> Use closures to capture variables from the surrounding scope in your event handlers.
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+#[component]
+fn UserProfile() -> Node {
+    let user_id = create_signal(1);
+    
+    // Create a resource that depends on user_id
+    let user = create_resource(move || user_id.get(), fetch_user);
+    
+    rsx! {
+        <div>
+            {match user.get() {
+                Some(Ok(user)) => rsx! {
+                    <div>
+                        <h1>{user.name}</h1>
+                        <p>{user.email}</p>
                     </div>
-                </div>
-            </div>
-        </section>
+                },
+                Some(Err(error)) => rsx! {
+                    <div class="error">Error: {error.to_string()}</div>
+                },
+                None => rsx! {
+                    <div class="loading">Loading...</div>
+                }
+            }}
+        </div>
+    }
+}"#}
+                />
+
+                <Note variant="info">
+                    <p>
+                        <strong>"Automatic refetching:"</strong> " When user_id changes, the resource automatically
+                        refetches the data with the new ID."
+                    </p>
+                </Note>
+
+                <h2 class="font-bold uppercase">API Reference</h2>
+
+                <h3>Creating Resources</h3>
+                <CodeBlock
+                    language="rust"
+                    filename="src/main.rs"
+                    highlight=""
+                    code={r#"// Basic resource
+let data = create_resource(|| (), |_| async { fetch_data().await });
+
+// Resource with dependency
+let user_id = create_signal(1);
+let user = create_resource(move || user_id.get(), |id| fetch_user(id));
+
+// Resource with multiple dependencies
+let search_query = create_signal("".to_string());
+let page = create_signal(1);
+let results = create_resource(
+    move || (search_query.get(), page.get()),
+    |(query, page)| search_posts(query, page)
+);"#}
+                />
+
+                <h3>Resource States</h3>
+                <CodeBlock
+                    language="rust"
+                    filename="src/main.rs"
+                    highlight=""
+                    code={r#"let resource = create_resource(|| (), |_| fetch_data());
+
+// Check resource state
+match resource.get() {
+    None => {
+        // Still loading initial data
+        rsx! { <div>"Loading..."</div> }
+    },
+    Some(Ok(data)) => {
+        // Data loaded successfully
+        rsx! { <div>{data}</div> }
+    },
+    Some(Err(error)) => {
+        // Error occurred
+        rsx! { <div>"Error: {error}"</div> }
+    }
+}
+
+// Check if resource is loading
+if resource.loading() {
+    // Show loading spinner
+}"#}
+                />
+
+                <h3>Refetching Resources</h3>
+                <CodeBlock
+                    language="rust"
+                    filename="src/main.rs"
+                    highlight=""
+                    code={r#"let data = create_resource(|| (), |_| fetch_data());
+
+// Manually refetch
+data.refetch();
+
+// Refetch when a button is clicked
+rsx! {
+    <div>
+        <button on_click={move |_| data.refetch()}>
+            "Refresh"
+        </button>
+        {/* Display data */}
+    </div>
+}"#}
+                />
+
+                <h2 class="font-bold uppercase">Advanced Patterns</h2>
+
+                <h3>Optimistic Updates</h3>
+                <CodeBlock
+                    language="rust"
+                    filename="src/main.rs"
+                    highlight=""
+                    code={r#"let todos = create_resource(|| (), |_| fetch_todos());
+
+let add_todo = move |text: String| {
+    // Optimistically add to local state
+    let mut current_todos = todos.get().unwrap_or_default();
+    current_todos.push(Todo { id: 0, text, completed: false });
+    todos.set_value(Ok(current_todos));
+    
+    // Then sync with server
+    spawn_local(async move {
+        match create_todo_on_server(text).await {
+            Ok(_) => todos.refetch(),
+            Err(_) => {
+                // Revert optimistic update
+                todos.refetch();
+            }
+        }
+    });
+};"#}
+                />
+
+                <h3>Infinite Loading</h3>
+                <CodeBlock
+                    language="rust"
+                    filename="src/main.rs"
+                    highlight=""
+                    code={r#"let page = create_signal(1);
+let posts = create_signal(vec![]);
+
+let load_more = create_resource(
+    move || page.get(),
+    |page_num| async move { fetch_posts(page_num).await }
+);
+
+create_effect(move || {
+    if let Some(Ok(new_posts)) = load_more.get() {
+        posts.extend(new_posts);
+    }
+});
+
+let load_next_page = move |_| {
+    page += 1;
+};"#}
+                />
+
+                <h2 class="font-bold uppercase">Best Practices</h2>
+                <ul>
+                    <li>"Use resources for any asynchronous data fetching"</li>
+                    <li>"Handle all three states: loading, success, and error"</li>
+                    <li>"Consider caching strategies for frequently accessed data"</li>
+                    <li>"Use optimistic updates for better UX in write operations"</li>
+                    <li>"Debounce search queries to avoid excessive API calls"</li>
+                </ul>
+            </section>
+        </article>
     }
 }
 
 #[component]
-fn CounterAppPage() -> Node {
-    let counter_example = r#""#;
-    let advanced_example = r#""#;
-
+fn PhilosophyPage() -> Node {
     rsx! {
-        <section class="section py-6 has-background-white">
-            <div class="container">
-                <div class="columns">
-                    <div class="column is-8 is-offset-2">
-                        <div class="mb-6">
-                            <h1 class="title is-1 has-text-grey-darker mb-4" style="font-weight: 800;">
-                                Examples
-                            </h1>
-                            <p class="subtitle is-5 has-text-grey-dark" style="font-weight: 400; line-height: 1.6;">
-                                Learn by example with practical code snippets
-                            </p>
-                        </div>
+        <article class="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
+            <header class="mb-12">
+                <h1 class="text-4xl font-bold text-gray-900 dark:text-gray-100">Philosophy</h1>
+                <p class="mt-4 text-lg text-gray-600 dark:text-gray-400">
+                    "Understanding the principles and design decisions behind Momenta."
+                </p>
+            </header>
 
-                        <div class="content">
-                            <div class="mb-6" style="border: 1px solid #e5e7eb; border-radius: 0.75rem; overflow: hidden;">
-                                <div class="px-5 py-4" style="background-color: #06B6D4; color: white;">
-                                    <h2 class="title is-4 has-text-white mb-0" style="font-weight: 600;">
-                                        <span class="icon has-text-white mr-2"><i class="fas fa-play"></i></span>
-                                        Basic Counter
-                                    </h2>
-                                </div>
-                                <div class="px-5 py-4">
-                                    <p class="has-text-grey-dark mb-4" style="line-height: 1.6;">
-                                        A simple counter demonstrating signals and event handling:
-                                    </p>
+            <section class="prose prose-gray dark:prose-invert max-w-none">
+                <h2 class="font-bold uppercase">Core Principles</h2>
 
-                                    <div style="border: 1px solid #e5e7eb; border-radius: 0.5rem; overflow: hidden;" class="mb-4">
-                                        <div style="background-color: #1e293b; padding: 1rem;">
-                                            <pre style="background: transparent; color: #e2e8f0; font-size: 0.85rem; line-height: 1.5;">
-                                                <code>{counter_example}</code>
-                                            </pre>
-                                        </div>
-                                    </div>
+                <h3>1. Element-Level Reactivity</h3>
+                <p>
+                    "Momenta uses element-level reactivity, which means only the specific parts of your UI that depend on
+                    changed data will be updated. This is more efficient than virtual DOM diffing and provides consistent performance."
+                </p>
 
-                                    <div class="notification is-light" style="background-color: #eff6ff; border: 1px solid #bfdbfe; border-left: 4px solid #3b82f6;">
-                                        <p class="has-text-grey-darker">
-                                            <span class="icon has-text-link"><i class="fas fa-lightbulb"></i></span>
-                                            <strong>Key Features:</strong> Signal creation, event handlers, reactive updates
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
+                <h3>2. Rust-First Design</h3>
+                <p>
+                    "Rather than porting concepts from JavaScript frameworks, Momenta embraces Rust's ownership model and
+                    type system. This leads to better performance and fewer runtime errors."
+                </p>
 
-                            <div class="mb-6" style="border: 1px solid #e5e7eb; border-radius: 0.75rem; overflow: hidden;">
-                                <div class="px-5 py-4" style="background-color: #3b82f6; color: white;">
-                                    <h2 class="title is-4 has-text-white mb-0" style="font-weight: 600;">
-                                        <span class="icon has-text-white mr-2"><i class="fas fa-cogs"></i></span>
-                                        Advanced Counter
-                                    </h2>
-                                </div>
-                                <div class="px-5 py-4">
-                                    <p class="has-text-grey-dark mb-4" style="line-height: 1.6;">
-                                        A more complex counter with configurable step size and history tracking:
-                                    </p>
+                <h3>3. Explicit Reactivity</h3>
+                <p>
+                    "Reactivity is explicit in Momenta. You explicitly create signals, effects, and resources. This makes
+                    the reactive system predictable and debuggable."
+                </p>
 
-                                    <div style="border: 1px solid #e5e7eb; border-radius: 0.5rem; overflow: hidden;">
-                                        <div style="background-color: #1e293b; padding: 1rem;">
-                                            <pre style="background: transparent; color: #e2e8f0; font-size: 0.8rem; line-height: 1.5;">
-                                                <code>{advanced_example}</code>
-                                            </pre>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                <h3>4. Composability Over Configuration</h3>
+                <p>
+                    "Momenta provides primitive building blocks that can be composed to create complex applications.
+                    There's no magic configuration or conventions - just composable primitives."
+                </p>
 
-                            <div style="border: 1px solid #e5e7eb; border-radius: 0.75rem; overflow: hidden;">
-                                <div class="px-5 py-4" style="background-color: #10b981; color: white;">
-                                    <h3 class="title is-4 has-text-white mb-0" style="font-weight: 600;">
-                                        <span class="icon has-text-white mr-2"><i class="fas fa-graduation-cap"></i></span>
-                                        Key Concepts Demonstrated
-                                    </h3>
-                                </div>
-                                <div class="px-5 py-4">
-                                    <div class="columns is-multiline">
-                                        <div class="column is-6">
-                                            <div class="is-flex is-align-items-start mb-4">
-                                                <span class="icon has-text-link mr-3 mt-1">
-                                                    <i class="fas fa-broadcast-tower"></i>
-                                                </span>
-                                                <div>
-                                                    <p class="has-text-weight-semibold has-text-grey-darker">Signal creation and updates</p>
-                                                    <p class="is-size-7 has-text-grey-dark">Reactive state management with automatic re-rendering</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="column is-6">
-                                            <div class="is-flex is-align-items-start mb-4">
-                                                <span class="icon has-text-link mr-3 mt-1">
-                                                    <i class="fas fa-mouse-pointer"></i>
-                                                </span>
-                                                <div>
-                                                    <p class="has-text-weight-semibold has-text-grey-darker">Event handler closures</p>
-                                                    <p class="is-size-7 has-text-grey-dark">Capturing variables in event callbacks</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="column is-6">
-                                            <div class="is-flex is-align-items-start mb-4">
-                                                <span class="icon has-text-warning mr-3 mt-1">
-                                                    <i class="fas fa-eye"></i>
-                                                </span>
-                                                <div>
-                                                    <p class="has-text-weight-semibold has-text-grey-darker">Conditional rendering</p>
-                                                    <p class="is-size-7 has-text-grey-dark">Dynamic UI based on state conditions</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="column is-6">
-                                            <div class="is-flex is-align-items-start mb-4">
-                                                <span class="icon has-text-danger mr-3 mt-1">
-                                                    <i class="fas fa-palette"></i>
-                                                </span>
-                                                <div>
-                                                    <p class="has-text-weight-semibold has-text-grey-darker">Dynamic class names</p>
-                                                    <p class="is-size-7 has-text-grey-dark">Styling based on component state</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="column is-12">
-                                            <div class="is-flex is-align-items-start">
-                                                <span class="icon has-text-link mr-3 mt-1">
-                                                    <i class="fas fa-history"></i>
-                                                </span>
-                                                <div>
-                                                    <p class="has-text-weight-semibold has-text-grey-darker">State history management</p>
-                                                    <p class="is-size-7 has-text-grey-dark">Tracking and displaying state changes over time</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
+                <h2 class="font-bold uppercase">Why Not Virtual DOM?</h2>
+                <p>
+                    "Virtual DOM was designed to solve a specific problem: making imperative DOM updates manageable.
+                    However, with element-level reactivity, we can track exactly what changed and update the DOM directly."
+                </p>
+
+                <h2 class="font-bold uppercase">Comparison with Other Frameworks</h2>
+                <p>
+                    "Momenta draws inspiration from SolidJS's reactivity model but implements it in Rust with zero-cost
+                    abstractions. Unlike React, there are no re-renders or reconciliation phases."
+                </p>
+
+                <Note variant="tip">
+                    <p>
+                        <strong>"Performance:"</strong> " Because Momenta compiles to efficient native code and uses
+                        element-level updates, your applications will be fast by default."
+                    </p>
+                </Note>
+            </section>
+        </article>
     }
 }
 
 #[component]
-fn ConceptsPage() -> Node {
+fn RsxPage() -> Node {
     rsx! {
-        <section class="section py-6 has-background-white">
-            <div class="container">
-                <div class="columns">
-                    <div class="column is-8 is-offset-2">
-                        <div class="mb-6">
-                            <h1 class="title is-1 has-text-grey-darker mb-4" style="font-weight: 800;">
-                                Core Concepts
-                            </h1>
-                            <p class="subtitle is-5 has-text-grey-dark" style="font-weight: 400; line-height: 1.6;">
-                                Master the fundamental building blocks of Simple RSX
-                            </p>
-                        </div>
+        <article class="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
+            <header class="mb-12">
+                <h1 class="text-4xl font-bold text-gray-900 dark:text-gray-100">rsx!</h1>
+                <p class="mt-4 text-lg text-gray-600 dark:text-gray-400">
+                    rsx! is a built in macro that allows you to write HTML-like syntax inside Rust code.
+                    "It's a way to declaratively describe the structure of your UI."
+                </p>
+            </header>
+            <section class="prose prose-gray dark:prose-invert max-w-none">
+                <h2 id="introduction">Introduction</h2>
+                <p>
+                    "RSX allows you to write HTML-like syntax inside Rust code. It's a way to declaratively describe the structure of your UI."
+                </p>
+                <h2 id="basic-example">Basic Example</h2>
+                <CodeBlock
+                    language="rust"
+                    filename="src/main.rs"
+                    highlight=""
+                    code={r#"use momenta::prelude::*;
 
-                        <div class="content">
-                            <div class="columns is-multiline">
-                                <div class="column is-6">
-                                    <div class="box p-5" style="border: 1px solid #e5e7eb; border-radius: 0.75rem; height: 100%;">
-                                        <div class="mb-4">
-                                            <div class="is-flex is-align-items-center mb-3">
-                                                <span class="icon is-medium mr-3" style="color: #06B6D4;">
-                                                    <i class="fas fa-broadcast-tower fa-lg"></i>
-                                                </span>
-                                                <h3 class="title is-4 has-text-grey-darker mb-0" style="font-weight: 600;">Signals</h3>
-                                            </div>
-                                            <p class="has-text-grey-dark mb-4" style="line-height: 1.6;">
-                                                Reactive state management through signals. Components automatically re-render when signals they depend on change.
-                                            </p>
-                                        </div>
+#[component]
+fn HelloWorld() -> Node {
+    let name = create_signal("World");
+    
+    rsx! {
+        <div>
+            <h1>"Hello, " {name} "!"</h1>
+            <p>"Welcome to Momenta."</p>
+        </div>
+    }
+}"#}
+                />
+                <Note variant="info">
+                    <p>
+                        <strong>"Good to know:"</strong> " The rsx! macro returns a Node type that can be rendered to the DOM. Nodes are lightweight and can be composed together to build complex UIs."
+                    </p>
+                </Note>
+                <h2 id="api-reference">API Reference</h2>
+                <h3 id="creating-elements">Creating Elements</h3>
+                <CodeBlock
+                    language="rust"
+                    filename="src/main.rs"
+                    highlight=""
+                    code={r#"// Basic element
+let div = rsx! { <div></div> };
 
-                                        <div>
-                                            <h4 class="has-text-weight-semibold has-text-grey-darker mb-3">
-                                                <span class="icon has-text-link"><i class="fas fa-star"></i></span>
-                                                Benefits:
-                                            </h4>
-                                            <div class="content">
-                                                <ul class="has-text-grey-dark" style="font-size: 0.9rem; line-height: 1.5;">
-                                                    <li><strong>Fine-grained reactivity:</strong> Only affected components re-render</li>
-                                                    <li><strong>Automatic dependency tracking:</strong> No manual subscriptions needed</li>
-                                                    <li><strong>Minimal re-renders:</strong> Optimized performance by default</li>
-                                                    <li><strong>Thread-safe by default:</strong> Built for concurrent environments</li>
-                                                </ul>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+// Element with attributes
+let button = rsx! { <button type_="button" class="primary"></button> };
 
-                                <div class="column is-6">
-                                    <div class="box p-5" style="border: 1px solid #e5e7eb; border-radius: 0.75rem; height: 100%;">
-                                        <div class="mb-4">
-                                            <div class="is-flex is-align-items-center mb-3">
-                                                <span class="icon is-medium mr-3" style="color: #3b82f6;">
-                                                    <i class="fas fa-magic fa-lg"></i>
-                                                </span>
-                                                <h3 class="title is-4 has-text-grey-darker mb-0" style="font-weight: 600;">Effects</h3>
-                                            </div>
-                                            <p class="has-text-grey-dark mb-4" style="line-height: 1.6;">
-                                                Side effects and subscriptions that run in response to signal changes. Perfect for API calls, timers, and cleanup logic.
-                                            </p>
-                                        </div>
+// Self-closing element
+let input = rsx! { <input type_="text" /> };
 
-                                        <div>
-                                            <h4 class="has-text-weight-semibold has-text-grey-darker mb-3">
-                                                <span class="icon has-text-info"><i class="fas fa-wrench"></i></span>
-                                                Use Cases:
-                                            </h4>
-                                            <div class="content">
-                                                <ul class="has-text-grey-dark" style="font-size: 0.9rem; line-height: 1.5;">
-                                                    <li><strong>Data fetching:</strong> Automatic API calls on state changes</li>
-                                                    <li><strong>DOM manipulation:</strong> Direct DOM updates when needed</li>
-                                                    <li><strong>Event subscriptions:</strong> WebSocket and external event handling</li>
-                                                    <li><strong>Resource cleanup:</strong> Automatic cleanup on component unmount</li>
-                                                </ul>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+// Note: HTML attributes with hyphens use underscores in RSX
+// e.g., `data-id` becomes `data_id`
+let custom = rsx! { <div data_id="123"></div> };
 
-                                <div class="column is-6">
-                                    <div class="box p-5" style="border: 1px solid #e5e7eb; border-radius: 0.75rem; height: 100%;">
-                                        <div class="mb-4">
-                                            <div class="is-flex is-align-items-center mb-3">
-                                                <span class="icon is-medium mr-3" style="color: #10b981;">
-                                                    <i class="fas fa-layer-group fa-lg"></i>
-                                                </span>
-                                                <h3 class="title is-4 has-text-grey-darker mb-0" style="font-weight: 600;">Rendering Scopes</h3>
-                                            </div>
-                                            <p class="has-text-grey-dark mb-4" style="line-height: 1.6;">
-                                                Isolated rendering contexts that manage component lifecycles and cleanup automatically. Each scope owns its signals and effects.
-                                            </p>
-                                        </div>
+// Attributes that conflict with Rust keywords use trailing underscore
+// e.g., `type` becomes `type_`
+let input = rsx! { <input type_="text" /> };"#}
+                />
+                <h3 id="attributes">Dynamic Attributes</h3>
+                <CodeBlock
+                    language="rust"
+                    filename="src/main.rs"
+                    highlight=""
+                    code={r#"// Dynamic class names
+let is_active = create_signal(true);
+let element = rsx! {
+    <div class={format!("container {}", if is_active.get() { "active" } else { "" })}>
+        <p>"Hello, world!"</p>
+    </div>
+};
 
-                                        <div>
-                                            <h4 class="has-text-weight-semibold has-text-grey-darker mb-3">
-                                                <span class="icon has-text-success"><i class="fas fa-shield-alt"></i></span>
-                                                Features:
-                                            </h4>
-                                            <div class="content">
-                                                <ul class="has-text-grey-dark" style="font-size: 0.9rem; line-height: 1.5;">
-                                                    <li><strong>Automatic cleanup:</strong> Memory leaks are prevented</li>
-                                                    <li><strong>Memory safety:</strong> Rusts ownership ensures correctness</li>
-                                                    <li><strong>Hierarchical structure:</strong> Parent-child scope relationships</li>
-                                                    <li><strong>Performance isolation:</strong> Scoped optimization boundaries</li>
-                                                </ul>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+// Conditional attributes
+let disabled = create_signal(false);
+let button = rsx! {
+    <button 
+        class="btn"
+        disabled={disabled.get()}
+    >
+        "Submit"
+    </button>
+};
 
-                                <div class="column is-6">
-                                    <div class="box p-5" style="border: 1px solid #e5e7eb; border-radius: 0.75rem; height: 100%;">
-                                        <div class="mb-4">
-                                            <div class="is-flex is-align-items-center mb-3">
-                                                <span class="icon is-medium mr-3" style="color: #f59e0b;">
-                                                    <i class="fas fa-puzzle-piece fa-lg"></i>
-                                                </span>
-                                                <h3 class="title is-4 has-text-grey-darker mb-0" style="font-weight: 600;">Components and Props</h3>
-                                            </div>
-                                            <p class="has-text-grey-dark mb-4" style="line-height: 1.6;">
-                                                Reusable UI components with type-safe props. Components are just Rust functions that return renderable content.
-                                            </p>
-                                        </div>
+// Event handlers
+let count = create_signal(0);
+let button = rsx! {
+    <button on_click={move |_| count += 1}>
+        "Clicked " {count} " times"
+    </button>
+};"#}
+                />
+                <h3 id="children">Dynamic Children</h3>
+                <CodeBlock
+                    language="rust"
+                    filename="src/main.rs"
+                    highlight=""
+                    code={r#"// Text nodes
+let name = "World";
+let element = rsx! {
+    <div>
+        "Hello, " {name} "!"
+    </div>
+};
 
-                                        <div>
-                                            <h4 class="has-text-weight-semibold has-text-grey-darker mb-3">
-                                                <span class="icon has-text-warning"><i class="fas fa-check-double"></i></span>
-                                                Advantages:
-                                            </h4>
-                                            <div class="content">
-                                                <ul class="has-text-grey-dark" style="font-size: 0.9rem; line-height: 1.5;">
-                                                    <li><strong>Type safety:</strong> Compile-time prop validation</li>
-                                                    <li><strong>Compile-time validation:</strong> Catch errors before runtime</li>
-                                                    <li><strong>Zero-cost abstractions:</strong> No runtime overhead</li>
-                                                    <li><strong>Easy composition:</strong> Mix and match components freely</li>
-                                                </ul>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+// Signal values
+let count = create_signal(0);
+let element = rsx! {
+    <div>
+        "Count: " {count}
+    </div>
+};
 
-                            <div class="box p-6 mt-6" style="border: 1px solid #e5e7eb; border-radius: 0.75rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
-                                <h3 class="title is-3 has-text-white mb-5" style="font-weight: 700;">
-                                    <span class="icon-text">
-                                        <span class="icon has-text-white"><i class="fas fa-graduation-cap"></i></span>
-                                        <span>Learning Path</span>
-                                    </span>
-                                </h3>
-                                <div class="columns">
-                                    <div class="column">
-                                        <div class="box has-background-white p-5" style="border-radius: 0.75rem; height: 100%;">
-                                            <div class="has-text-centered mb-3">
-                                                <span class="icon is-large" style="color: #06B6D4;">
-                                                    <i class="fas fa-play-circle fa-2x"></i>
-                                                </span>
-                                            </div>
-                                            <h4 class="title is-5 has-text-grey-darker has-text-centered mb-3" style="font-weight: 600;">1. Start with Components</h4>
-                                            <p class="has-text-grey-dark has-text-centered" style="font-size: 0.9rem; line-height: 1.5;">
-                                                Learn to create basic components using the <code class="px-2 py-1" style="background-color: #f3f4f6; border-radius: 0.25rem;">rsx!</code> macro.
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <div class="column">
-                                        <div class="box has-background-white p-5" style="border-radius: 0.75rem; height: 100%;">
-                                            <div class="has-text-centered mb-3">
-                                                <span class="icon is-large" style="color: #3b82f6;">
-                                                    <i class="fas fa-mouse-pointer fa-2x"></i>
-                                                </span>
-                                            </div>
-                                            <h4 class="title is-5 has-text-grey-darker has-text-centered mb-3" style="font-weight: 600;">2. Add Interactivity</h4>
-                                            <p class="has-text-grey-dark has-text-centered" style="font-size: 0.9rem; line-height: 1.5;">
-                                                Use signals to manage state and event handlers for user input.
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <div class="column">
-                                        <div class="box has-background-white p-5" style="border-radius: 0.75rem; height: 100%;">
-                                            <div class="has-text-centered mb-3">
-                                                <span class="icon is-large" style="color: #10b981;">
-                                                    <i class="fas fa-magic fa-2x"></i>
-                                                </span>
-                                            </div>
-                                            <h4 class="title is-5 has-text-grey-darker has-text-centered mb-3" style="font-weight: 600;">3. Master Effects</h4>
-                                            <p class="has-text-grey-dark has-text-centered" style="font-size: 0.9rem; line-height: 1.5;">
-                                                Handle side effects and cleanup with the effect system.
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="has-text-centered mt-5">
-                                    <button class="button is-white is-medium" style="font-weight: 600; padding: 0.75rem 1.5rem;">
-                                        <span class="icon"><i class="fas fa-book-open"></i></span>
-                                        <span>Start Learning</span>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+// Conditional rendering with when! macro
+let is_logged_in = create_signal(true);
+let element = rsx! {
+    <div>
+        {when!(is_logged_in =>
+            <p>"Welcome back!"</p>
+        else
+            <p>"Please log in"</p>
+        )}
+    </div>
+};
+
+// Lists with iterators
+let items = create_signal(vec!["Apple", "Banana", "Cherry"]);
+let list = rsx! {
+    <ul>
+        {items.map(|item| rsx! {
+            <li>{item}</li>
+        })}
+    </ul>
+};"#}
+                />
+
+                <h3 id="fragments">Fragments</h3>
+                <p>"When you need to return multiple elements without a wrapper, you can use fragments:"</p>
+                <CodeBlock
+                    language="rust"
+                    filename="src/main.rs"
+                    highlight=""
+                    code={r#"// Using fragments
+let elements = rsx! {
+    <>
+        <h1>"Title"</h1>
+        <p>"Paragraph 1"</p>
+        <p>"Paragraph 2"</p>
+    </>
+};"#}
+                />
+
+                <h2 class="font-bold uppercase">Best Practices</h2>
+                <ul>
+                    <li>"Keep your components small and focused on a single responsibility"</li>
+                    <li>"Use signals for state that changes over time"</li>
+                    <li>"Extract repeated patterns into reusable components"</li>
+                    <li>"Use the when! macro for conditional rendering"</li>
+                    <li>"Use iterators with .map() for rendering lists"</li>
+                </ul>
+
+                <div class="mt-12 flex items-center justify-between border-t border-gray-200 dark:border-gray-800 pt-6">
+                    <a href="#" class="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200">
+                        "← Getting Started"
+                    </a>
+                    <a href="#" class="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200">
+                        "Signals →"
+                    </a>
                 </div>
-            </div>
-        </section>
+            </section>
+        </article>
+    }
+}
+
+#[component]
+pub fn EffectsPage() -> Node {
+    rsx! {
+        <article class="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
+            <header class="mb-12">
+                <h1 class="text-4xl font-bold text-gray-900 dark:text-gray-100">Effects</h1>
+                <p class="mt-4 text-lg text-gray-600 dark:text-gray-400">
+                    "Effects are the building blocks of reactivity in Momenta. They run code in response to changes in signals."
+                </p>
+            </header>
+            <section class="prose prose-gray dark:prose-invert max-w-none">
+                <h2 id="introduction">Introduction</h2>
+                <p>
+                    "Effects are functions that run when their dependencies change. They are the building blocks of reactivity in Momenta. Effects automatically track any signals accessed during their execution and re-run when those signals change."
+                </p>
+                <h2 id="basic-example">Basic Example</h2>
+                <CodeBlock
+                    language="rust"
+                    filename="src/main.rs"
+                    highlight=""
+                    code={r#"use momenta::prelude::*;
+
+#[component]
+fn Counter() -> Node {
+    let count = create_signal(0);
+    
+    // This effect will run whenever count changes
+    create_effect(move || {
+        log!("Count changed to: {}", count.get());
+    });
+    
+    rsx! {
+        <div>
+            <p>"Current count: " {count}</p>
+            <button on_click={move |_| count += 1}>"Increment"</button>
+        </div>
+    }
+}"#}
+                />
+                <h2 id="api-reference">API Reference</h2>
+                <h3 id="creating-effects">Creating Effects</h3>
+                <CodeBlock
+                    language="rust"
+                    filename="src/main.rs"
+                    highlight=""
+                    code={r#"// Basic effect creation
+let name = create_signal("Alice".to_string());
+
+// This effect will run once immediately and then
+// whenever any of its dependencies change
+create_effect(move || {
+    log!("Hello, {}", name.get());
+});
+
+// Effects can access multiple signals
+let count = create_signal(0);
+let multiplier = create_signal(2);
+
+create_effect(move || {
+    let result = count.get() * multiplier.get();
+    log!("Result: {}", result);
+});"#}
+                />
+                <h2 class="font-bold uppercase">Advanced Patterns</h2>
+                <h3>Effect Dependencies</h3>
+                <p>"Effects can depend on multiple signals, and they will only run when any of their dependencies change:"</p>
+                <CodeBlock
+                    language="rust"
+                    filename="src/main.rs"
+                    highlight=""
+                    code={r#"// Effect with multiple dependencies
+let first_name = create_signal("John".to_string());
+let last_name = create_signal("Doe".to_string());
+
+create_effect(move || {
+    // This effect depends on both first_name and last_name
+    let full_name = format!("{} {}", first_name.get(), last_name.get());
+    log!("Full name: {}", full_name);
+});
+
+// Changing either signal will trigger the effect
+first_name.set("Jane".to_string()); // Effect runs
+last_name.set("Smith".to_string()); // Effect runs again"#}
+                />
+                <h3>Effect Ordering</h3>
+                <p>"Effects are executed in the order they are created"</p>
+                <CodeBlock
+                    language="rust"
+                    filename="src/main.rs"
+                    highlight=""
+                    code={r#"// Effect ordering
+let count = create_signal(0);
+
+create_effect(move || {
+    log!("Effect 1: {}", count.get());
+});
+
+create_effect(move || {
+    log!("Effect 2: {}", count.get());
+});
+
+// When count changes, the output will be:
+// Effect 1: 1
+// Effect 2: 1"#}
+                />
+                <h2 class="font-bold uppercase">Best Practices</h2>
+                <ul>
+                    <li>"Keep effects as lightweight as possible"</li>
+                    <li>"Avoid creating effects inside loops or other complex logic"</li>
+                    <li>"Use " <code>"create_effect"</code> " for simple effects"</li>
+                    <li>"Don't modify signals that you're tracking in the same effect to avoid infinite loops"</li>
+                    <li>"Group related effects together for better code organization"</li>
+                </ul>
+                <div class="mt-12 flex items-center justify-between border-t border-gray-200 dark:border-gray-800 pt-6">
+                    <a href="#" class="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200">
+                        "← Signals"
+                    </a>
+                    <a href="#" class="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200">
+                        "Resources →"
+                    </a>
+                </div>
+            </section>
+        </article>
+    }
+}
+
+#[component]
+fn SignalsPage() -> Node {
+    rsx! {
+        <article class="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
+            <header class="mb-12">
+                <h1 class="text-4xl font-bold text-gray-900 dark:text-gray-100">Signals</h1>
+                <p class="mt-4 text-lg text-gray-600 dark:text-gray-400">
+                    "Signals are the most basic reactive primitive in Momenta. They contain values that change over time."
+                </p>
+            </header>
+
+            <section class="prose prose-gray dark:prose-invert max-w-none">
+                <h2 id="introduction">Introduction</h2>
+                <p>
+                    "When you create a signal, you get a getter and setter function. The getter tracks any scope it's called in,
+                    and the setter triggers updates to any computations that depend on the signal's value."
+                </p>
+
+                <h2 id="basic-example">Basic Example</h2>
+                <CodeBlock
+                    language="rust"
+                    filename="src/main.rs"
+                    highlight=""
+                    code={r#"use momenta::prelude::*;
+
+#[component]
+fn App() -> Node {
+    // Create a signal with initial value 0
+    let count = create_signal(0);
+    
+    rsx! {
+        <div>
+            <p>Count: {count}</p>
+            <button on_click={move |_| count += 1}>
+                "Increment"
+            </button>
+        </div>
+    }
+}"#}
+                />
+
+                <Note variant="info">
+                    <p>
+                        <strong>"Good to know:"</strong> " Unlike other frameworks, You  accessing a signal's value requires calling "
+                        <code>".get()"</code> ". This explicit call enables Momenta's element-level reactivity system to track dependencies precisely."
+                    </p>
+                </Note>
+
+                <h2 id="api-reference">API Reference</h2>
+
+                <h3 id="creating-signals">Creating Signals</h3>
+                <CodeBlock
+                    language="rust"
+                    filename="src/main.rs"
+                    highlight=""
+                    code={r#"// Basic signal creation
+let count = create_signal(0);
+let name = create_signal("Alice".to_string());
+let todos = create_signal(vec![]);
+
+// With type annotations
+let typed: Signal<i32> = create_signal(0);
+let items: Signal<Vec<String>> = create_signal(vec![]);"#}
+                />
+
+                <h3 id="reading-values">Reading Values</h3>
+                <CodeBlock
+                    language="rust"
+                    filename="src/main.rs"
+                    highlight=""
+                    code={r#"let count = create_signal(5);
+
+// Get current value
+let value = count.get(); // 5
+
+// Use in reactive context
+create_effect(move || {
+    log!("Count is: {}", count);
+});
+
+// Use with closures
+let doubled = move || count * 2;"#}
+                />
+
+                <h3 id="updating-values">Updating Values</h3>
+                <CodeBlock
+                    language="rust"
+                    filename="src/main.rs"
+                    highlight=""
+                    code={r#"let mut count = create_signal(0);
+
+// Override the value
+count.set(5); // Now count is 5
+
+// Update based on previous value
+count += 1; // Now count is 6
+"#}
+                />
+                <Note variant="tip">
+                    <p>
+                        <strong>"Performance tip:"</strong> Avoid creating derived signals for every possible combination of signals.
+                    </p>
+                </Note>
+
+                <h3>Signal Utilities</h3>
+                <CodeBlock
+                    language="rust"
+                    filename="src/main.rs"
+                    highlight=""
+                    code={r#"// Check if signals are equal
+let a = create_signal(5);
+let b = create_signal(5);
+let are_equal = a == b; // true
+"#}
+                />
+
+                <h2 class="font-bold uppercase">Best Practices</h2>
+                <ul>
+                    <li>"Keep signals at the appropriate scope - not everything needs to be global state"</li>
+                    <li>"Prefer fine-grained signals over large state objects for better performance"</li>
+                    <li>"Group related signals into structs for better organization"</li>
+                    <li>"Use derived values (closures that read signals) instead of creating redundant signals"</li>
+                    <li>"Consider using custom signal types for domain-specific state management"</li>
+                </ul>
+
+                <div class="mt-12 flex items-center justify-between border-t border-gray-200 dark:border-gray-800 pt-6">
+                    <a href="#" class="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200">
+                        "← Getting Started"
+                    </a>
+                    <a href="#" class="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200">
+                        "Effects →"
+                    </a>
+                </div>
+            </section>
+        </article>
+    }
+}
+
+// Add more page implementations...
+#[component]
+fn GettingStartedPage() -> Node {
+    rsx! {
+        <article class="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
+            <header class="mb-12">
+                <h1 class="text-4xl font-bold text-gray-900 dark:text-gray-100">Getting Started</h1>
+                <p class="mt-4 text-lg text-gray-600 dark:text-gray-400">
+                    "Get up and running with Momenta in minutes."
+                </p>
+            </header>
+
+            <section class="prose prose-gray dark:prose-invert max-w-none">
+                <h2 class="font-bold uppercase">Installation</h2>
+                <p>"Add Momenta to your " <code>"Cargo.toml"</code> ":"</p>
+                <CodeBlock
+                    filename="Cargo.toml"
+                    highlight=""
+                    language="toml"
+                    code={r#"[dependencies]
+momenta = "0.2"
+
+# For web projects
+[dependencies.web-sys]
+version = "0.3"
+features = ["Document", "Element", "HtmlElement"]"#}
+                />
+
+                <h2 class="font-bold uppercase">Your First Component</h2>
+                <CodeBlock
+                    filename="src/main.rs"
+                    highlight=""
+                    language="rust"
+                    code={r#"use momenta::prelude::*;
+
+#[component]
+fn App() -> Node {
+    let name = create_signal("World");
+    
+    rsx! {
+        <div class="container">
+            <h1>Hello, {name}!</h1>
+            <input 
+                type_="text"
+                value={name}
+                on_input={move |e| name.set(e.value())}
+                placeholder="Enter your name"
+            />
+        </div>
     }
 }
 
 fn main() {
-    render_root::<App>("app");
+    mount_to_body::<App>();
+}"#}
+                />
+
+                <h2 class="font-bold uppercase">Project Structure</h2>
+                <p>"A typical Momenta project structure looks like this:"</p>
+                <CodeBlock
+                    language="text"
+                    highlight=""
+                    filename=""
+                    code={r#"my-app/
+├── Cargo.toml
+├── src/
+│   ├── main.rs
+│   ├── components/
+│   │   ├── mod.rs
+│   │   ├── header.rs
+│   │   └── footer.rs
+│   └── pages/
+│       ├── mod.rs
+│       └── home.rs
+├── static/
+│   └── index.html
+└── style/
+    └── main.css"#}
+                />
+
+                <Note variant="tip">
+                    <p>
+                        <strong>"Tip:"</strong> add a <code>"static"</code> folder to your project to serve static files like images, CSS, and JavaScript.
+                    </p>
+                </Note>
+            </section>
+        </article>
+    }
+}
+
+#[component]
+fn ComponentsPage() -> Node {
+    rsx! {
+        <article class="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
+            <header class="mb-12">
+                <h1 class="text-4xl font-bold text-gray-900 dark:text-gray-100">Components</h1>
+                <p class="mt-4 text-lg text-gray-600 dark:text-gray-400">
+                    "Components are reusable pieces of UI logic marked with the #[component] attribute."
+                </p>
+            </header>
+
+            <section class="prose prose-gray dark:prose-invert max-w-none">
+                <h2 class="font-bold uppercase">Introduction</h2>
+                <p>
+                    "Components in Momenta are functions that return a Node. They can accept props and maintain
+                    internal state using signals and other reactive primitives."
+                </p>
+
+                <h2 class="font-bold uppercase">Basic Component</h2>
+                <CodeBlock
+                    language="rust"
+                    filename="src/components/button.rs"
+                    highlight=""
+                    code={r#"use momenta::prelude::*;
+
+#[component]
+fn Button() -> Node {
+    rsx! {
+        <button class="btn">
+            "Click me"
+        </button>
+    }
+}
+
+// Usage
+#[component]
+fn App() -> Node {
+    rsx! {
+        <div>
+            <Button />
+        </div>
+    }
+}"#}
+                />
+
+                <h2 class="font-bold uppercase">Components with Props</h2>
+                <CodeBlock
+                    language="rust"
+                    filename="src/components/button.rs"
+                    highlight=""
+                    code={r#"pub struct ButtonProps {
+    pub text: &'static str,
+    pub variant: &'static str,
+    pub on_click: Box<dyn Fn()>,
+}
+
+#[component]
+fn Button(props: &ButtonProps) -> Node {
+    let class = format!("btn btn-{}", props.variant);
+    
+    rsx! {
+        <button class={class} on_click={props.on_click}>
+            {props.text}
+        </button>
+    }
+}
+
+// Usage
+#[component]
+fn App() -> Node {
+    let count = create_signal(0);
+    
+    rsx! {
+        <div>
+            <p>Count: {count}</p>
+            <Button 
+                text="Increment"
+                variant="primary"
+                on_click={move || count += 1}
+            />
+        </div>
+    }
+}"#}
+                />
+                <Note variant="info">
+                    <p>
+                        <strong>"Good to know:"</strong> " Props must always be passed by reference or excluded totally. This ensures that the component can be re-rendered when the props change. "
+                    </p>
+                </Note>
+
+                <h2 class="font-bold uppercase">Components with State</h2>
+                <CodeBlock
+                    language="rust"
+                    filename="src/components/toggle.rs"
+                    highlight=""
+                    code={r#"#[component]
+fn Toggle() -> Node {
+    let is_on = create_signal(false);
+    
+    let toggle = move |_| {
+        is_on.set(!is_on);
+    };
+    
+    rsx! {
+        <div class="toggle">
+            <button 
+                class={when!(is_on => "toggle-on" else "toggle-off")}
+                on_click={toggle}
+            >
+                {when!(is_on => "On" else "Off")}
+            </button>
+        </div>
+    }
+}"#}
+                />
+
+                <h2 class="font-bold uppercase">Component Composition</h2>
+                <CodeBlock
+                    language="rust"
+                    filename="src/components/card.rs"
+                    highlight=""
+                    code={r#"pub struct CardProps {
+    pub title: &'static str,
+    pub children: Vec<Node>,
+}
+
+#[component]
+fn Card(props: &CardProps) -> Node {
+    rsx! {
+        <div class="card">
+            <div class="card-header">
+                <h3>{&props.title}</h3>
+            </div>
+            <div class="card-body">
+                {&props.children}
+            </div>
+        </div>
+    }
+}
+
+// Usage
+#[component]
+fn App() -> Node {
+    rsx! {
+        <Card title="User Profile">
+            <p>"Name: John Doe"</p>
+            <p>"Email: john@example.com"</p>
+            <Button text="Edit Profile" variant="secondary" />
+        </Card>
+    }
+}"#}
+                />
+
+                <h2 class="font-bold uppercase">Best Practices</h2>
+                <ul>
+                    <li>"Keep components focused on a single responsibility"</li>
+                    <li>"Use props for data that changes between instances"</li>
+                    <li>"Use signals for component-local state"</li>
+                    <li>"Prefer composition over complex prop drilling"</li>
+                    <li>"Name components with PascalCase"</li>
+                </ul>
+
+                <Note variant="tip">
+                    <p>
+                        <strong>"Performance:"</strong> " Components in Momenta have minimal overhead.
+                        They're just functions that return JSX, so don't hesitate to break your UI into small, reusable pieces."
+                    </p>
+                </Note>
+            </section>
+        </article>
+    }
+}
+
+#[component]
+fn ShowPage() -> Node {
+    rsx! {
+        <article class="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
+            <header class="mb-12">
+                <h1 class="text-4xl font-bold text-gray-900 dark:text-gray-100">Conditional Rendering</h1>
+                <p class="mt-4 text-lg text-gray-600 dark:text-gray-400">
+                    "Use when! macro for conditional rendering based on reactive values."
+                </p>
+            </header>
+
+            <section class="prose prose-gray dark:prose-invert max-w-none">
+                <h2 class="font-bold uppercase">Introduction</h2>
+                <p>
+                    "The when! macro provides a clean way to conditionally render different UI based on
+                    reactive values. It's similar to ternary operators but integrates seamlessly with Momenta's reactivity."
+                </p>
+
+                <h2 class="font-bold uppercase">Basic Usage</h2>
+                <CodeBlock
+                    language="rust"
+                    filename="src/main.rs"
+                    highlight=""
+                    code={r#"use momenta::prelude::*;
+
+#[component]
+fn App() -> Node {
+    let is_logged_in = create_signal(false);
+    
+    rsx! {
+        <div>
+            {when!(is_logged_in =>
+                <div>
+                    <h1>Welcome back!</h1>
+                    <button on_click={move |_| is_logged_in.set(false)}>
+                        "Logout"
+                    </button>
+                </div>
+            else
+                <div>
+                    <h1>Please log in</h1>
+                    <button on_click={move |_| is_logged_in.set(true)}>
+                        "Login"
+                    </button>
+                </div>
+            )}
+        </div>
+    }
+}"#}
+                />
+
+                <h2 class="font-bold uppercase">Complex Conditions</h2>
+                <CodeBlock
+                    language="rust"
+                    filename="src/main.rs"
+                    highlight=""
+                    code={r#"let user_role = create_signal("guest");
+let is_loading = create_signal(false);
+
+rsx! {
+    <div>
+        {when!(is_loading =>
+            <div class="spinner">Loading...</div>
+        else when!(user_role == "admin" =>
+            <AdminPanel />
+        else when!(user_role == "user" =>
+            <UserDashboard />
+        else
+            <GuestLanding />
+        )))}
+    </div>
+}"#}
+                />
+
+                <h2 class="font-bold uppercase">Show Components</h2>
+                <CodeBlock
+                    language="rust"
+                    filename="src/main.rs"
+                    highlight=""
+                    code={r#"pub struct ShowProps {
+    pub when: bool,
+    pub children: Vec<Node>,
+}
+
+#[component]
+fn Show(props: &ShowProps) -> Node {
+    if props.when {
+        rsx! { <div>{&props.children}</div> }
+    } else {
+        rsx! { <div></div> }
+    }
+}
+
+// Usage
+let show_details = create_signal(false);
+
+rsx! {
+    <div>
+        <button on_click={move |_| show_details.set(!show_details)}>
+            "Toggle Details"
+        </button>
+        <Show when={show_details.get()}>
+            <p>These are the details!</p>
+            <p>Only visible when show_details is true.</p>
+        </Show>
+    </div>
+}"#}
+                />
+
+                <h2 class="font-bold uppercase">Advanced Patterns</h2>
+
+                <h3>Loading States</h3>
+                <CodeBlock
+                    language="rust"
+                    filename="src/main.rs"
+                    highlight=""
+                    code={r#"#[derive(Clone, Copy, PartialEq)]
+enum LoadingState {
+    Idle,
+    Loading,
+    Success,
+    Error,
+}
+
+let state = create_signal(LoadingState::Idle);
+
+rsx! {
+    <div>
+        {when!(state.get() {
+            LoadingState::Loading => <div class="loading">
+                <i class="fas fa-spinner fa-spin"></i>
+                " Loading..."
+            </div>,
+            LoadingState::Success => <div class="success">
+                <i class="fas fa-check"></i>
+                " Success!"
+            </div>,
+            LoadingState::Error => <div class="error">
+                <i class="fas fa-exclamation-triangle"></i>
+                " Something went wrong"
+            </div>,
+            _ => <button on_click={move |_| state.set(LoadingState::Loading)}>
+                "Start Operation"
+            </button>
+        })}
+    </div>
+}"#}
+                />
+
+                <h3>Permission-Based Rendering</h3>
+                <CodeBlock
+                    language="rust"
+                    filename="src/main.rs"
+                    highlight=""
+                    code={r#"pub struct PermissionProps {
+    pub required_permission: &'static str,
+    pub children: Vec<Node>,
+}
+
+#[component]
+fn RequirePermission(props: &PermissionProps) -> Node {
+    let user_permissions = use_context::<Vec<String>>();
+    
+    let has_permission = user_permissions
+        .iter()
+        .any(|p| p == props.required_permission);
+    
+    rsx! {
+        {when!(has_permission =>
+            <div>{&props.children}</div>
+        else
+            <div class="permission-denied">
+                "You don't have permission to view this content."
+            </div>
+        )}
+    }
+}
+
+// Usage
+rsx! {
+    <RequirePermission required_permission="admin">
+        <AdminSettings />
+    </RequirePermission>
+}"#}
+                />
+
+                <h2 class="font-bold uppercase">Best Practices</h2>
+                <ul>
+                    <li>"Use when! for simple boolean conditions"</li>
+                    <li>"Consider creating Show/Hide components for reusable patterns"</li>
+                    <li>"Avoid deeply nested conditional rendering"</li>
+                    <li>"Use match expressions for complex state-based rendering"</li>
+                    <li>"Keep condition logic readable and maintainable"</li>
+                </ul>
+            </section>
+        </article>
+    }
+}
+
+#[component]
+fn CounterExample() -> Node {
+    let mut count = create_signal(0);
+
+    rsx! {
+        <div class="min-h-full bg-gradient-to-br from-purple-400 to-blue-600 flex items-center justify-center p-4">
+            <div class="bg-white/20 backdrop-blur-lg rounded-3xl p-8 shadow-2xl border border-white/30">
+                <h1 class="text-3xl font-bold text-white mb-6 text-center">
+                    "Momenta Counter"
+                </h1>
+
+                <div class="text-6xl font-bold text-center mb-8 transition-all duration-300 text-white">
+                    {count}
+                </div>
+
+                <div class="flex gap-4 justify-center">
+                    <button
+                        class="px-6 py-3 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg"
+                        on_click={move |_| count -= 1}
+                    >
+                        "− Decrease"
+                    </button>
+
+                    <button
+                        class="px-6 py-3 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg"
+                        on_click={move |_| count += 1}
+                    >
+                        "+ Increase"
+                    </button>
+                </div>
+
+                <button
+                    class="w-full mt-4 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
+                    on_click={move |_| count.set(0)}
+                >
+                    "Reset Count: " {count}
+                </button>
+            </div>
+        </div>
+    }
+}
+
+fn main() {
+    render_root::<App>("#app");
 }
