@@ -131,6 +131,17 @@ impl<T: SignalValue + Not<Output = bool> + Clone + 'static> Not for Signal<T> {
     }
 }
 
+impl<T: SignalValue + Clone + 'static> Signal<T> {
+    pub fn then<R, F: FnOnce() -> R>(self, f: F) -> Option<R>
+    where
+        Signal<T>: Not<Output = bool>,
+    {
+        if !!self { Some(f()) } else { None }
+    }
+}
+
+// implement .then for Signal
+
 impl<T> Clone for Signal<T> {
     fn clone(&self) -> Self {
         Signal {

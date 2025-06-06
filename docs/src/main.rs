@@ -109,7 +109,7 @@ fn App() -> Node {
                 )}
 
                 // Mobile Navigation
-                {when!(mobile_menu_open.get() =>
+                {when!(mobile_menu_open =>
                     <div class="lg:hidden fixed inset-0 z-50 flex">
                         <div class="fixed inset-0 bg-black/20 dark:bg-black/40" on_click={move |_| mobile_menu_open.set(false)}></div>
                         <div class="relative flex w-full max-w-xs flex-col bg-white dark:bg-gray-950">
@@ -1162,7 +1162,7 @@ let element = rsx! {
 let is_logged_in = create_signal(true);
 let element = rsx! {
     <div>
-        {when!(is_logged_in.get() =>
+        {when!(is_logged_in =>
             <p>"Welcome back!"</p>
         else
             <p>"Please log in"</p>
@@ -1673,7 +1673,7 @@ fn Toggle() -> Node {
     let is_on = create_signal(false);
     
     let toggle = move |_| {
-        is_on.set(!is_on.get());
+        is_on.set(!is_on);
     };
     
     rsx! {
@@ -1844,7 +1844,7 @@ let show_details = create_signal(false);
 
 rsx! {
     <div>
-        <button on_click={move |_| show_details.set(!show_details.get())}>
+        <button on_click={move |_| show_details.set(!show_details)}>
             "Toggle Details"
         </button>
         <Show when={show_details.get()}>
