@@ -1,6 +1,6 @@
 #![allow(unused_braces)]
 
-use simple_rsx::prelude::*;
+use momenta::prelude::*;
 
 struct CounterProps {
     count: Signal<i32>,
@@ -45,7 +45,7 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use simple_rsx::prelude::*;
+    use momenta::prelude::*;
 
     #[test]
     fn test_basic_rsx() {

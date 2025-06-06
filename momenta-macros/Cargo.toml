@@ -1,14 +1,14 @@
 [package]
-name = "simple-rsx-macros"
-version = "0.1.9"
+name = "momenta-macros"
+version = "0.2.0"
 edition = "2024"
-description = "Procedural macros for simple-rsx, providing JSX-like syntax for Rust"
+description = "Procedural macros for momenta, providing JSX-like syntax for Rust"
 authors = ["Jonathan Irhodia <jonathanirhodia@gmail.com>"]
 license = "MIT"
-repository = "https://github.com/elcharitas/simple-rsx"
+repository = "https://github.com/elcharitas/momenta"
 keywords = ["jsx", "macros", "proc-macro", "syntax", "html"]
 categories = ["development-tools::procedural-macro-helpers", "template-engine"]
-documentation = "https://docs.rs/simple-rsx-macros"
+documentation = "https://docs.rs/momenta-macros"
 
 [lib]
 proc-macro = true
@@ -20,4 +20,4 @@ regex = "1.11"
 syn = { version = "2.0", features = ["full", "extra-traits"] }
 
 [dev-dependencies]
-simple-rsx = { path = "../simple-rsx", version = "0.1.8" }
+momenta = { path = "../momenta", version = "0.2.0" }

@@ -1,17 +1,17 @@
-//! Simple RSX - A React-inspired JSX Library for Rust (no_std)
+//! Momenta - A React-inspired JSX Library for Rust (no_std)
 //!
-//! I created Simple RSX to bring the familiar feel of React's JSX to Rust projects. If you're coming
+//! I created Momenta to bring the familiar feel of React's JSX to Rust projects. If you're coming
 //! from a React background, you'll feel right at home. And if you're new to both, don't worry - I've made
 //! it super intuitive while keeping all the type safety and performance benefits of Rust.
 //!
-//! # Why Simple RSX?
+//! # Why Momenta?
 //!
 //! I started this project while attempting to transit my [portfolio](https://elcharitas.wtf) from Next.js to Rust.
 //! I wanted to keep my codebase as simple as possible, and I wanted to use Rust's powerful type system
 //! to ensure that my components were always correct. I tried existing libraries like `yew` and `sycamore`,
 //! but they were either too complex or didn't feel quite like React. And so, here we are.
 //!
-//! I know what you're thinking - "Another UI library?" But here's what makes Simple RSX special:
+//! I know what you're thinking - "Another UI library?" But here's what makes Momenta special:
 //!
 //! - **React-like Syntax**: Write your templates using the `rsx!` macro - it's just like JSX!
 //! - **Type Safety**: Get compile-time checks for your components and props
@@ -25,13 +25,13 @@
 //!
 //! ```rust
 //! extern crate alloc;
-//! use simple_rsx::prelude::*;
+//! use momenta::prelude::*;
 //!
 //! // Create your first component - looks familiar, right?
 //! let greeting = rsx!(
 //!     <div class="greeting">
 //!         <h1>Hello, {"World"}!</h1>
-//!         <p>Welcome to Simple RSX</p>
+//!         <p>Welcome to Momenta</p>
 //!     </div>
 //! );
 //!
@@ -45,7 +45,7 @@
 //!
 //! ```rust
 //! extern crate alloc;
-//! use simple_rsx::prelude::*;
+//! use momenta::prelude::*;
 //!
 //! // Self-closing tags? Check!
 //! let img = rsx!(<img src="image.jpg" alt="An image" />);
@@ -71,7 +71,7 @@
 //!
 //! ```rust
 //! extern crate alloc;
-//! use simple_rsx::prelude::*;
+//! use momenta::prelude::*;
 //!
 //! let name = "World";
 //! let count = 42;
@@ -116,7 +116,7 @@
 //!
 //! ```rust
 //! extern crate alloc;
-//! use simple_rsx::prelude::*;
+//! use momenta::prelude::*;
 //!
 //! // Define your props - just like React's PropTypes
 //! #[derive(Default)]
@@ -147,12 +147,12 @@
 //!
 //! ## HTML Data attributes
 //!
-//! With simple RSX, HTML data attributes are the only props which do not get validated by the compiler.
+//! With Momenta, HTML data attributes are the only props which do not get validated by the compiler.
 //! This allows you to use any valid literal or expression in the value of a data attribute.
 //!
 //! ```rust ignore
 //! extern crate alloc;
-//! use simple_rsx::prelude::*;
+//! use momenta::prelude::*;
 //!
 //! // Data attributes? No problem!
 //! let element = rsx!(
@@ -176,7 +176,7 @@ use alloc::{
 };
 use core::{fmt::Display, iter::FromIterator};
 
-pub use simple_rsx_macros::{component, rsx, when};
+pub use momenta_macros::{component, rsx, when};
 
 #[cfg(feature = "wasm")]
 use alloc::{boxed::Box, sync::Arc};
@@ -189,7 +189,7 @@ use alloc::{boxed::Box, sync::Arc};
 /// # Example
 ///
 /// ```rust
-/// use simple_rsx::prelude::*;
+/// use momenta::prelude::*;
 ///
 /// let element = rsx!(<div id="my-id" hidden={true} />);
 /// ```
@@ -205,7 +205,7 @@ pub trait Attribute {
 /// # Example
 ///
 /// ```rust
-/// use simple_rsx::prelude::*;
+/// use momenta::prelude::*;
 ///
 /// let maybe_title = Some("Hello".to_string());
 /// let element = rsx!(<div title={maybe_title} />);
@@ -239,7 +239,7 @@ impl<T: ToString> OptionAttribute for Option<T> {
 /// You typically won't create Elements directly, but rather use the `rsx!` macro:
 ///
 /// ```rust
-/// use simple_rsx::prelude::*;
+/// use momenta::prelude::*;
 ///
 /// let element = rsx!(
 ///     <div class="container">
@@ -312,7 +312,7 @@ impl Element {
 /// # Example
 ///
 /// ```rust
-/// use simple_rsx::prelude::*;
+/// use momenta::prelude::*;
 ///
 /// struct Card;
 /// #[derive(Default)]
@@ -356,7 +356,7 @@ pub struct DefaultProps;
 /// # Example
 ///
 /// ```rust
-/// use simple_rsx::prelude::*;
+/// use momenta::prelude::*;
 ///
 /// let text_node = Node::Text("Hello".to_string());
 /// let fragment = Node::Fragment(vec![text_node]);

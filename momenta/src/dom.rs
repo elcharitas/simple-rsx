@@ -111,7 +111,7 @@ impl WasmRender for Node {
 /// # Example
 ///
 /// ```rust ignore
-/// use simple_rsx::{dom::component, signals::create_signal, *};
+/// use momenta::{dom::component, signals::create_signal, *};
 ///
 /// #[component]
 /// fn App() -> Node {
@@ -143,7 +143,7 @@ where
 /// # Example
 ///
 /// ```rust ignore
-/// use simple_rsx::{dom::render_root, signals::create_signal, *};
+/// use momenta::{dom::render_root, signals::create_signal, *};
 ///
 /// #[component]
 /// fn App() -> Node {
@@ -187,7 +187,7 @@ where
 /// # Example
 ///
 /// ```rust ignore
-/// use simple_rsx::{dom::mount_to_body, signals::create_signal, *};
+/// use momenta::{dom::mount_to_body, signals::create_signal, *};
 ///
 /// #[component]
 /// fn App() -> Node {

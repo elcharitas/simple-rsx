@@ -18,7 +18,7 @@ use syn::{FnArg, PatType, Signature, Stmt, Type, TypeReference};
 ///
 /// # Examples
 /// ```rust
-/// use simple_rsx::prelude::*;
+/// use momenta::prelude::*;
 ///
 /// let show = true;
 /// let result: Result<i32, String> = Ok(42);
@@ -190,7 +190,7 @@ impl Either {
 /// # Examples
 ///
 /// ```rust
-/// use simple_rsx::prelude::*;
+/// use momenta::prelude::*;
 ///
 /// #[component]
 /// fn HelloWorld() -> Node {
@@ -238,7 +238,7 @@ pub fn component(_attr: TokenStream, input: TokenStream) -> TokenStream {
     let prop_type = if let Some(prop_ty) = prop_ty {
         quote! {type Props = #prop_ty;}
     } else {
-        quote! {type Props = ::simple_rsx::nodes::DefaultProps;}
+        quote! {type Props = ::momenta::nodes::DefaultProps;}
     };
 
     if inputs.is_empty() {
@@ -253,7 +253,7 @@ pub fn component(_attr: TokenStream, input: TokenStream) -> TokenStream {
     let expanded = quote! {
         #vis #(#attrs)* struct #ident;
 
-        impl ::simple_rsx::nodes::Component for #ident {
+        impl ::momenta::nodes::Component for #ident {
             #prop_type
             #fn_token render(#inputs) #output #block
         }
@@ -267,7 +267,7 @@ pub fn component(_attr: TokenStream, input: TokenStream) -> TokenStream {
 /// # Examples
 ///
 /// ```rust
-/// use simple_rsx::prelude::*;
+/// use momenta::prelude::*;
 /// // Fragment
 /// rsx!(<>"Hello World"</>);
 ///
@@ -655,8 +655,7 @@ impl RsxNode {
                     quote! {}
                 };
 
-                let use_element =
-                    is_element.then(|| quote! {use ::simple_rsx::dom::elements::#name;});
+                let use_element = is_element.then(|| quote! {use ::momenta::dom::elements::#name;});
                 let close_tag = close_tag.as_ref().map(|close_tag| {
                     quote! {
                         {
@@ -670,15 +669,15 @@ impl RsxNode {
                 let component = if !is_element {
                     quote! { #name }
                 } else {
-                    quote! { ::simple_rsx::dom::elements::#name }
+                    quote! { ::momenta::dom::elements::#name }
                 };
 
                 quote! {
                     {
-                        type Props = <#component as ::simple_rsx::nodes::Component>::Props;
+                        type Props = <#component as ::momenta::nodes::Component>::Props;
                         {
                             #close_tag
-                            ::simple_rsx::dom::component::<#component>(
+                            ::momenta::dom::component::<#component>(
                                 Props {
                                     #(#props_tokens)*
                                     #children_tokens
@@ -695,30 +694,30 @@ impl RsxNode {
 
                 quote! {
                     {
-                        ::simple_rsx::nodes::Node::Fragment(vec![#(#children_tokens),*])
+                        ::momenta::nodes::Node::Fragment(vec![#(#children_tokens),*])
                     }
                 }
             }
             RsxNode::Text(expr) => {
                 quote! {
                     {
-                        ::simple_rsx::nodes::Node::from(#expr)
+                        ::momenta::nodes::Node::from(#expr)
                     }
                 }
             }
             RsxNode::Empty => {
                 quote! {
-                    ::simple_rsx::nodes::Node::Empty
+                    ::momenta::nodes::Node::Empty
                 }
             }
             RsxNode::Comment(expr) => {
                 quote! {
-                    ::simple_rsx::nodes::Node::Comment(#expr)
+                    ::momenta::nodes::Node::Comment(#expr)
                 }
             }
             RsxNode::Block(block) => {
                 quote! {
-                    ::simple_rsx::nodes::Node::from(#block)
+                    ::momenta::nodes::Node::from(#block)
                 }
             }
         }

@@ -3,9 +3,9 @@
 
 extern crate alloc;
 use alloc::{format, vec, vec::Vec};
-use simple_rsx::prelude::*;
+use momenta::prelude::*;
 
-static GITHUB_LINK: &str = "https://github.com/elcharitas/simple-rsx";
+static GITHUB_LINK: &str = "https://github.com/elcharitas/momenta";
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum Page {
@@ -1503,7 +1503,7 @@ fn GettingStartedPage() -> Node {
                     highlight=""
                     language="toml"
                     code={r#"[dependencies]
-momenta = "0.1"
+momenta = "0.2"
 
 # For web projects
 [dependencies.web-sys]

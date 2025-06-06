@@ -1,11 +1,11 @@
-# Simple RSX
+# Momenta
 
 A lightweight and intuitive JSX-like syntax implementation for Rust, enabling HTML-like templating with the full power of Rust's type system.
 
-[![Crates.io](https://img.shields.io/crates/v/simple-rsx.svg)](https://crates.io/crates/simple-rsx)
-[![Documentation](https://docs.rs/simple-rsx/badge.svg)](https://docs.rs/simple-rsx)
+[![Crates.io](https://img.shields.io/crates/v/momenta.svg)](https://crates.io/crates/momenta)
+[![Documentation](https://docs.rs/momenta/badge.svg)](https://docs.rs/momenta)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Coverage Status](https://coveralls.io/repos/github/elcharitas/simple-rsx/badge.svg?branch=main)](https://coveralls.io/github/elcharitas/simple-rsx?branch=main)
+[![Coverage Status](https://coveralls.io/repos/github/elcharitas/momenta/badge.svg?branch=main)](https://coveralls.io/github/elcharitas/momenta?branch=main)
 
 ## Features
 
@@ -39,19 +39,19 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-simple-rsx = "0.1"
+momenta = "0.2"
 ```
 
-## Why Simple RSX?
+## Why Momenta?
 
 I started this project while attempting to transit my [portfolio](https://elcharitas.wtf) from Next.js to Rust. I tried using dioxus, yew, and hypertext, but I found them to be too complex and verbose for my needs. I wanted a simple and intuitive way to write HTML-like templates in Rust, while still leveraging the full power of Rust's type system.
 
-Simple RSX aims to provide a straightforward and intuitive way to write HTML-like templates in Rust, while still leveraging the full power of Rust's type system. By using Rust's syntax and features, Simple RSX enables you to write expressive and type-safe code while still maintaining the simplicity and readability of HTML.
+Momenta aims to provide a straightforward and intuitive way to write HTML-like templates in Rust, while still leveraging the full power of Rust's type system. By using Rust's syntax and features, Momenta enables you to write expressive and type-safe code while still maintaining the simplicity and readability of HTML.
 
 ## Usage
 
 ```rust
-use simple_rsx::*;
+use momenta::prelude::*;
 
 // Self-closing tag with attributes
 let element = rsx!(<div class="container" id="app" />);
@@ -115,8 +115,8 @@ let html = nodes.to_string();
 
 ## Project Structure
 
-- `simple-rsx`: Main library crate
-- `simple-rsx-macros`: Procedural macros implementation
+- `momenta`: Main library crate
+- `momenta-macros`: Procedural macros implementation
 
 ## Development Status
 
