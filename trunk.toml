@@ -1,11 +1,11 @@
 [build]
-target = "docs/index.html"
+target = "./docs/index.html"
 public_url = "/"
 release = true
-manifest-path = "docs/Cargo.toml"
+manifest-path = "./docs/Cargo.toml"
 
 [watch]
-watch = ["docs/src", "docs/static"]
+watch = ["./docs/src", "./docs/static"]
 ignore = ["dist", "target"]
 
 [serve]
