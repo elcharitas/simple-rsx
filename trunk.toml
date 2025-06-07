@@ -1,0 +1,18 @@
+[build]
+target = "docs/index.html"
+public_url = "/"
+release = true
+manifest-path = "docs/Cargo.toml"
+
+[watch]
+watch = ["docs/src", "docs/static"]
+ignore = ["dist", "target"]
+
+[serve]
+port = 8080
+open = true
+# Enable CORS for development
+cors = true
+
+[clean]
+cargo = true

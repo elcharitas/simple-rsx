@@ -1,6 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-	content: ["./src/**/*.rs"],
+	content: ["./docs/**/*.rs"],
 	theme: {
 		container: {
 			center: true,
