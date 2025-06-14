@@ -13,6 +13,138 @@ use syn::{
 use syn::{FnArg, PatType, Signature, Type, TypeReference};
 use syn::{Stmt, braced};
 
+/// Parse either an identifier or a keyword token as an identifier
+/// Keywords get converted to identifiers with _ suffix
+/// Also handles on:eventname patterns, converting them to on_eventname
+///
+/// Examples:
+/// - `type` -> `type_`
+/// - `loop` -> `loop_`
+/// - `on:click` -> `on_click`
+/// - `on:keydown` -> `on_keydown`
+fn parse_attribute_name(input: ParseStream) -> Result<Ident> {
+    // Try to parse as regular identifier first
+    if let Ok(ident) = input.parse::<Ident>() {
+        // Check if this is an "on" identifier followed by a colon
+        if ident == "on" && input.peek(Token![:]) {
+            input.parse::<Token![:]>()?;
+            let event_ident = input.parse::<Ident>()?;
+            let event_name = event_ident.to_string();
+            return Ok(Ident::new(
+                &format!("on_{}", event_name),
+                ident.span().located_at(event_ident.span()),
+            ));
+        }
+
+        return Ok(ident);
+    }
+
+    // Handle specific keyword tokens
+    let lookahead = input.lookahead1();
+    if lookahead.peek(Token![type]) {
+        let token = input.parse::<Token![type]>()?;
+        Ok(Ident::new("type_", token.span))
+    } else if lookahead.peek(Token![loop]) {
+        let token = input.parse::<Token![loop]>()?;
+        Ok(Ident::new("loop_", token.span))
+    } else if lookahead.peek(Token![for]) {
+        let token = input.parse::<Token![for]>()?;
+        Ok(Ident::new("for_", token.span))
+    } else if lookahead.peek(Token![if]) {
+        let token = input.parse::<Token![if]>()?;
+        Ok(Ident::new("if_", token.span))
+    } else if lookahead.peek(Token![else]) {
+        let token = input.parse::<Token![else]>()?;
+        Ok(Ident::new("else_", token.span))
+    } else if lookahead.peek(Token![while]) {
+        let token = input.parse::<Token![while]>()?;
+        Ok(Ident::new("while_", token.span))
+    } else if lookahead.peek(Token![match]) {
+        let token = input.parse::<Token![match]>()?;
+        Ok(Ident::new("match_", token.span))
+    } else if lookahead.peek(Token![const]) {
+        let token = input.parse::<Token![const]>()?;
+        Ok(Ident::new("const_", token.span))
+    } else if lookahead.peek(Token![static]) {
+        let token = input.parse::<Token![static]>()?;
+        Ok(Ident::new("static_", token.span))
+    } else if lookahead.peek(Token![mut]) {
+        let token = input.parse::<Token![mut]>()?;
+        Ok(Ident::new("mut_", token.span))
+    } else if lookahead.peek(Token![let]) {
+        let token = input.parse::<Token![let]>()?;
+        Ok(Ident::new("let_", token.span))
+    } else if lookahead.peek(Token![fn]) {
+        let token = input.parse::<Token![fn]>()?;
+        Ok(Ident::new("fn_", token.span))
+    } else if lookahead.peek(Token![struct]) {
+        let token = input.parse::<Token![struct]>()?;
+        Ok(Ident::new("struct_", token.span))
+    } else if lookahead.peek(Token![enum]) {
+        let token = input.parse::<Token![enum]>()?;
+        Ok(Ident::new("enum_", token.span))
+    } else if lookahead.peek(Token![trait]) {
+        let token = input.parse::<Token![trait]>()?;
+        Ok(Ident::new("trait_", token.span))
+    } else if lookahead.peek(Token![impl]) {
+        let token = input.parse::<Token![impl]>()?;
+        Ok(Ident::new("impl_", token.span))
+    } else if lookahead.peek(Token![mod]) {
+        let token = input.parse::<Token![mod]>()?;
+        Ok(Ident::new("mod_", token.span))
+    } else if lookahead.peek(Token![use]) {
+        let token = input.parse::<Token![use]>()?;
+        Ok(Ident::new("use_", token.span))
+    } else if lookahead.peek(Token![pub]) {
+        let token = input.parse::<Token![pub]>()?;
+        Ok(Ident::new("pub_", token.span))
+    } else if lookahead.peek(Token![crate]) {
+        let token = input.parse::<Token![crate]>()?;
+        Ok(Ident::new("crate_", token.span))
+    } else if lookahead.peek(Token![super]) {
+        let token = input.parse::<Token![super]>()?;
+        Ok(Ident::new("super_", token.span))
+    } else if lookahead.peek(Token![self]) {
+        let token = input.parse::<Token![self]>()?;
+        Ok(Ident::new("self_", token.span))
+    } else if lookahead.peek(Token![Self]) {
+        let token = input.parse::<Token![Self]>()?;
+        Ok(Ident::new("Self_", token.span))
+    } else if lookahead.peek(Token![extern]) {
+        let token = input.parse::<Token![extern]>()?;
+        Ok(Ident::new("extern_", token.span))
+    } else if lookahead.peek(Token![return]) {
+        let token = input.parse::<Token![return]>()?;
+        Ok(Ident::new("return_", token.span))
+    } else if lookahead.peek(Token![break]) {
+        let token = input.parse::<Token![break]>()?;
+        Ok(Ident::new("break_", token.span))
+    } else if lookahead.peek(Token![continue]) {
+        let token = input.parse::<Token![continue]>()?;
+        Ok(Ident::new("continue_", token.span))
+    } else if lookahead.peek(Token![move]) {
+        let token = input.parse::<Token![move]>()?;
+        Ok(Ident::new("move_", token.span))
+    } else if lookahead.peek(Token![ref]) {
+        let token = input.parse::<Token![ref]>()?;
+        Ok(Ident::new("ref_", token.span))
+    } else if lookahead.peek(Token![where]) {
+        let token = input.parse::<Token![where]>()?;
+        Ok(Ident::new("where_", token.span))
+    } else if lookahead.peek(Token![unsafe]) {
+        let token = input.parse::<Token![unsafe]>()?;
+        Ok(Ident::new("unsafe_", token.span))
+    } else if lookahead.peek(Token![as]) {
+        let token = input.parse::<Token![as]>()?;
+        Ok(Ident::new("as_", token.span))
+    } else if lookahead.peek(Token![in]) {
+        let token = input.parse::<Token![in]>()?;
+        Ok(Ident::new("in_", token.span))
+    } else {
+        Err(lookahead.error())
+    }
+}
+
 /// A procedural macro that transforms a conditional expression into a JSX-like syntax.
 /// Supports both RSX nodes and literals, with conditional and match syntax.
 ///
@@ -285,6 +417,12 @@ pub fn component(_attr: TokenStream, input: TokenStream) -> TokenStream {
 /// // Expression
 /// let name = "World";
 /// rsx!(<div>Hello {name}</div>);
+///
+/// // Event handlers with on:eventname syntax
+/// rsx!(<button on:click={handle_click}>Click me</button>);
+///
+/// // Keyword attributes (automatically converted with _ suffix)
+/// rsx!(<input type="text" for="name" />);
 /// ```
 
 #[proc_macro]
@@ -355,7 +493,7 @@ impl Parse for NodeValue {
         }
 
         // Handle `name={expression or block}` and `name` patterns
-        let name: Ident = input.parse()?;
+        let name: Ident = parse_attribute_name(input)?;
 
         // If no `=`, just return the name
         if !input.peek(Token![=]) {
@@ -639,6 +777,7 @@ impl RsxNode {
                         },
                     }
                 });
+
                 let props_tokens = attrs
                     .filter(|(name, _, _)| {
                         !(is_element

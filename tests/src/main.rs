@@ -20,8 +20,8 @@ fn Counter(CounterProps { count }: &CounterProps) -> Node {
             <!-- Counter header -->
             <h1>Counter</h1>
             <p>Count: {count}</p>
-            <button type_="button" on_click={increment}>Increment</button>
-            <button type_="button" on_click={decrement}>Decrement</button>
+            <button type="button" on:click={increment}>Increment</button>
+            <button type="button" on:click={decrement}>Decrement</button>
         </div>
     }
 }
@@ -34,7 +34,7 @@ fn main() {
 
         rsx! {
             <div>
-                <h1>1. Hello World {count}</h1>
+                <h1>Hello World {count}</h1>
                 <Counter count={count} />
             </div>
         }
