@@ -292,7 +292,7 @@ fn CodeBlock(props: &CodeBlockProps) -> Node {
                     <div class="flex items-center justify-between border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 px-4 py-2">
                         <span class="text-xs font-medium text-gray-600 dark:text-gray-400">{filename}</span>
                         <button class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
-                            <i class="fas fa-copy text-xs"></i>
+                            <i class="fas fa-copy text-xs">"😉"</i>
                         </button>
                     </div>
                 }
@@ -782,7 +782,7 @@ fn ResourcesPage() -> Node {
     rsx! {
         <article class="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
             <header class="mb-12">
-                <h1 class="text-4xl font-bold text-gray-900 dark:text-gray-100">Resources</h1>
+                <h1 title="" class="text-4xl font-bold text-gray-900 dark:text-gray-100">Resources</h1>
                 <p class="mt-4 text-lg text-gray-600 dark:text-gray-400">
                     "Resources handle asynchronous data fetching with built-in loading and error states."
                 </p>
@@ -1033,8 +1033,8 @@ fn PhilosophyPage() -> Node {
 
                 <Note variant="tip">
                     <p>
-                        <strong>"Performance:"</strong> " Because Momenta compiles to efficient native code and uses
-                        element-level updates, your applications will be fast by default."
+                        <strong>Performance:</strong> Because Momenta compiles to efficient native code and uses
+                        element-level updates, your applications will be fast by default.
                     </p>
                 </Note>
             </section>
@@ -1072,7 +1072,8 @@ fn HelloWorld() -> Node {
     rsx! {
         <div>
             <h1>"Hello, " {name} "!"</h1>
-            <p>"Welcome to Momenta."</p>
+            <p>Welcome to Momenta.</p> // see how quotes are totally optional?
+            <p>"😉"</p> // N/B: currently, Momenta requires quotes for emojis
         </div>
     }
 }"#}

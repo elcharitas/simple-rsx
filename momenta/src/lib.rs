@@ -1,3 +1,4 @@
+#![no_std]
 //! Momenta - A React-inspired JSX Library for Rust (no_std)
 //!
 //! I created Momenta to bring the familiar feel of React's JSX to Rust projects. If you're coming
@@ -163,8 +164,6 @@
 //! );
 //! ```
 //!
-
-#![no_std]
 
 extern crate alloc;
 

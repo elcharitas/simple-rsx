@@ -26,20 +26,19 @@ fn Counter(CounterProps { count }: &CounterProps) -> Node {
     }
 }
 
-#[component]
-fn App() -> Node {
-    let count = create_signal(0);
-
-    rsx! {
-        <div>
-            <h1>Hello World</h1>
-            <Counter count={count} />
-        </div>
-    }
-}
-
 // Example Usage
 fn main() {
+    #[component]
+    fn App() -> Node {
+        let count = create_signal(0);
+
+        rsx! {
+            <div>
+                <h1>1. Hello World {count}</h1>
+                <Counter count={count} />
+            </div>
+        }
+    }
     render_root::<App>("#app");
 }
 

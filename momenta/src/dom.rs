@@ -298,7 +298,7 @@ macro_rules! derive_elements {
                     pub style: String,
 
                     /// The title attribute specifies extra information about an element (displayed as a tooltip)
-                    pub title: Option<String>,
+                    pub title: String,
                     /// The width attribute specifies the width of the image
                     pub width: String,
                     /// The height attribute specifies the height of the image
@@ -346,13 +346,13 @@ macro_rules! derive_elements {
                     pub aria_current: String,
 
                     /// Defines a string value that labels the current element
-                    pub aria_label: Option<String>,
+                    pub aria_label: String,
 
                     /// Identifies the element that labels the current element
-                    pub aria_labelledby: Option<String>,
+                    pub aria_labelledby: String,
 
                     /// Identifies the element that describes the current element
-                    pub aria_describedby: Option<String>,
+                    pub aria_describedby: String,
 
                     /// Indicates whether an element is expanded or collapsed
                     pub aria_expanded: bool,
@@ -1034,7 +1034,7 @@ pub mod elements {
             /// The placeholder attribute shows hint text when field is empty
             ///
             /// Example: placeholder="Enter your email"
-            placeholder: Option<String>,
+            placeholder: String,
             /// The required attribute makes the field mandatory
             ///
             /// Example: required (field must be filled)
@@ -1042,7 +1042,7 @@ pub mod elements {
             /// The value attribute specifies the default/current value
             ///
             /// Example: value="Default text"
-            value: Option<String>,
+            value: String,
             /// The name attribute specifies the name of the input (for form submission)
             ///
             /// Example: name="email"
@@ -1058,19 +1058,19 @@ pub mod elements {
             /// The min attribute specifies minimum value for number/date inputs
             ///
             /// Example: min="1" (number input minimum value)
-            min: Option<String>,
+            min: String,
             /// The max attribute specifies maximum value for number/date inputs
             ///
             /// Example: max="100" (number input maximum value)
-            max: Option<String>,
+            max: String,
             /// The pattern attribute specifies a regex pattern for validation
             ///
             /// Example: pattern="[0-9]{3}" (requires exactly 3 digits)
-            pattern: Option<String>,
+            pattern: String,
             /// The autocomplete attribute controls browser autofill for this field
             ///
             /// Example: autocomplete="current-password"
-            autocomplete: Option<String>,
+            autocomplete: String,
         }
 
         /// HTML `<textarea>` element - Multi-line text input control
