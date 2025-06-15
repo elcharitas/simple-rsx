@@ -104,7 +104,7 @@ fn App() -> Node {
                 // Mobile Navigation
                 {when!(mobile_menu_open =>
                     <div class="lg:hidden fixed inset-0 z-50 flex">
-                        <div class="fixed inset-0 bg-black/20 dark:bg-black/40" on_click={move |_| mobile_menu_open.set(false)}></div>
+                        <div class="fixed inset-0 bg-black/20 dark:bg-black/40" on:click={move |_| mobile_menu_open.set(false)}></div>
                         <div class="relative flex w-full max-w-xs flex-col bg-white dark:bg-gray-950">
                             <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800">
                                 <span class="text-lg font-semibold">Navigation</span>
@@ -165,23 +165,23 @@ fn Header(props: &HeaderProps) -> Node {
             <div class="flex h-14 items-center px-4 sm:px-6 lg:px-8">
                 <button
                     class="lg:hidden p-2 -ml-2"
-                    on_click={move |_| mobile_menu_open.set(!mobile_menu_open)}
+                    on:click={move |_| mobile_menu_open.set(!mobile_menu_open)}
                 >
                     <i class="fas fa-bars"></i>
                 </button>
 
-                <a href="#" on_click={move |_| current_page.set(Page::Home)} class="flex items-center space-x-2 ml-2 lg:ml-0">
+                <a href="#" on:click={move |_| current_page.set(Page::Home)} class="flex items-center space-x-2 ml-2 lg:ml-0">
                     <img src="./static/icon.svg" alt="Momenta Logo" class="w-8 h-8" />
                     <span class="font-bold text-lg">Momenta</span>
                 </a>
 
                 <div class="ml-auto flex items-center space-x-4">
                     <nav class="hidden md:flex items-center space-x-6 mr-6">
-                        <a href="#" on_click={move |_| current_page.set(Page::Performance)}
+                        <a href="#" on:click={move |_| current_page.set(Page::Performance)}
                            class="text-sm font-medium transition-colors hover:text-blue-600 dark:hover:text-blue-400">
                             Guides
                         </a>
-                        <a href="#" on_click={move |_| current_page.set(Page::GettingStarted)}
+                        <a href="#" on:click={move |_| current_page.set(Page::GettingStarted)}
                            class="text-sm font-medium transition-colors hover:text-blue-600 dark:hover:text-blue-400">
                             Documentation
                         </a>
@@ -192,7 +192,7 @@ fn Header(props: &HeaderProps) -> Node {
                     </nav>
 
                     <button
-                        on_click={toggle_theme}
+                        on:click={toggle_theme}
                         class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                     >
                         {when!(theme == "dark" =>
@@ -226,7 +226,7 @@ fn Navigation(props: &NavigationProps) -> Node {
         };
 
         rsx! {
-            <a href="#" on_click={move |_| current.set(page)} class={class}>
+            <a href="#" on:click={move |_| current.set(page)} class={class}>
                 {label}
             </a>
         }
@@ -376,7 +376,7 @@ fn HomePage(props: &NavigationProps) -> Node {
                     "Momenta makes it simple to build high-performance, reactive user interfaces using Rust's type system and ownership model."
                 </p>
                 <div class="mt-10 flex items-center justify-center gap-4">
-                    <a href="#" on_click={move |_| current_page.set(Page::GettingStarted)} class="rounded-lg bg-blue-600 px-6 py-3 text-sm font-semibold text-white hover:bg-blue-700">
+                    <a href="#" on:click={move |_| current_page.set(Page::GettingStarted)} class="rounded-lg bg-blue-600 px-6 py-3 text-sm font-semibold text-white hover:bg-blue-700">
                         "Get Started"
                     </a>
                     <a href={GITHUB_LINK} class="rounded-lg border border-gray-300 dark:border-gray-700 px-6 py-3 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-900">
@@ -438,20 +438,20 @@ fn CounterExample() -> Node {
                 <div class="flex gap-4 justify-center">
                     <button
                         class="px-6 py-3 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg"
-                        on_click={move |_| count -= 1}
+                        on:click={move |_| count -= 1}
                     >
                         "− Decrease"
                     </button>
                     <button
                         class="px-6 py-3 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg"
-                        on_click={move |_| count += 1}
+                        on:click={move |_| count += 1}
                     >
                         "+ Increase"
                     </button>
                 </div>
                 <button
                     class="w-full mt-4 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
-                    on_click={move |_| count.set(0)}
+                    on:click={move |_| count.set(0)}
                 >
                     "Reset Count: " {count}
                 </button>
@@ -522,7 +522,7 @@ fn FruitList() -> Node {
                     <li>{fruit}</li>
                 })}
             </ul>
-            <button on_click={move |_| {
+            <button on:click={move |_| {
                 fruits.push("Orange".to_string());
             }}>
                 "Add Orange"
@@ -640,9 +640,9 @@ fn TodoList() -> Node {
                             if todo.completed { "line-through text-gray-400" } else { "" }
                         )}>
                             <input 
-                                type_="checkbox" 
+                                type="checkbox" 
                                 checked={todo.completed} 
-                                on_change={move |_| toggle_todo(id)}
+                                on:change={move |_| toggle_todo(id)}
                                 class="mr-2"
                             />
                             {todo.text}
@@ -653,14 +653,14 @@ fn TodoList() -> Node {
             
             <div class="mt-4 flex">
                 <input 
-                    type_="text" 
+                    type="text" 
                     value={new_todo_text}
-                    on_input={move |e| new_todo_text.set(e.value())}
+                    on:input={move |e| new_todo_text.set(e.value())}
                     placeholder="Add a new todo"
                     class="border p-2 rounded-l"
                 />
                 <button 
-                    on_click={add_todo}
+                    on:click={add_todo}
                     class="bg-blue-500 text-white p-2 rounded-r"
                 >
                     "Add"
@@ -687,9 +687,9 @@ rsx! {
         <div class="mb-4">
             <label class="mr-4">
                 <input 
-                    type_="checkbox" 
+                    type="checkbox" 
                     checked={show_even_only}
-                    on_change={move |_| show_even_only.set(!show_even_only.get())}
+                    on:change={move |_| show_even_only.set(!show_even_only.get())}
                     class="mr-2"
                 />
                 "Show even numbers only"
@@ -697,9 +697,9 @@ rsx! {
             
             <label>
                 <input 
-                    type_="checkbox" 
+                    type="checkbox" 
                     checked={sort_ascending}
-                    on_change={move |_| sort_ascending.set(!sort_ascending.get())}
+                    on:change={move |_| sort_ascending.set(!sort_ascending.get())}
                     class="mr-2"
                 />
                 "Sort ascending"
@@ -897,7 +897,7 @@ data.refetch();
 // Refetch when a button is clicked
 rsx! {
     <div>
-        <button on_click={move |_| data.refetch()}>
+        <button on:click={move |_| data.refetch()}>
             "Refresh"
         </button>
         {/* Display data */}
@@ -922,7 +922,7 @@ let add_todo = move |text: String| {
     
     // Then sync with server
     spawn_local(async move {
-        match create_todo_on_server(text).await {
+        match create_todo_on:server(text).await {
             Ok(_) => todos.refetch(),
             Err(_) => {
                 // Revert optimistic update
@@ -1082,10 +1082,10 @@ fn HelloWorld() -> Node {
 let div = rsx! { <div></div> };
 
 // Element with attributes
-let button = rsx! { <button type_="button" class="primary"></button> };
+let button = rsx! { <button type="button" class="primary"></button> };
 
 // Self-closing element
-let input = rsx! { <input type_="text" /> };
+let input = rsx! { <input type="text" /> };
 
 // Note: HTML attributes with hyphens use underscores in RSX
 // e.g., `data-id` becomes `data_id`
@@ -1093,7 +1093,7 @@ let custom = rsx! { <div data_id="123"></div> };
 
 // Attributes that conflict with Rust keywords use trailing underscore
 // e.g., `type` becomes `type_`
-let input = rsx! { <input type_="text" /> };"#}
+let input = rsx! { <input type="text" /> };"#}
                 />
                 <h3 id="attributes">Dynamic Attributes</h3>
                 <CodeBlock
@@ -1122,7 +1122,7 @@ let button = rsx! {
 // Event handlers
 let count = create_signal(0);
 let button = rsx! {
-    <button on_click={move |_| count += 1}>
+    <button on:click={move |_| count += 1}>
         "Clicked " {count} " times"
     </button>
 };"#}
@@ -1243,7 +1243,7 @@ fn Counter() -> Node {
     rsx! {
         <div>
             <p>"Current count: " {count}</p>
-            <button on_click={move |_| count += 1}>"Increment"</button>
+            <button on:click={move |_| count += 1}>"Increment"</button>
         </div>
     }
 }"#}
@@ -1368,7 +1368,7 @@ fn App() -> Node {
     rsx! {
         <div>
             <p>Count: {count}</p>
-            <button on_click={move |_| count += 1}>
+            <button on:click={move |_| count += 1}>
                 "Increment"
             </button>
         </div>
@@ -1516,9 +1516,9 @@ fn App() -> Node {
         <div class="container">
             <h1>Hello, {name}!</h1>
             <input 
-                type_="text"
+                type="text"
                 value={name}
-                on_input={move |e| name.set(e.value())}
+                on:input={move |e| name.set(e.value())}
                 placeholder="Enter your name"
             />
         </div>
@@ -1616,7 +1616,7 @@ fn App() -> Node {
                     code={r#"pub struct ButtonProps {
     pub text: &'static str,
     pub variant: &'static str,
-    pub on_click: Box<dyn Fn()>,
+    pub on:click: Box<dyn Fn()>,
 }
 
 #[component]
@@ -1624,7 +1624,7 @@ fn Button(props: &ButtonProps) -> Node {
     let class = format!("btn btn-{}", props.variant);
     
     rsx! {
-        <button class={class} on_click={props.on_click}>
+        <button class={class} on:click={props.on:click}>
             {props.text}
         </button>
     }
@@ -1641,7 +1641,7 @@ fn App() -> Node {
             <Button 
                 text="Increment"
                 variant="primary"
-                on_click={move || count += 1}
+                on:click={move || count += 1}
             />
         </div>
     }
@@ -1670,7 +1670,7 @@ fn Toggle() -> Node {
         <div class="toggle">
             <button 
                 class={when!(is_on => "toggle-on" else "toggle-off")}
-                on_click={toggle}
+                on:click={toggle}
             >
                 {when!(is_on => "On" else "Off")}
             </button>
@@ -1770,14 +1770,14 @@ fn App() -> Node {
             {when!(is_logged_in =>
                 <div>
                     <h1>Welcome back!</h1>
-                    <button on_click={move |_| is_logged_in.set(false)}>
+                    <button on:click={move |_| is_logged_in.set(false)}>
                         "Logout"
                     </button>
                 </div>
             else
                 <div>
                     <h1>Please log in</h1>
-                    <button on_click={move |_| is_logged_in.set(true)}>
+                    <button on:click={move |_| is_logged_in.set(true)}>
                         "Login"
                     </button>
                 </div>
@@ -1834,7 +1834,7 @@ let show_details = create_signal(false);
 
 rsx! {
     <div>
-        <button on_click={move |_| show_details.set(!show_details)}>
+        <button on:click={move |_| show_details.set(!show_details)}>
             "Toggle Details"
         </button>
         <Show when={show_details.get()}>
@@ -1877,7 +1877,7 @@ rsx! {
                 <i class="fas fa-exclamation-triangle"></i>
                 " Something went wrong"
             </div>,
-            _ => <button on_click={move |_| state.set(LoadingState::Loading)}>
+            _ => <button on:click={move |_| state.set(LoadingState::Loading)}>
                 "Start Operation"
             </button>
         })}
@@ -1953,14 +1953,14 @@ fn CounterExample() -> Node {
                 <div class="flex gap-4 justify-center">
                     <button
                         class="px-6 py-3 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg"
-                        on_click={move |_| count -= 1}
+                        on:click={move |_| count -= 1}
                     >
                         "− Decrease"
                     </button>
 
                     <button
                         class="px-6 py-3 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg"
-                        on_click={move |_| count += 1}
+                        on:click={move |_| count += 1}
                     >
                         "+ Increase"
                     </button>
@@ -1968,7 +1968,7 @@ fn CounterExample() -> Node {
 
                 <button
                     class="w-full mt-4 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
-                    on_click={move |_| count.set(0)}
+                    on:click={move |_| count.set(0)}
                 >
                     "Reset Count: " {count}
                 </button>

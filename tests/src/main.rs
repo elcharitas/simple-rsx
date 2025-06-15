@@ -106,7 +106,7 @@ mod tests {
 
     #[test]
     fn test_div_children_rsx_with_text_and_attribute() {
-        let rsx = rsx!(<input type_="text" placeholder={"Enter name".to_string()} required />);
+        let rsx = rsx!(<input type="text" placeholder={"Enter name".to_string()} required />);
         match rsx {
             Node::Element(element) => {
                 assert_eq!(element.tag(), "input");

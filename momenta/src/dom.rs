@@ -278,163 +278,709 @@ macro_rules! derive_elements {
 
             paste::paste! {
                 #[derive(Default)]
+                /// HTML Element Properties with comprehensive attributes and event handlers.
+                ///
+                /// This struct provides a type-safe way to define HTML element properties,
+                /// including global attributes, ARIA accessibility features, and event handlers.
                 #[allow(non_snake_case)]
                 pub struct [<HTML $tag:camel Element Props>] {
-                    // Global HTML attributes
+                    // ============================================================================
+                    // CORE HTML ATTRIBUTES
+                    // ============================================================================
 
-                    /// The id attribute specifies a unique id for an HTML element
+                    /// The `id` attribute specifies a unique identifier for an HTML element.
+                    ///
+                    /// The id must be unique within the entire document and is used for:
+                    /// - CSS styling with `#id` selectors
+                    /// - JavaScript element selection
+                    /// - Fragment linking (e.g., `#section1`)
+                    /// - Form label associations
+                    ///
+                    /// ### Examples
+                    /// ```
+                    /// id="navigation-menu"
+                    /// id="user-profile-form"
+                    /// ```
+                    ///
+                    /// **MDN Reference**: [id attribute](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/id)
                     pub id: String,
 
-                    /// A unique key to identify the element
+                    /// A unique key to identify the element in virtual DOM reconciliation.
+                    ///
+                    /// This is framework-specific and helps optimize rendering performance
+                    /// by providing a stable identity for elements across re-renders.
+                    ///
+                    /// ### Examples
+                    /// ```
+                    /// key="user-123"
+                    /// key={format!("item-{}", index)}
+                    /// ```
                     pub key: String,
 
-                    /// The class attribute specifies one or more class names for an HTML element
+                    /// The `class` attribute specifies one or more CSS class names for styling.
+                    ///
+                    /// Multiple classes should be separated by spaces. Classes are used for:
+                    /// - CSS styling with `.class` selectors
+                    /// - JavaScript element selection
+                    /// - Semantic grouping of elements
+                    ///
+                    /// ### Examples
+                    /// ```
+                    /// class="btn btn-primary"
+                    /// class="container mx-auto p-4 bg-white shadow-lg"
+                    /// ```
+                    ///
+                    /// **MDN Reference**: [class attribute](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/class)
                     pub class: String,
 
-                    /// The child nodes of the element
+                    /// The child nodes of the element.
+                    ///
+                    /// This contains all nested elements, text nodes, and components
+                    /// that should be rendered inside this element.
                     pub children: Vec<Node>,
 
-                    /// The style attribute specifies an inline CSS style for an element
+                    /// The `style` attribute specifies inline CSS styling for the element.
+                    ///
+                    /// While external stylesheets are preferred, inline styles are useful for:
+                    /// - Dynamic styling based on component state
+                    /// - Component-specific styles
+                    /// - Overriding external styles
+                    ///
+                    /// ### Examples
+                    /// ```
+                    /// style="color: red; font-weight: bold;"
+                    /// style={format!("width: {}px; height: {}px;", width, height)}
+                    /// ```
+                    ///
+                    /// **MDN Reference**: [style attribute](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/style)
                     pub style: String,
 
-                    /// The title attribute specifies extra information about an element (displayed as a tooltip)
+                    /// The `title` attribute provides additional information displayed as a tooltip.
+                    ///
+                    /// This creates a hover tooltip and is important for accessibility,
+                    /// providing context for users with screen readers.
+                    ///
+                    /// ### Examples
+                    /// ```
+                    /// title="Click to expand details"
+                    /// title="Last updated: March 15, 2024"
+                    /// ```
+                    ///
+                    /// **MDN Reference**: [title attribute](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/title)
                     pub title: String,
-                    /// The width attribute specifies the width of the image
+
+                    // ============================================================================
+                    // DIMENSIONAL ATTRIBUTES
+                    // ============================================================================
+
+                    /// The `width` attribute specifies the width of the element.
+                    ///
+                    /// Can be specified in pixels, percentages, or other CSS units.
+                    /// For images, this sets the intrinsic width.
+                    ///
+                    /// ### Examples
+                    /// ```
+                    /// width="300"        // 300 pixels
+                    /// width="100%"       // Full width
+                    /// width="50vw"       // 50% of viewport width
+                    /// ```
+                    ///
+                    /// **MDN Reference**: [width attribute](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/img#attr-width)
                     pub width: String,
-                    /// The height attribute specifies the height of the image
+
+                    /// The `height` attribute specifies the height of the element.
+                    ///
+                    /// Can be specified in pixels, percentages, or other CSS units.
+                    /// For images, this sets the intrinsic height.
+                    ///
+                    /// ### Examples
+                    /// ```
+                    /// height="200"       // 200 pixels
+                    /// height="auto"      // Automatic height
+                    /// height="50vh"      // 50% of viewport height
+                    /// ```
+                    ///
+                    /// **MDN Reference**: [height attribute](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/img#attr-height)
                     pub height: String,
 
-                    /// Specifies whether an element is draggable or not
+                    // ============================================================================
+                    // INTERACTION ATTRIBUTES
+                    // ============================================================================
+
+                    /// The `draggable` attribute specifies whether an element can be dragged.
+                    ///
+                    /// When `true`, the element can be dragged using the HTML5 drag and drop API.
+                    /// Useful for creating interactive interfaces with drag-and-drop functionality.
+                    ///
+                    /// ### Examples
+                    /// ```
+                    /// draggable={true}   // Element can be dragged
+                    /// draggable={false}  // Element cannot be dragged (default)
+                    /// ```
+                    ///
+                    /// **MDN Reference**: [draggable attribute](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/draggable)
                     pub draggable: bool,
 
-                    /// Specifies visibility of an element (hidden or visible)
+                    /// The `hidden` attribute specifies whether an element should be hidden.
+                    ///
+                    /// When `true`, the element is not displayed and doesn't take up space.
+                    /// This is different from `visibility: hidden` which still takes up space.
+                    ///
+                    /// ### Examples
+                    /// ```
+                    /// hidden={false}  // Element is visible (default)
+                    /// hidden={true}   // Element is completely hidden
+                    /// ```
+                    ///
+                    /// **MDN Reference**: [hidden attribute](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/hidden)
                     pub hidden: bool,
 
-                    /// Specifies a shortcut key to activate/focus an element
+                    /// The `accesskey` attribute specifies a keyboard shortcut to focus the element.
+                    ///
+                    /// Provides keyboard accessibility by allowing users to quickly navigate
+                    /// to important elements using Alt+key (varies by browser/OS).
+                    ///
+                    /// ### Examples
+                    /// ```
+                    /// accesskey="s"  // Alt+S to focus (search)
+                    /// accesskey="m"  // Alt+M to focus (menu)
+                    /// ```
+                    ///
+                    /// **MDN Reference**: [accesskey attribute](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/accesskey)
                     pub accesskey: String,
 
-                    /// Specifies whether the content of an element is editable or not
+                    /// The `contenteditable` attribute specifies whether the content can be edited.
+                    ///
+                    /// When `true`, the element becomes editable, allowing users to modify
+                    /// the content directly in the browser.
+                    ///
+                    /// ### Examples
+                    /// ```
+                    /// contenteditable={false}  // Content cannot be edited (default)
+                    /// contenteditable={true}   // Content can be edited by user
+                    /// ```
+                    ///
+                    /// **MDN Reference**: [contenteditable attribute](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/contenteditable)
                     pub contenteditable: bool,
 
-                    /// Specifies the text direction for the content in an element
+                    /// The `dir` attribute specifies the text direction for the element's content.
+                    ///
+                    /// Important for internationalization and proper display of right-to-left
+                    /// languages like Arabic, Hebrew, or Persian.
+                    ///
+                    /// ### Examples
+                    /// ```
+                    /// dir="ltr"   // Left-to-right (default)
+                    /// dir="rtl"   // Right-to-left
+                    /// dir="auto"  // Auto-detect direction
+                    /// ```
+                    ///
+                    /// **MDN Reference**: [dir attribute](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/dir)
                     pub dir: String,
 
-                    /// Specifies the tabbing order of an element (when the tab button is used)
+                    /// The `tabindex` attribute specifies the tab order of the element.
+                    ///
+                    /// Controls keyboard navigation order when users press Tab:
+                    /// - `None`: Element follows natural tab order
+                    /// - `Some(0)`: Element is focusable in natural order
+                    /// - `Some(positive)`: Element is focused before natural order
+                    /// - `Some(-1)`: Element is focusable only programmatically
+                    ///
+                    /// ### Examples
+                    /// ```
+                    /// tabindex: None        // Natural tab order
+                    /// tabindex: Some(0)     // Focusable in natural order
+                    /// tabindex: Some(1)     // Focus first
+                    /// tabindex: Some(-1)    // Skip in tab navigation
+                    /// ```
+                    ///
+                    /// **MDN Reference**: [tabindex attribute](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/tabindex)
                     pub tabindex: Option<i32>,
 
-                    /// Specifies whether the element is to have its spelling and grammar checked
+                    /// The `spellcheck` attribute controls spell-checking for editable content.
+                    ///
+                    /// When enabled, the browser will highlight misspelled words in editable
+                    /// elements like input fields or contenteditable elements.
+                    ///
+                    /// ### Examples
+                    /// ```
+                    /// spellcheck={true}   // Enable spell checking
+                    /// spellcheck={false}  // Disable spell checking
+                    /// ```
+                    ///
+                    /// **MDN Reference**: [spellcheck attribute](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/spellcheck)
                     pub spellcheck: bool,
 
-                    /// Specifies the language of the element's content
+                    /// The `lang` attribute specifies the language of the element's content.
+                    ///
+                    /// Important for accessibility, search engines, and proper text rendering.
+                    /// Uses BCP 47 language tags (e.g., "en", "es", "fr-CA").
+                    ///
+                    /// ### Examples
+                    /// ```
+                    /// lang="en"      // English
+                    /// lang="es"      // Spanish
+                    /// lang="fr-CA"   // Canadian French
+                    /// lang="zh-CN"   // Simplified Chinese
+                    /// ```
+                    ///
+                    /// **MDN Reference**: [lang attribute](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/lang)
                     pub lang: String,
 
-                    /// Specifies whether an element is translateable or not
+                    /// The `translate` attribute indicates whether the content should be translated.
+                    ///
+                    /// Used by translation tools to determine if content should be translated
+                    /// when the page is automatically translated.
+                    ///
+                    /// ### Examples
+                    /// ```
+                    /// translate={true}   // Content should be translated (default)
+                    /// translate={false}  // Content should not be translated (e.g., code, names)
+                    /// ```
+                    ///
+                    /// **MDN Reference**: [translate attribute](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/translate)
                     pub translate: bool,
 
-                    /// Controls whether and how text input is automatically capitalized
+                    /// The `autocapitalize` attribute controls automatic capitalization in text input.
+                    ///
+                    /// Affects how virtual keyboards on mobile devices handle capitalization
+                    /// for input fields and editable content.
+                    ///
+                    /// ### Examples
+                    /// ```
+                    /// autocapitalize="off"        // No automatic capitalization
+                    /// autocapitalize="none"       // Same as "off"
+                    /// autocapitalize="sentences"  // Capitalize first letter of sentences
+                    /// autocapitalize="words"      // Capitalize first letter of words
+                    /// autocapitalize="characters" // Capitalize all characters
+                    /// ```
+                    ///
+                    /// **MDN Reference**: [autocapitalize attribute](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/autocapitalize)
                     pub autocapitalize: String,
 
-                    /// Specifies an inline CSS style for an element
+                    /// The `role` attribute defines the semantic meaning of the element.
+                    ///
+                    /// Part of the ARIA specification, it describes what an element is or does,
+                    /// crucial for screen readers and assistive technologies.
+                    ///
+                    /// ### Examples
+                    /// ```
+                    /// role="button"       // Element acts as a button
+                    /// role="navigation"   // Element contains navigation links
+                    /// role="main"         // Element is the main content
+                    /// role="alert"        // Element contains important message
+                    /// ```
+                    ///
+                    /// **MDN Reference**: [role attribute](https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Roles)
                     pub role: String,
 
-                    /// Custom data attributes (data-*)
+                    /// (Internal) Custom data attributes (data-*) for storing extra information.
+                    ///
+                    /// Allows you to store custom data private to the page or application.
+                    /// All keys will be prefixed with "data-" when rendered to HTML.
+                    ///
+                    /// **MDN Reference**: [data-* attributes](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/data-*)
                     pub r#data: BTreeMap<String, String>,
 
-                    // ARIA Accessibility attributes
+                    // ============================================================================
+                    // ARIA ACCESSIBILITY ATTRIBUTES
+                    // ============================================================================
 
-                    /// Identifies the current element within a set
+                    /// The `aria-current` attribute indicates the current item within a set.
+                    ///
+                    /// Helps screen readers understand which item in a collection is currently
+                    /// active or selected (e.g., current page in navigation).
+                    ///
+                    /// ### Examples
+                    /// ```
+                    /// aria_current="page"      // Current page in navigation
+                    /// aria_current="step"      // Current step in a process
+                    /// aria_current="location"  // Current location in a path
+                    /// aria_current="date"      // Current date in a calendar
+                    /// aria_current="time"      // Current time
+                    /// aria_current="true"      // Generic current item
+                    /// aria_current="false"     // Not current (default)
+                    /// ```
+                    ///
+                    /// **MDN Reference**: [aria-current](https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Attributes/aria-current)
                     pub aria_current: String,
 
-                    /// Defines a string value that labels the current element
+                    /// The `aria-label` attribute provides an accessible name for the element.
+                    ///
+                    /// Used when the visible text doesn't adequately describe the element's
+                    /// purpose. Essential for buttons with only icons or complex interfaces.
+                    ///
+                    /// ### Examples
+                    /// ```
+                    /// aria_label="Close dialog"           // For X button
+                    /// aria_label="Search products"        // For search input
+                    /// aria_label="User profile menu"      // For profile dropdown
+                    /// aria_label="Increase quantity"      // For + button
+                    /// ```
+                    ///
+                    /// **MDN Reference**: [aria-label](https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Attributes/aria-label)
                     pub aria_label: String,
 
-                    /// Identifies the element that labels the current element
+                    /// The `aria-labelledby` attribute references elements that label this element.
+                    ///
+                    /// Points to the ID(s) of elements that provide the accessible name.
+                    /// Multiple IDs can be separated by spaces.
+                    ///
+                    /// ### Examples
+                    /// ```
+                    /// aria_labelledby="username-label"           // Single label
+                    /// aria_labelledby="first-name last-name"     // Multiple labels
+                    /// aria_labelledby="section-title section-subtitle"
+                    /// ```
+                    ///
+                    /// **MDN Reference**: [aria-labelledby](https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Attributes/aria-labelledby)
                     pub aria_labelledby: String,
 
-                    /// Identifies the element that describes the current element
+                    /// The `aria-describedby` attribute references elements that describe this element.
+                    ///
+                    /// Points to the ID(s) of elements that provide additional description.
+                    /// Used for help text, error messages, or detailed descriptions.
+                    ///
+                    /// ### Examples
+                    /// ```
+                    /// aria_describedby="password-help"           // Help text
+                    /// aria_describedby="email-error"             // Error message
+                    /// aria_describedby="form-help form-note"     // Multiple descriptions
+                    /// ```
+                    ///
+                    /// **MDN Reference**: [aria-describedby](https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Attributes/aria-describedby)
                     pub aria_describedby: String,
 
-                    /// Indicates whether an element is expanded or collapsed
+                    /// The `aria-expanded` attribute indicates if a collapsible element is expanded.
+                    ///
+                    /// Used for dropdowns, accordions, tree nodes, and other collapsible content.
+                    /// Critical for screen readers to understand the state of expandable elements.
+                    ///
+                    /// ### Examples
+                    /// ```
+                    /// aria_expanded={true}   // Element is expanded/open
+                    /// aria_expanded={false}  // Element is collapsed/closed
+                    /// ```
+                    ///
+                    /// **MDN Reference**: [aria-expanded](https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Attributes/aria-expanded)
                     pub aria_expanded: bool,
 
-                    /// Indicates the element that represents the current item within a container or set
+                    /// The `aria-selected` attribute indicates the selected state of an option.
+                    ///
+                    /// Used in listboxes, trees, and grids to indicate which items are selected.
+                    /// Important for multi-select interfaces and custom select components.
+                    ///
+                    /// ### Examples
+                    /// ```
+                    /// aria_selected={true}   // Item is selected
+                    /// aria_selected={false}  // Item is not selected
+                    /// ```
+                    ///
+                    /// **MDN Reference**: [aria-selected](https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Attributes/aria-selected)
                     pub aria_selected: bool,
 
-                    /// Indicates whether the element is checked, unchecked, or represents mixed mode
+                    /// The `aria-checked` attribute indicates the checked state of checkable elements.
+                    ///
+                    /// Used for checkboxes, radio buttons, and switch controls that don't use
+                    /// native HTML form elements.
+                    ///
+                    /// ### Examples
+                    /// ```
+                    /// aria_checked="true"   // Element is checked
+                    /// aria_checked="false"  // Element is not checked
+                    /// aria_checked="mixed"  // Element is in indeterminate state
+                    /// ```
+                    ///
+                    /// **MDN Reference**: [aria-checked](https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Attributes/aria-checked)
                     pub aria_checked: String,
 
-                    /// Indicates whether an element and its subtree are hidden
+                    /// The `aria-hidden` attribute indicates whether the element should be ignored by assistive technology.
+                    ///
+                    /// When `true`, the element and all its children are hidden from screen readers.
+                    /// Use carefully - only hide decorative content, never interactive elements.
+                    ///
+                    /// ### Examples
+                    /// ```
+                    /// aria_hidden={false}  // Element is accessible (default)
+                    /// aria_hidden={true}   // Element is hidden from assistive technology
+                    /// ```
+                    ///
+                    /// **MDN Reference**: [aria-hidden](https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Attributes/aria-hidden)
                     pub aria_hidden: bool,
 
-                    /// Indicates the availability and type of interactive popup element
+                    /// The `aria-haspopup` attribute indicates the availability of an interactive popup.
+                    ///
+                    /// Tells assistive technology what type of popup will appear when the element
+                    /// is activated, helping users understand the interaction.
+                    ///
+                    /// ### Examples
+                    /// ```
+                    /// aria_haspopup="false"   // No popup (default)
+                    /// aria_haspopup="true"    // Generic popup/menu
+                    /// aria_haspopup="menu"    // Context menu
+                    /// aria_haspopup="listbox" // Listbox popup
+                    /// aria_haspopup="tree"    // Tree popup
+                    /// aria_haspopup="grid"    // Grid popup
+                    /// aria_haspopup="dialog"  // Dialog popup
+                    /// ```
+                    ///
+                    /// **MDN Reference**: [aria-haspopup](https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Attributes/aria-haspopup)
                     pub aria_haspopup: String,
 
-                    /// Defines an element's role
+                    /// The `aria-role` attribute defines the semantic role of the element.
+                    ///
+                    /// Note: This is a duplicate of the `role` attribute above. Consider using
+                    /// only one of them to avoid confusion. The `role` attribute is standard.
+                    ///
+                    /// **MDN Reference**: [role attribute](https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Roles)
                     pub aria_role: String,
 
+                    // ============================================================================
+                    // EVENT HANDLERS (WASM-specific)
+                    // ============================================================================
+
+                    /// Mouse click event handler.
+                    ///
+                    /// Fired when the user clicks on the element (mouse down + mouse up).
+                    ///
+                    /// ### Examples
+                    /// ```
+                    /// on:click={|_| {
+                    ///     log!("Button clicked!");
+                    /// }}
+                    /// ```
                     #[cfg(feature = "wasm")]
                     pub on_click: EventCallback,
+
+                    /// Key down event handler.
+                    ///
+                    /// Fired when a key is pressed down while the element has focus.
+                    ///
+                    /// ### Examples
+                    /// ```
+                    /// on:keydown={|_| {
+                    ///     log!("Key down!");
+                    /// }}
+                    /// ```
                     #[cfg(feature = "wasm")]
                     pub on_keydown: EventCallback,
+
+                    /// Key up event handler.
+                    ///
+                    /// Fired when a key is released while the element has focus.
+                    ///
+                    /// ### Examples
+                    /// ```
+                    /// on:keyup={|_| {
+                    ///     log!("Key up!");
+                    /// }}
+                    /// ```
                     #[cfg(feature = "wasm")]
                     pub on_keyup: EventCallback,
+
+                    /// Key press event handler (deprecated).
+                    ///
+                    /// Note: This event is deprecated. Use `on_keydown` instead.
                     #[cfg(feature = "wasm")]
                     pub on_keypress: EventCallback,
+
+                    /// Focus event handler.
+                    ///
+                    /// Fired when the element receives focus.
+                    ///
+                    /// ### Examples
+                    /// ```
+                    /// on:focus={|_| {
+                    ///     log!("Button focused!");
+                    /// }}
+                    /// ```
                     #[cfg(feature = "wasm")]
                     pub on_focus: EventCallback,
+
+                    /// Blur event handler.
+                    ///
+                    /// Fired when the element loses focus.
+                    ///
+                    /// ### Examples
+                    /// ```
+                    /// on:blur={|_| {
+                    ///     log!("Button out of focus!");
+                    /// }}
+                    /// ```
                     #[cfg(feature = "wasm")]
                     pub on_blur: EventCallback,
+
+                    /// Change event handler.
+                    ///
+                    /// Fired when the value of an input element changes and loses focus.
+                    ///
+                    /// ### Examples
+                    /// ```
+                    /// on:change={|_| {
+                    ///     log!("Value changed!");
+                    /// }}
+                    /// ```
                     #[cfg(feature = "wasm")]
                     pub on_change: EventCallback,
+
+                    /// Input event handler.
+                    ///
+                    /// Fired when the value of an input element changes (on every keystroke).
+                    ///
+                    /// ### Examples
+                    /// ```
+                    /// on:input={|_| {
+                    ///     log!("Value changed!");
+                    /// }}
+                    /// ```
                     #[cfg(feature = "wasm")]
                     pub on_input: EventCallback,
+
+                    /// Form submit event handler.
+                    ///
+                    /// Fired when a form is submitted.
+                    ///
+                    /// ### Examples
+                    /// ```
+                    /// on:submit={|_| {
+                    ///     log!("Form submitted!");
+                    /// }}
+                    /// ```
                     #[cfg(feature = "wasm")]
                     pub on_submit: EventCallback,
+
+                    /// Form reset event handler.
+                    ///
+                    /// Fired when a form is reset.
                     #[cfg(feature = "wasm")]
                     pub on_reset: EventCallback,
+
+                    /// Mouse over event handler.
+                    ///
+                    /// Fired when the mouse pointer moves over the element.
                     #[cfg(feature = "wasm")]
                     pub on_mouseover: EventCallback,
+
+                    /// Mouse out event handler.
+                    ///
+                    /// Fired when the mouse pointer moves out of the element.
                     #[cfg(feature = "wasm")]
                     pub on_mouseout: EventCallback,
+
+                    /// Mouse down event handler.
+                    ///
+                    /// Fired when a mouse button is pressed down over the element.
                     #[cfg(feature = "wasm")]
                     pub on_mousedown: EventCallback,
+
+                    /// Mouse up event handler.
+                    ///
+                    /// Fired when a mouse button is released over the element.
                     #[cfg(feature = "wasm")]
                     pub on_mouseup: EventCallback,
+
+                    /// Mouse move event handler.
+                    ///
+                    /// Fired when the mouse pointer moves over the element.
                     #[cfg(feature = "wasm")]
                     pub on_mousemove: EventCallback,
+
+                    /// Mouse enter event handler.
+                    ///
+                    /// Fired when the mouse pointer enters the element (doesn't bubble).
                     #[cfg(feature = "wasm")]
                     pub on_mouseenter: EventCallback,
+
+                    /// Mouse leave event handler.
+                    ///
+                    /// Fired when the mouse pointer leaves the element (doesn't bubble).
                     #[cfg(feature = "wasm")]
                     pub on_mouseleave: EventCallback,
+
+                    /// Mouse wheel event handler.
+                    ///
+                    /// Fired when the mouse wheel is scrolled over the element.
                     #[cfg(feature = "wasm")]
                     pub on_mousewheel: EventCallback,
+
+                    /// Scroll event handler.
+                    ///
+                    /// Fired when the element's scrollbar is being scrolled.
                     #[cfg(feature = "wasm")]
                     pub on_scroll: EventCallback,
+
+                    /// Load event handler.
+                    ///
+                    /// Fired when the element has finished loading.
                     #[cfg(feature = "wasm")]
                     pub on_load: EventCallback,
+
+                    /// Unload event handler.
+                    ///
+                    /// Fired when the element is being unloaded.
                     #[cfg(feature = "wasm")]
                     pub on_unload: EventCallback,
+
+                    /// Abort event handler.
+                    ///
+                    /// Fired when the loading of an element is aborted.
                     #[cfg(feature = "wasm")]
                     pub on_abort: EventCallback,
+
+                    /// Error event handler.
+                    ///
+                    /// Fired when an error occurs while loading an element.
                     #[cfg(feature = "wasm")]
                     pub on_error: EventCallback,
+
+                    /// Resize event handler.
+                    ///
+                    /// Fired when the element is resized.
                     #[cfg(feature = "wasm")]
                     pub on_resize: EventCallback,
+
+                    /// Cut event handler.
+                    ///
+                    /// Fired when the user cuts content from the element.
                     #[cfg(feature = "wasm")]
                     pub on_cut: EventCallback,
+
+                    /// Copy event handler.
+                    ///
+                    /// Fired when the user copies content from the element.
                     #[cfg(feature = "wasm")]
                     pub on_copy: EventCallback,
+
+                    /// Paste event handler.
+                    ///
+                    /// Fired when the user pastes content into the element.
                     #[cfg(feature = "wasm")]
                     pub on_paste: EventCallback,
+
+                    /// Context menu event handler.
+                    ///
+                    /// Fired when the user right-clicks on the element.
                     #[cfg(feature = "wasm")]
                     pub on_contextmenu: EventCallback,
+
+                    /// Double click event handler.
+                    ///
+                    /// Fired when the user double-clicks on the element.
                     #[cfg(feature = "wasm")]
                     pub on_dblclick: EventCallback,
+
+                    /// Drop event handler.
+                    ///
+                    /// Fired when a dragged element is dropped on this element.
                     #[cfg(feature = "wasm")]
                     pub on_drop: EventCallback,
 
-                    // Element specific attributes
+                    // ============================================================================
+                    // ELEMENT-SPECIFIC ATTRIBUTES
+                    // ============================================================================
+
                     $(
+                        $(#[$attr_meta])*
                         pub $attr_name: $attr_value,
                     )*
                 }
@@ -762,7 +1308,7 @@ pub mod elements {
             /// Example: hreflang="en" (English)
             hreflang: String,
             /// The type attribute specifies the media type of the linked document
-            /// Example: type_="text/html"
+            /// Example: type="text/html"
             type_: String,
             /// The media attribute specifies what media/device the linked document is optimized for
             /// Example: media="print" (for print stylesheets)
@@ -862,7 +1408,7 @@ pub mod elements {
         /// ```<ul><li>Item 1</li><li>Item 2</li></ul>```
         ul {
             /// The type attribute specifies the bullet style (disc, circle, square)
-            /// Example: type_="square"
+            /// Example: type="square"
             type_: String,
         }
 
@@ -881,10 +1427,10 @@ pub mod elements {
         ///
         /// Example:
         ///
-        /// ```<ol start="5" type_="A"><li>Item E</li><li>Item F</li></ol>```
+        /// ```<ol start="5" type="A"><li>Item E</li><li>Item F</li></ol>```
         ol {
             /// The type attribute specifies the numbering type (1, A, a, I, i)
-            /// Example: type_="A" (uses capital letters)
+            /// Example: type="A" (uses capital letters)
             type_: String,
             /// The start attribute specifies the start value of the list
             /// Example: start="5" (starts counting from 5)
@@ -987,7 +1533,7 @@ pub mod elements {
         ///
         /// Example:
         ///
-        /// ```<form action="/submit" method="post"><input type_="text"><button type_="submit">Submit</button></form>```
+        /// ```<form action="/submit" method="post"><input type="text"><button type="submit">Submit</button></form>```
         form {
             /// The action attribute specifies where to send form data when submitted
             ///
@@ -1025,11 +1571,11 @@ pub mod elements {
         ///
         /// Example:
         ///
-        /// ```<input type_="text" placeholder="Enter your name" required>```
+        /// ```<input type="text" placeholder="Enter your name" required>```
         input {
             /// The type attribute specifies the input type (text, password, email, etc.)
             ///
-            /// Example: type_="email" (validates as email address)
+            /// Example: type="email" (validates as email address)
             type_: String,
             /// The placeholder attribute shows hint text when field is empty
             ///
@@ -1112,10 +1658,10 @@ pub mod elements {
         ///
         /// Example:
         ///
-        /// ```<button type_="submit">Click Me</button>```
+        /// ```<button type="submit">Click Me</button>```
         button {
             /// The type attribute specifies button function (submit, reset, button)
-            /// Example: type_="submit" (submits the form)
+            /// Example: type="submit" (submits the form)
             type_: String,
             /// The value attribute specifies the value associated with the button
             /// Example: value="btn1" (for form processing)
@@ -1273,13 +1819,13 @@ pub mod elements {
         ///
         /// Example:
         ///
-        /// ```<video><source src="movie.mp4" type_="video/mp4"><source src="movie.webm" type_="video/webm"></video>```
+        /// ```<video><source src="movie.mp4" type="video/mp4"><source src="movie.webm" type="video/webm"></video>```
         source {
             /// The src attribute specifies URL/path of the media resource
             /// Example: src="audio/song.ogg"
             src: String,
             /// The type attribute specifies the MIME type of the resource
-            /// Example: type_="video/webm" (defines file format)
+            /// Example: type="video/webm" (defines file format)
             type_: String,
             /// The media attribute specifies for which media the resource is intended
             /// Example: media="(min-width: 600px)" (responsive resources)
@@ -1906,7 +2452,7 @@ pub mod elements {
         ///
         /// Example:
         ///
-        /// ```<form><input type_="number" id="num1" /><input type_="number" id="num2" /><button>Calculate</button><output id="result"></output></form>```
+        /// ```<form><input type="number" id="num1" /><input type="number" id="num2" /><button>Calculate</button><output id="result"></output></form>```
         output {
         }
 
@@ -2040,7 +2586,7 @@ pub mod elements {
         ///
         /// Example:
         ///
-        /// ```<fieldset><legend>Personal Information</legend><input type_="text" name="name" /><input type_="email" name="email" /></fieldset>```
+        /// ```<fieldset><legend>Personal Information</legend><input type="text" name="name" /><input type="email" name="email" /></fieldset>```
         legend {
         }
 
