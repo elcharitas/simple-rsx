@@ -22,7 +22,9 @@ use syn::{Stmt, braced};
 /// - `loop` -> `loop_`
 /// - `on:click` -> `on_click`
 /// - `on:keydown` -> `on_keydown`
-fn parse_attribute_name(input: ParseStream) -> Result<Ident> {
+fn parse_attribute_name(input: ParseStream) -> Result<(Ident, Span)> {
+    let start_span = input.span();
+
     // Try to parse as regular identifier first
     if let Ok(ident) = input.parse::<Ident>() {
         // Check if this is an "on" identifier followed by a colon
@@ -30,116 +32,118 @@ fn parse_attribute_name(input: ParseStream) -> Result<Ident> {
             input.parse::<Token![:]>()?;
             let event_ident = input.parse::<Ident>()?;
             let event_name = event_ident.to_string();
-            return Ok(Ident::new(
-                &format!("on_{}", event_name),
-                ident.span().located_at(event_ident.span()),
+            let end_span = event_ident.span();
+            let combined_span = start_span.join(end_span).unwrap_or(end_span);
+            return Ok((
+                Ident::new(&format!("on_{}", event_name), combined_span),
+                combined_span,
             ));
         }
-
-        return Ok(ident);
+        let span = ident.span();
+        return Ok((ident, span));
     }
 
     // Handle specific keyword tokens
     let lookahead = input.lookahead1();
     if lookahead.peek(Token![type]) {
         let token = input.parse::<Token![type]>()?;
-        Ok(Ident::new("type_", token.span))
+        Ok((Ident::new("type_", token.span), token.span))
     } else if lookahead.peek(Token![loop]) {
         let token = input.parse::<Token![loop]>()?;
-        Ok(Ident::new("loop_", token.span))
+        Ok((Ident::new("loop_", token.span), token.span))
     } else if lookahead.peek(Token![for]) {
         let token = input.parse::<Token![for]>()?;
-        Ok(Ident::new("for_", token.span))
+        Ok((Ident::new("for_", token.span), token.span))
     } else if lookahead.peek(Token![if]) {
         let token = input.parse::<Token![if]>()?;
-        Ok(Ident::new("if_", token.span))
+        Ok((Ident::new("if_", token.span), token.span))
     } else if lookahead.peek(Token![else]) {
         let token = input.parse::<Token![else]>()?;
-        Ok(Ident::new("else_", token.span))
+        Ok((Ident::new("else_", token.span), token.span))
     } else if lookahead.peek(Token![while]) {
         let token = input.parse::<Token![while]>()?;
-        Ok(Ident::new("while_", token.span))
+        Ok((Ident::new("while_", token.span), token.span))
     } else if lookahead.peek(Token![match]) {
         let token = input.parse::<Token![match]>()?;
-        Ok(Ident::new("match_", token.span))
+        Ok((Ident::new("match_", token.span), token.span))
     } else if lookahead.peek(Token![const]) {
         let token = input.parse::<Token![const]>()?;
-        Ok(Ident::new("const_", token.span))
+        Ok((Ident::new("const_", token.span), token.span))
     } else if lookahead.peek(Token![static]) {
         let token = input.parse::<Token![static]>()?;
-        Ok(Ident::new("static_", token.span))
+        Ok((Ident::new("static_", token.span), token.span))
     } else if lookahead.peek(Token![mut]) {
         let token = input.parse::<Token![mut]>()?;
-        Ok(Ident::new("mut_", token.span))
+        Ok((Ident::new("mut_", token.span), token.span))
     } else if lookahead.peek(Token![let]) {
         let token = input.parse::<Token![let]>()?;
-        Ok(Ident::new("let_", token.span))
+        Ok((Ident::new("let_", token.span), token.span))
     } else if lookahead.peek(Token![fn]) {
         let token = input.parse::<Token![fn]>()?;
-        Ok(Ident::new("fn_", token.span))
+        Ok((Ident::new("fn_", token.span), token.span))
     } else if lookahead.peek(Token![struct]) {
         let token = input.parse::<Token![struct]>()?;
-        Ok(Ident::new("struct_", token.span))
+        Ok((Ident::new("struct_", token.span), token.span))
     } else if lookahead.peek(Token![enum]) {
         let token = input.parse::<Token![enum]>()?;
-        Ok(Ident::new("enum_", token.span))
+        Ok((Ident::new("enum_", token.span), token.span))
     } else if lookahead.peek(Token![trait]) {
         let token = input.parse::<Token![trait]>()?;
-        Ok(Ident::new("trait_", token.span))
+        Ok((Ident::new("trait_", token.span), token.span))
     } else if lookahead.peek(Token![impl]) {
         let token = input.parse::<Token![impl]>()?;
-        Ok(Ident::new("impl_", token.span))
+        Ok((Ident::new("impl_", token.span), token.span))
     } else if lookahead.peek(Token![mod]) {
         let token = input.parse::<Token![mod]>()?;
-        Ok(Ident::new("mod_", token.span))
+        Ok((Ident::new("mod_", token.span), token.span))
     } else if lookahead.peek(Token![use]) {
         let token = input.parse::<Token![use]>()?;
-        Ok(Ident::new("use_", token.span))
+        Ok((Ident::new("use_", token.span), token.span))
     } else if lookahead.peek(Token![pub]) {
         let token = input.parse::<Token![pub]>()?;
-        Ok(Ident::new("pub_", token.span))
+        Ok((Ident::new("pub_", token.span), token.span))
     } else if lookahead.peek(Token![crate]) {
         let token = input.parse::<Token![crate]>()?;
-        Ok(Ident::new("crate_", token.span))
+        Ok((Ident::new("crate_", token.span), token.span))
     } else if lookahead.peek(Token![super]) {
         let token = input.parse::<Token![super]>()?;
-        Ok(Ident::new("super_", token.span))
+        Ok((Ident::new("super_", token.span), token.span))
     } else if lookahead.peek(Token![self]) {
         let token = input.parse::<Token![self]>()?;
-        Ok(Ident::new("self_", token.span))
+        Ok((Ident::new("self_", token.span), token.span))
     } else if lookahead.peek(Token![Self]) {
         let token = input.parse::<Token![Self]>()?;
-        Ok(Ident::new("Self_", token.span))
+        Ok((Ident::new("Self_", token.span), token.span))
     } else if lookahead.peek(Token![extern]) {
         let token = input.parse::<Token![extern]>()?;
-        Ok(Ident::new("extern_", token.span))
+        Ok((Ident::new("extern_", token.span), token.span))
     } else if lookahead.peek(Token![return]) {
         let token = input.parse::<Token![return]>()?;
-        Ok(Ident::new("return_", token.span))
+        Ok((Ident::new("return_", token.span), token.span))
     } else if lookahead.peek(Token![break]) {
         let token = input.parse::<Token![break]>()?;
-        Ok(Ident::new("break_", token.span))
+        Ok((Ident::new("break_", token.span), token.span))
     } else if lookahead.peek(Token![continue]) {
         let token = input.parse::<Token![continue]>()?;
-        Ok(Ident::new("continue_", token.span))
+        Ok((Ident::new("continue_", token.span), token.span))
     } else if lookahead.peek(Token![move]) {
         let token = input.parse::<Token![move]>()?;
-        Ok(Ident::new("move_", token.span))
+        Ok((Ident::new("move_", token.span), token.span))
     } else if lookahead.peek(Token![ref]) {
         let token = input.parse::<Token![ref]>()?;
-        Ok(Ident::new("ref_", token.span))
+        Ok((Ident::new("ref_", token.span), token.span))
     } else if lookahead.peek(Token![where]) {
         let token = input.parse::<Token![where]>()?;
-        Ok(Ident::new("where_", token.span))
+        Ok((Ident::new("where_", token.span), token.span))
     } else if lookahead.peek(Token![unsafe]) {
         let token = input.parse::<Token![unsafe]>()?;
-        Ok(Ident::new("unsafe_", token.span))
+        Ok((Ident::new("unsafe_", token.span), token.span))
     } else if lookahead.peek(Token![as]) {
         let token = input.parse::<Token![as]>()?;
-        Ok(Ident::new("as_", token.span))
+        Ok((Ident::new("as_", token.span), token.span))
     } else if lookahead.peek(Token![in]) {
         let token = input.parse::<Token![in]>()?;
-        Ok(Ident::new("in_", token.span))
+        Ok((Ident::new("in_", token.span), token.span))
     } else {
         Err(lookahead.error())
     }
@@ -441,6 +445,8 @@ enum RsxNode {
         props: Vec<(Option<Ident>, Option<Expr>, Span)>,
         children: Vec<RsxNode>,
         close_tag: Option<Ident>,
+        open_span: Span,
+        close_span: Option<Span>,
     },
     Text(Expr),
     Block(Block),
@@ -460,7 +466,8 @@ impl Parse for NodeValue {
         // Handle `{ident}` and `{..ident}` patterns
         if input.peek(Brace) {
             let content;
-            braced!(content in input);
+            let brace_token = braced!(content in input);
+            let full_span = brace_token.span.join();
 
             // Check for `{..ident}` pattern
             if content.peek(Token![..]) {
@@ -477,7 +484,7 @@ impl Parse for NodeValue {
                 tokens.extend(ident.to_token_stream());
 
                 return Ok(NodeValue {
-                    span: ident.span(),
+                    span: full_span,
                     name: Some(ident),
                     expr: Some(syn::Expr::Verbatim(tokens)),
                 });
@@ -486,19 +493,19 @@ impl Parse for NodeValue {
             // Handle `{expression}` pattern
             let parsed: Ident = content.parse()?;
             return Ok(NodeValue {
-                span: parsed.span(),
+                span: full_span,
                 expr: Some(syn::Expr::Verbatim(parsed.to_token_stream())),
                 name: Some(parsed),
             });
         }
 
         // Handle `name={expression or block}` and `name` patterns
-        let name: Ident = parse_attribute_name(input)?;
+        let (name, name_span) = parse_attribute_name(input)?;
 
         // If no `=`, just return the name
         if !input.peek(Token![=]) {
             return Ok(NodeValue {
-                span: name.span(),
+                span: name_span,
                 name: Some(name),
                 expr: None,
             });
@@ -511,8 +518,9 @@ impl Parse for NodeValue {
         if input.peek(LitStr) {
             let lit: LitStr = input.parse()?;
             let expr: Expr = parse_quote! {#lit};
+            let full_span = name_span.join(lit.span()).unwrap_or(lit.span());
             return Ok(NodeValue {
-                span: name.span(),
+                span: full_span,
                 name: Some(name),
                 expr: Some(expr),
             });
@@ -520,6 +528,7 @@ impl Parse for NodeValue {
 
         // Parse any expression (including braced blocks)
         let block: Block = input.parse()?;
+        let full_span = name_span.join(block.span()).unwrap_or(block.span());
         let expr = block.stmts.into_iter().next();
         let expr = match expr {
             Some(Stmt::Expr(expr, _)) => expr,
@@ -527,7 +536,7 @@ impl Parse for NodeValue {
         };
 
         Ok(NodeValue {
-            span: name.span(),
+            span: full_span,
             name: Some(name),
             expr: Some(expr),
         })
@@ -581,6 +590,7 @@ impl Parse for RsxNode {
 
         // Look ahead to see if we start with a '<'
         if input.peek(Token![<]) {
+            let open_bracket_span = input.span();
             input.parse::<Token![<]>()?;
 
             // Comments: <!-- ... -->
@@ -647,6 +657,10 @@ impl Parse for RsxNode {
 
             // Element: <tag ...>...</tag> or <tag ... />
             let tag = input.parse::<Ident>()?;
+            let tag_span = tag.span();
+            let open_start_span = open_bracket_span
+                .join(tag_span)
+                .unwrap_or(open_bracket_span);
 
             let mut attributes = Vec::with_capacity(4);
             while !input.peek(Token![>]) && !input.peek(Token![/]) {
@@ -657,23 +671,30 @@ impl Parse for RsxNode {
             // Self-closing tag: <tag ... /> or <Component... />
             if input.peek(Token![/]) {
                 input.parse::<Token![/]>()?;
-                input.parse::<Token![>]>()?;
+                let close_bracket = input.parse::<Token![>]>()?;
+                let close_span = close_bracket.span;
+                let full_open_span = open_start_span.join(close_span).unwrap_or(open_start_span);
 
                 return Ok(RsxNode::Component {
                     name: tag.clone(),
                     props: attributes,
                     children: Vec::new(),
                     close_tag: None,
+                    open_span: full_open_span,
+                    close_span: Some(close_span),
                 });
             }
 
             // Opening tag ends: <tag ...>
-            input.parse::<Token![>]>()?;
+            let open_close_bracket = input.parse::<Token![>]>()?;
+            let full_open_span = open_start_span
+                .join(open_close_bracket.span)
+                .unwrap_or(open_start_span);
 
             let RsxChildren { children } = input.parse()?;
 
             // Closing tag: </tag>
-            input.parse::<Token![<]>()?;
+            let close_open_bracket = input.parse::<Token![<]>()?;
             input.parse::<Token![/]>()?;
             let close_tag = input.parse::<Ident>()?;
 
@@ -688,13 +709,19 @@ impl Parse for RsxNode {
                 ));
             }
 
-            input.parse::<Token![>]>()?;
+            let close_bracket = input.parse::<Token![>]>()?;
+            let close_span = close_open_bracket
+                .span
+                .join(close_bracket.span)
+                .unwrap_or(close_bracket.span);
 
             return Ok(RsxNode::Component {
                 name: tag,
                 props: attributes,
                 children,
                 close_tag: Some(close_tag),
+                open_span: full_open_span,
+                close_span: Some(close_span),
             });
         }
 
@@ -722,14 +749,14 @@ impl RsxNode {
                 props,
                 children,
                 close_tag,
+                open_span,
+                close_span,
             } => {
-                let tag_span = name.span();
                 let is_element = name.to_string().starts_with(|c: char| !c.is_uppercase());
 
                 let attrs = props
                     .iter() // filter out data- attributes for elements
                     .map(|(name, value, span)| {
-                        let span = span.clone();
                         let value = value
                             .as_ref()
                             .map(|v| {
@@ -737,7 +764,7 @@ impl RsxNode {
                                 quote_spanned! { span=> #v}
                             })
                             .or_else(|| Some(quote! {true}));
-                        (name, value, span)
+                        (name, value, span.clone())
                     });
 
                 let data_props = (is_element
@@ -752,8 +779,7 @@ impl RsxNode {
                         .unwrap_or_else(|_| std::time::Duration::from_secs(0))
                         .as_nanos()
                         .to_string();
-                    let ident =
-                        syn::Ident::new(&format!("attr_data_{}", timestamp), Span::call_site());
+                    let ident = syn::Ident::new(&format!("attr_data_{}", timestamp), *open_span);
                     let data = attrs
                         .clone()
                         .filter(|(name, _, _)| {
@@ -762,12 +788,12 @@ impl RsxNode {
                                 .unwrap_or(false)
                         })
                         .map(|(name, value, span)| {
-                            quote_spanned! { span=>
+                            quote_spanned! {span=>
                                 let #name = #value;
                                 #ident.insert(stringify!(#name).to_string(), #name);
                             }
                         });
-                    quote! {
+                    quote_spanned! { *open_span=>
                         r#data: {
                             let mut #ident = ::alloc::collections::BTreeMap::new();
                             {
@@ -788,45 +814,49 @@ impl RsxNode {
                                 .unwrap_or(false))
                     }) // filter out data- attributes for elements
                     .map(|(name, value, span)| {
-                        quote_spanned! { span=> #name: {#value}.into(), }
+                        quote_spanned! {span=> #name: {#value}.into(), }
                     });
 
                 let children_tokens = if children.len() > 0 || is_element {
                     let child_tokens = children.iter().map(|child| child.to_tokens());
-                    Some(quote! {
+                    Some(quote_spanned! { *open_span=>
                         children: vec![#(#child_tokens),*],
                     })
                 } else {
                     None
                 };
 
-                let use_element = is_element.then(|| {
-                    quote! { use ::momenta::dom::elements::#name;}
-                });
-                let close_tag = close_tag.as_ref().map(|close_tag| {
-                    let span = close_tag.span();
-                    quote_spanned! { span=>
-                        {
-                            #use_element
-                            let #close_tag = #name;
-                        };
-                    }
-                });
-                let default_props = is_element.then(|| quote! {..Default::default()});
+                let close_tag_validation =
+                    close_tag
+                        .as_ref()
+                        .zip(*close_span)
+                        .map(|(close_tag, close_span)| {
+                            let close = if is_element {
+                                quote_spanned! { close_span=> ::momenta::dom::elements::#close_tag }
+                            } else {
+                                quote_spanned! { close_span=> #close_tag }
+                            };
+                            quote_spanned! { close_span=>
+                                {
+                                    let _ = #close;
+                                };
+                            }
+                        });
+
+                let default_props =
+                    is_element.then(|| quote_spanned! { *open_span=> ..Default::default()});
 
                 let component = if !is_element {
-                    quote_spanned! {tag_span=> #name }
+                    quote_spanned! { *open_span=> #name }
                 } else {
-                    quote_spanned! {tag_span=> ::momenta::dom::elements::#name }
+                    quote_spanned! { *open_span=> ::momenta::dom::elements::#name }
                 };
 
-                let span = Span::call_site();
-
-                quote_spanned! {span=>
+                quote_spanned! { *open_span=>
                     {
                         type Props = <#component as ::momenta::nodes::Component>::Props;
                         {
-                            #close_tag
+                            #close_tag_validation
                             ::momenta::dom::component::<#component>(
                                 Props {
                                     #(#props_tokens)*
@@ -867,7 +897,8 @@ impl RsxNode {
                 }
             }
             RsxNode::Block(block) => {
-                quote! {
+                let span = block.span();
+                quote_spanned! { span=>
                     ::momenta::nodes::Node::from(#block)
                 }
             }

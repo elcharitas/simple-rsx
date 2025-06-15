@@ -115,7 +115,7 @@ fn App() -> Node {
                         <div class="relative flex w-full max-w-xs flex-col bg-white dark:bg-gray-950">
                             <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800">
                                 <span class="text-lg font-semibold">Navigation</span>
-                                <button on_click={move |_| mobile_menu_open.set(false)} class="p-2">
+                                <button type="button" on:click={move |_| mobile_menu_open.set(false)} class="p-2">
                                     <i class="fas fa-times"></i>
                                 </button>
                             </div>
