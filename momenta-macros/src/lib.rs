@@ -486,11 +486,10 @@ impl Parse for NodeValue {
 
             // Handle `{expression}` pattern
             let parsed: Ident = content.parse()?;
-            let tokens = quote! {#parsed,};
             return Ok(NodeValue {
                 span: parsed.span(),
-                expr: Some(syn::Expr::Verbatim(tokens)),
-                name: None,
+                expr: Some(syn::Expr::Verbatim(parsed.to_token_stream())),
+                name: Some(parsed),
             });
         }
 
@@ -726,6 +725,15 @@ impl Parse for RsxNode {
             let expr = parse_quote! {#lit};
             return Ok(RsxNode::Text(expr));
         }
+
+        // Handle expressions wrapped in braces: {expression}
+        if input.peek(Brace) {
+            let content;
+            braced!(content in input);
+            let expr: Expr = content.parse()?;
+            return Ok(RsxNode::Text(expr));
+        }
+
         match input.parse::<Block>() {
             Ok(block) => Ok(RsxNode::Block(block)),
             Err(_) => Err(syn::Error::new(
