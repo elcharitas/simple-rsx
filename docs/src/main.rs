@@ -5,6 +5,7 @@ use alloc::{format, vec, vec::Vec};
 use momenta::prelude::*;
 
 static GITHUB_LINK: &str = "https://github.com/elcharitas/momenta";
+static CRATES_LINK: &str = "https://crates.io/crates/momenta";
 
 #[derive(Clone, Copy, PartialEq, SignalValue)]
 pub enum Page {
@@ -381,6 +382,9 @@ fn HomePage(props: &NavigationProps) -> Node {
                     </a>
                     <a href={GITHUB_LINK} class="rounded-lg border border-gray-300 dark:border-gray-700 px-6 py-3 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-900">
                         "View on GitHub"
+                    </a>
+                    <a href={CRATES_LINK} class="rounded-lg bg-yellow-600 border border-gray-300 dark:border-gray-700 px-6 py-3 text-sm font-semibold hover:bg-yellow-700 dark:hover:bg-yellow-900">
+                        "View on Crates.io"
                     </a>
                 </div>
             </div>
