@@ -1,5 +1,4 @@
 #![no_std]
-#![allow(unused_braces)]
 
 extern crate alloc;
 use alloc::{format, vec, vec::Vec};
@@ -287,18 +286,14 @@ fn Navigation(props: &NavigationProps) -> Node {
 fn CodeBlock(props: &CodeBlockProps) -> Node {
     rsx! {
         <div class="my-6 overflow-hidden rounded-lg border border-gray-200 dark:border-gray-800">
-            {if let Some(filename) = props.filename {
-                rsx! {
-                    <div class="flex items-center justify-between border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 px-4 py-2">
-                        <span class="text-xs font-medium text-gray-600 dark:text-gray-400">{filename}</span>
-                        <button class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
-                            <i class="fas fa-copy text-xs">"😉"</i>
-                        </button>
-                    </div>
-                }
-            } else {
-                rsx! { <div></div> }
-            }}
+            {when!(let Some(filename) = props.filename =>
+                <div class="flex items-center justify-between border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 px-4 py-2">
+                    <span class="text-xs font-medium text-gray-600 dark:text-gray-400">{filename}</span>
+                    <button class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                        <i class="fas fa-copy text-xs">"😉"</i>
+                    </button>
+                </div>
+            )}
             <div class="bg-gray-50 dark:bg-gray-900">
                 <pre class="overflow-x-auto">
                     <code class={format!("language-{} text-sm", props.language)}>{props.code}</code>

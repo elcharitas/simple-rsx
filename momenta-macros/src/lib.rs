@@ -10,7 +10,7 @@ use syn::{
     parse_macro_input, parse_quote,
     token::Brace,
 };
-use syn::{FnArg, PatType, Signature, Type, TypeReference};
+use syn::{ExprLet, FnArg, PatType, Signature, Type, TypeReference};
 use syn::{Stmt, braced};
 
 /// Parse either an identifier or a keyword token as an identifier
@@ -151,6 +151,7 @@ fn parse_attribute_name(input: ParseStream) -> Result<(Ident, Span)> {
 
 /// A procedural macro that transforms a conditional expression into a JSX-like syntax.
 /// Supports both RSX nodes and literals, with conditional and match syntax.
+/// Also supports let statements in conditions and braces/brackets for values.
 ///
 /// # Examples
 /// ```rust
@@ -158,6 +159,7 @@ fn parse_attribute_name(input: ParseStream) -> Result<(Ident, Span)> {
 ///
 /// let show = true;
 /// let result: Result<i32, String> = Ok(42);
+/// let option_value: Option<String> = Some("hello".to_string());
 ///
 /// // Conditional syntax with RSX nodes
 /// when!(show => <p>"Show me"</p>);
@@ -166,6 +168,20 @@ fn parse_attribute_name(input: ParseStream) -> Result<(Ident, Span)> {
 /// // Conditional syntax with literals
 /// when!(show => "Visible text");
 /// when!(show => "Visible" else "Hidden");
+///
+/// // Support for let patterns in conditions (if let style)
+/// when!(let Some(value) = option_value => <div>{value}</div>);
+/// when!(let Ok(val) = result => <div>"Success: "{val}</div> else <div>"Error"</div>);
+/// when!(let Some(x) = get_option() => format!("Got: {}", x) else "Nothing".to_string());
+///
+/// // Support for blocks as values
+/// when!(condition => {
+///     let msg = "Complex computation";
+///     format!("{} result", msg)
+/// });
+///
+/// // Support for arrays/vectors as values
+/// when!(show_list => [1, 2, 3, 4] else []);
 ///
 /// // Match syntax
 /// when!(result {
@@ -183,18 +199,32 @@ pub fn when(input: TokenStream) -> TokenStream {
 enum EitherValue {
     RsxNode(RsxNode),
     Literal(Lit),
+    Block(Block),
+    Expression(Expr), // for arrays, function calls, etc.
 }
 
 impl Parse for EitherValue {
     fn parse(input: ParseStream) -> Result<Self> {
-        // Try to parse as a literal first (simpler case)
+        // Try to parse as a literal first (simplest case)
         if let Ok(lit) = input.parse::<Lit>() {
-            Ok(EitherValue::Literal(lit))
-        } else {
-            // If not a literal, parse as RsxNode
-            let rsx_node = input.parse::<RsxNode>()?;
-            Ok(EitherValue::RsxNode(rsx_node))
+            return Ok(EitherValue::Literal(lit));
         }
+
+        // Try to parse as a block
+        if input.peek(Brace) {
+            let block = input.parse::<Block>()?;
+            return Ok(EitherValue::Block(block));
+        }
+
+        // Try to parse as RSX node (starts with <)
+        if input.peek(Token![<]) {
+            let rsx_node = input.parse::<RsxNode>()?;
+            return Ok(EitherValue::RsxNode(rsx_node));
+        }
+
+        // Parse as a general expression (arrays, function calls, etc.)
+        let expr = input.parse::<Expr>()?;
+        Ok(EitherValue::Expression(expr))
     }
 }
 
@@ -205,6 +235,14 @@ impl EitherValue {
             EitherValue::Literal(lit) => {
                 let span = lit.span();
                 quote_spanned! { span=> #lit }
+            }
+            EitherValue::Block(block) => {
+                let span = block.span();
+                quote_spanned! { span=> #block }
+            }
+            EitherValue::Expression(expr) => {
+                let span = expr.span();
+                quote_spanned! { span=> #expr }
             }
         }
     }
@@ -232,9 +270,14 @@ impl MatchArm {
     }
 }
 
+enum ConditionType {
+    Regular(Expr),
+    LetPattern(ExprLet),
+}
+
 enum Either {
     Conditional {
-        condition: Expr,
+        condition: ConditionType,
         true_value: EitherValue,
         false_value: Option<EitherValue>,
     },
@@ -246,6 +289,28 @@ enum Either {
 
 impl Parse for Either {
     fn parse(input: ParseStream) -> Result<Self> {
+        // Check if we start with 'let' for if-let style syntax
+        if input.peek(Token![let]) {
+            let expr = input.parse::<ExprLet>()?;
+
+            // Must be followed by '=>'
+            input.parse::<Token![=>]>()?;
+            let true_value = input.parse()?;
+            let false_value = if input.peek(Token![else]) {
+                input.parse::<Token![else]>()?;
+                Some(input.parse()?)
+            } else {
+                None
+            };
+
+            return Ok(Either::Conditional {
+                condition: ConditionType::LetPattern(expr),
+                true_value,
+                false_value,
+            });
+        }
+
+        // Parse regular expression
         let expr = input.parse::<Expr>()?;
 
         // Check if we have conditional syntax (=>) or match syntax ({)
@@ -261,7 +326,7 @@ impl Parse for Either {
             };
 
             Ok(Either::Conditional {
-                condition: expr,
+                condition: ConditionType::Regular(expr),
                 true_value,
                 false_value,
             })
@@ -292,21 +357,42 @@ impl Either {
                 false_value,
             } => {
                 let true_tokens = true_value.to_tokens();
-                let false_tokens = false_value
-                    .as_ref()
-                    .map(|v| v.to_tokens())
-                    .map(|v| quote! { else { #v }});
+                let false_tokens = false_value.as_ref().map(|v| v.to_tokens());
 
-                if false_tokens.is_none() {
-                    quote! {
-                        (#condition).then(|| #true_tokens)
-                    }
-                } else {
-                    quote! {
-                        if #condition {
-                            #true_tokens
+                match condition {
+                    ConditionType::Regular(cond_expr) => {
+                        if let Some(false_tokens) = false_tokens {
+                            quote! {
+                                if #cond_expr {
+                                    #true_tokens
+                                } else {
+                                    #false_tokens
+                                }
+                            }
+                        } else {
+                            quote! {
+                                (#cond_expr).then(|| #true_tokens)
+                            }
                         }
-                        #false_tokens
+                    }
+                    ConditionType::LetPattern(expr) => {
+                        if let Some(false_tokens) = false_tokens {
+                            quote! {
+                                if #expr {
+                                    #true_tokens
+                                } else {
+                                    #false_tokens
+                                }
+                            }
+                        } else {
+                            quote! {
+                                if #expr {
+                                    Some(#true_tokens)
+                                } else {
+                                    None
+                                }
+                            }
+                        }
                     }
                 }
             }

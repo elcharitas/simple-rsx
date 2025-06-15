@@ -1,5 +1,3 @@
-#![allow(unused_braces)]
-
 use momenta::prelude::*;
 
 struct CounterProps {
