@@ -4,9 +4,11 @@ use alloc::{
     collections::{BTreeMap, BTreeSet},
     string::{String, ToString},
     sync::Arc,
+    vec::Vec,
 };
 use core::{
     any::Any,
+    cmp::Ordering,
     marker::PhantomData,
     ops::{AddAssign, DivAssign, MulAssign, Not, SubAssign},
 };
@@ -112,16 +114,10 @@ impl<T: SignalValue + 'static> SignalValue for Option<T> {
 //==============================================================================
 
 /// Reactive value that triggers re-renders when changed
-#[derive(Copy, Debug, PartialEq, Eq)]
+#[derive(Copy, Debug)]
 pub struct Signal<T> {
     id: (usize, usize),
     _marker: PhantomData<T>,
-}
-
-impl<T: SignalValue + PartialEq + 'static> PartialEq<T> for Signal<T> {
-    fn eq(&self, other: &T) -> bool {
-        self.with(|val| val == other).unwrap_or(false)
-    }
 }
 
 impl<T: SignalValue + Not<Output = bool> + Clone + 'static> Not for Signal<T> {
@@ -183,14 +179,110 @@ impl<T: SignalValue + PartialEq + Clone + core::ops::Div<Output = T> + 'static> 
     }
 }
 
+impl<T: SignalValue + PartialEq + 'static> PartialEq<T> for Signal<T> {
+    fn eq(&self, other: &T) -> bool {
+        self.with(|val| val == other).unwrap_or(false)
+    }
+}
+
+impl<T: SignalValue + PartialOrd + Clone + 'static> PartialOrd<T> for Signal<T> {
+    fn partial_cmp(&self, other: &T) -> Option<Ordering> {
+        self.with(|val| val.partial_cmp(other)).unwrap_or(None)
+    }
+}
+
+impl<T: SignalValue + PartialOrd + Clone + 'static> PartialOrd<Signal<T>> for Signal<T> {
+    fn partial_cmp(&self, other: &Signal<T>) -> Option<Ordering> {
+        other
+            .with(|other_val| {
+                self.with(|self_val| self_val.partial_cmp(other_val))
+                    .unwrap_or(None)
+            })
+            .unwrap_or(None)
+    }
+}
+
+// Signal-to-Signal equality
+impl<T: SignalValue + PartialEq + Clone + 'static> PartialEq<Signal<T>> for Signal<T> {
+    fn eq(&self, other: &Signal<T>) -> bool {
+        other
+            .with(|other_val| self.with(|self_val| self_val == other_val).unwrap_or(false))
+            .unwrap_or(false)
+    }
+}
+
+// Boolean convenience methods
+impl Signal<bool> {
+    /// Toggle the boolean value
+    pub fn toggle(&self) {
+        self.set(!self.get());
+    }
+
+    /// Set to true
+    pub fn turn_on(&self) {
+        self.set(true);
+    }
+
+    /// Set to false
+    pub fn turn_off(&self) {
+        self.set(false);
+    }
+}
+
+// Vector convenience methods
+impl<T: SignalValue + PartialEq + Clone + 'static> Signal<Vec<T>> {
+    /// Push an item to the vector
+    pub fn push(&self, item: T) {
+        let mut vec = self.get();
+        vec.push(item);
+        self.set(vec);
+    }
+
+    /// Pop an item from the vector
+    pub fn pop(&self) -> Option<T> {
+        let mut vec = self.get();
+        let result = vec.pop();
+        self.set(vec);
+        result
+    }
+
+    /// Get the length of the vector
+    pub fn len(&self) -> usize {
+        self.with(|v| v.len()).unwrap_or(0)
+    }
+
+    /// Check if the vector is empty
+    pub fn is_empty(&self) -> bool {
+        self.with(|v| v.is_empty()).unwrap_or(true)
+    }
+
+    /// Clear the vector
+    pub fn clear(&self) {
+        self.set(Vec::new());
+    }
+}
+
 // impl iter for Signal where T is a vec
-impl<T: SignalValue + PartialEq + Clone + 'static, R: SignalValue> Iterator for Signal<T>
-where
-    T: IntoIterator<Item = R>,
-{
-    type Item = R;
-    fn next(&mut self) -> Option<Self::Item> {
-        self.get().into_iter().next()
+impl<T: SignalValue + Clone + 'static> Signal<Vec<T>> {
+    /// Get an iterator over the vector contents (creates a snapshot)
+    pub fn iter(&self) -> impl Iterator<Item = T> {
+        self.get().into_iter()
+    }
+
+    /// Apply a function to each element and collect results
+    pub fn map<R, F>(&self, f: F) -> Vec<R>
+    where
+        F: FnMut(T) -> R,
+    {
+        self.iter().map(f).collect()
+    }
+
+    /// Filter elements and return a new vector
+    pub fn filter<F>(&self, f: F) -> Vec<T>
+    where
+        F: FnMut(&T) -> bool,
+    {
+        self.iter().filter(f).collect()
     }
 }
 

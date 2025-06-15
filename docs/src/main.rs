@@ -6,7 +6,7 @@ use momenta::prelude::*;
 
 static GITHUB_LINK: &str = "https://github.com/elcharitas/momenta";
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, SignalValue)]
 pub enum Page {
     Home,
 
@@ -36,12 +36,6 @@ pub enum Page {
     TodoMVC,
     HackerNews,
     RealWorld,
-}
-
-impl SignalValue for Page {
-    fn as_any(&self) -> Option<&dyn core::any::Any> {
-        Some(self)
-    }
 }
 
 // Component Props

@@ -176,5 +176,5 @@ pub mod prelude {
     pub use crate::dom::render_root;
     pub use crate::nodes::{Component, Node};
     pub use crate::signals::{Signal, SignalValue, create_effect, create_signal};
-    pub use momenta_macros::{component, rsx, when};
+    pub use momenta_macros::{SignalValue, component, rsx, when};
 }

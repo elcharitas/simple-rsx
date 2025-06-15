@@ -420,7 +420,6 @@ impl Either {
 ///     rsx!(<div>Hello World</div>)
 /// }
 /// ```
-
 #[proc_macro_attribute]
 pub fn component(_attr: TokenStream, input: TokenStream) -> TokenStream {
     let ItemFn {
@@ -483,6 +482,23 @@ pub fn component(_attr: TokenStream, input: TokenStream) -> TokenStream {
         }
     };
 
+    expanded.into()
+}
+
+#[proc_macro_derive(SignalValue)]
+pub fn derive_signal_value(input: TokenStream) -> TokenStream {
+    let syn::DeriveInput {
+        ident, generics, ..
+    } = syn::parse_macro_input!(input as syn::DeriveInput);
+    let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
+
+    let expanded = quote! {
+        impl #impl_generics ::momenta::signals::SignalValue for #ident #ty_generics #where_clause {
+            fn as_any(&self) -> Option<&dyn core::any::Any> {
+                Some(self)
+            }
+        }
+    };
     expanded.into()
 }
 
