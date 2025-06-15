@@ -471,31 +471,26 @@ impl Parse for NodeValue {
 
             // Check for `{..ident}` pattern
             if content.peek(Token![..]) {
-                content.parse::<Token![..]>()?;
-                let ident: Ident = content.parse()?;
+                let dotdot = content.parse::<Token![..]>()?;
+                let ident: Expr = content.parse()?;
                 // Create token stream for `..ident` manually
-                let mut tokens = proc_macro2::TokenStream::new();
-                tokens.extend(std::iter::once(proc_macro2::TokenTree::Punct(
-                    proc_macro2::Punct::new('.', proc_macro2::Spacing::Joint),
-                )));
-                tokens.extend(std::iter::once(proc_macro2::TokenTree::Punct(
-                    proc_macro2::Punct::new('.', proc_macro2::Spacing::Alone),
-                )));
+                let mut tokens = dotdot.to_token_stream();
                 tokens.extend(ident.to_token_stream());
 
                 return Ok(NodeValue {
                     span: full_span,
-                    name: Some(ident),
+                    name: None,
                     expr: Some(syn::Expr::Verbatim(tokens)),
                 });
             }
 
             // Handle `{expression}` pattern
             let parsed: Ident = content.parse()?;
+            let tokens = quote! {#parsed,};
             return Ok(NodeValue {
-                span: full_span,
-                expr: Some(syn::Expr::Verbatim(parsed.to_token_stream())),
-                name: Some(parsed),
+                span: parsed.span(),
+                expr: Some(syn::Expr::Verbatim(tokens)),
+                name: None,
             });
         }
 
@@ -814,6 +809,9 @@ impl RsxNode {
                                 .unwrap_or(false))
                     }) // filter out data- attributes for elements
                     .map(|(name, value, span)| {
+                        if name.is_none() {
+                            return quote_spanned! {span=> #value };
+                        }
                         quote_spanned! {span=> #name: {#value}.into(), }
                     });
 
