@@ -57,12 +57,17 @@ impl WasmRender for crate::nodes::Element {
 
         if let Some(element) = element {
             let _ = mount.append_child(&element);
-            for child in self.children() {
-                child.render(&element);
+            let dangerous_inner_html = self.html();
+            if !dangerous_inner_html.is_empty() {
+                element.set_inner_html(&dangerous_inner_html);
             }
             // add attributes
             for (name, value) in self.attributes() {
                 let _ = element.set_attribute(name, value);
+            }
+            // render childnode
+            for child in self.children() {
+                child.render(&element);
             }
             // attach events
             for (event_type, callback) in self.events() {
@@ -338,6 +343,11 @@ macro_rules! derive_elements {
                     /// This contains all nested elements, text nodes, and components
                     /// that should be rendered inside this element.
                     pub children: Vec<Node>,
+
+                    /// Sets the innerHTML of this element without sanitization
+                    ///
+                    /// Ensure the value is safe.
+                    pub _dangerously_set_inner_html: String,
 
                     /// The `style` attribute specifies inline CSS styling for the element.
                     ///
@@ -1139,6 +1149,7 @@ macro_rules! derive_elements {
                             stringify!($tag),
                             props.to_attributes(),
                             props.get_events(),
+                            &props._dangerously_set_inner_html,
                             props.children.clone(),
                         )
                     }

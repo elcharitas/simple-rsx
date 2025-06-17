@@ -251,6 +251,7 @@ pub struct Element {
     pub(crate) key: String,
     tag: Cow<'static, str>,
     attributes: BTreeMap<String, String>,
+    inner_html: String,
     children: Vec<Node>,
     #[cfg(feature = "wasm")]
     events: BTreeMap<String, EventCallback>,
@@ -266,6 +267,7 @@ impl Element {
         attributes: BTreeMap<String, String>,
         #[cfg(feature = "wasm")] events: BTreeMap<String, EventCallback>,
         #[cfg(not(feature = "wasm"))] events: BTreeMap<String, String>,
+        inner_html: &str,
         children: Vec<Node>,
     ) -> Node {
         Node::Element(Element {
@@ -274,6 +276,7 @@ impl Element {
             attributes,
             events,
             children,
+            inner_html: inner_html.to_string(),
         })
     }
 
@@ -291,6 +294,10 @@ impl Element {
 
     pub fn children(&self) -> &Vec<Node> {
         &self.children
+    }
+
+    pub(crate) fn html(&self) -> &String {
+        &self.inner_html
     }
 
     #[cfg(not(feature = "wasm"))]

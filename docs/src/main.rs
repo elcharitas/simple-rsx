@@ -162,7 +162,7 @@ fn Header(props: &HeaderProps) -> Node {
     };
 
     rsx! {
-        <header class="sticky top-0 z-40 w-full border-b border-gray-200 dark:border-gray-800 bg-white/95 dark:bg-gray-950/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 dark:supports-[backdrop-filter]:bg-gray-950/60">
+        <header class={"sticky top-0 z-40 w-full border-b border-gray-200 dark:border-gray-800 bg-white/95 dark:bg-gray-950/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 dark:supports-[backdrop-filter]:bg-gray-950/60"}>
             <div class="flex h-14 items-center px-4 sm:px-6 lg:px-8">
                 <button
                     class="lg:hidden p-2 -ml-2"
