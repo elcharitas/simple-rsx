@@ -566,8 +566,12 @@ impl Display for Node {
                     write!(f, " {}=\"{}\"", key, value)?;
                 }
                 write!(f, ">")?;
-                for child in &el.children {
-                    write!(f, "{}", child)?;
+                if el.children.is_empty() && !el.html().is_empty() {
+                    write!(f, "{}", el.html())?;
+                } else {
+                    for child in &el.children {
+                        write!(f, "{}", child)?;
+                    }
                 }
                 write!(f, "</{}>", el.tag)?;
                 Ok(())
