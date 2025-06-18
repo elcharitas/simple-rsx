@@ -614,9 +614,6 @@ fn sanitize_html(input: &str) -> String {
             '"' => {
                 result.push_str("&quot;");
             }
-            '\'' => {
-                result.push_str("&#39;");
-            }
             '/' => {
                 result.push_str("&#x2F;");
             }
