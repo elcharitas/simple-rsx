@@ -894,16 +894,18 @@ impl RsxNode {
                         })
                         .map(|(name, value, span)| {
                             quote_spanned! {span=>
-                                use ::momenta::nodes::Attribute;
-                                let #name = #value;
-                                #ident.push((stringify!(#name).to_string(), #name.value()));
+                                {
+                                    let #name = #value;
+                                    #ident.push((stringify!(#name).to_string(), #name.value()));
+                                }
                             }
                         });
                     quote_spanned! { *open_span=>
                         r#data: {
-                            extern crate alloc;
                             let mut #ident = vec![];
                             {
+                                #[allow(unused)]
+                                use ::momenta::nodes::Attribute;
                                 #(#data)*
                             }
                             #ident
