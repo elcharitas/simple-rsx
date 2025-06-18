@@ -590,7 +590,7 @@ macro_rules! derive_elements {
                     /// All keys will be prefixed with "data-" when rendered to HTML.
                     ///
                     /// **MDN Reference**: [data-* attributes](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/data-*)
-                    pub r#data: BTreeMap<String, String>,
+                    pub r#data: Vec<(String, String)>,
 
                     // ============================================================================
                     // ARIA ACCESSIBILITY ATTRIBUTES

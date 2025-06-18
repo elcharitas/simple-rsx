@@ -894,13 +894,15 @@ impl RsxNode {
                         })
                         .map(|(name, value, span)| {
                             quote_spanned! {span=>
+                                use ::momenta::nodes::Attribute;
                                 let #name = #value;
-                                #ident.insert(stringify!(#name).to_string(), #name);
+                                #ident.push((stringify!(#name).to_string(), #name.value()));
                             }
                         });
                     quote_spanned! { *open_span=>
                         r#data: {
-                            let mut #ident = ::alloc::collections::BTreeMap::new();
+                            extern crate alloc;
+                            let mut #ident = vec![];
                             {
                                 #(#data)*
                             }
