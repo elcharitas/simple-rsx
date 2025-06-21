@@ -944,7 +944,7 @@ impl RsxNode {
                         .zip(*close_span)
                         .map(|(close_tag, close_span)| {
                             let close = if is_element {
-                                quote_spanned! { close_span=> ::momenta::dom::elements::#close_tag }
+                                quote_spanned! { close_span=> momenta::dom::elements::#close_tag }
                             } else {
                                 quote_spanned! { close_span=> #close_tag }
                             };
@@ -961,7 +961,7 @@ impl RsxNode {
                 let component = if !is_element {
                     quote_spanned! { *open_span=> #name }
                 } else {
-                    quote_spanned! { *open_span=> ::momenta::dom::elements::#name }
+                    quote_spanned! { *open_span=> momenta::dom::elements::#name }
                 };
 
                 quote_spanned! { *open_span=>
