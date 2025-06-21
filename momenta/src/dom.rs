@@ -997,11 +997,11 @@ macro_rules! derive_elements {
                 }
 
                 impl [<HTML $tag:camel Element Props>] {
-                    fn to_attributes(&self) -> ::alloc::collections::BTreeMap<String, String> {
+                    fn to_attributes(&self) -> alloc::collections::BTreeMap<String, String> {
                         #[allow(unused_imports)]
                         use $crate::nodes::{Attribute, OptionAttribute};
                         #[allow(unused_mut)]
-                        let mut attributes = ::alloc::collections::BTreeMap::new();
+                        let mut attributes = alloc::collections::BTreeMap::new();
                         $(
                             if !self.$attr_name.value().is_empty() {
                                 let mut key = stringify!($attr_name);
@@ -1100,8 +1100,8 @@ macro_rules! derive_elements {
                         attributes
                     }
                     #[cfg(feature = "wasm")]
-                    fn get_events(&self) -> ::alloc::collections::BTreeMap<String, $crate::nodes::EventCallback> {
-                        let mut events = ::alloc::collections::BTreeMap::new();
+                    fn get_events(&self) -> alloc::collections::BTreeMap<String, $crate::nodes::EventCallback> {
+                        let mut events = alloc::collections::BTreeMap::new();
                         if self.on_click.has_callback() {
                             events.insert("click".to_string(), self.on_click.clone());
                         }
@@ -1138,8 +1138,8 @@ macro_rules! derive_elements {
                         events
                     }
                     #[cfg(not(feature = "wasm"))]
-                    fn get_events(&self) -> ::alloc::collections::BTreeMap<String, String> {
-                        ::alloc::collections::BTreeMap::new()
+                    fn get_events(&self) -> alloc::collections::BTreeMap<String, String> {
+                        alloc::collections::BTreeMap::new()
                     }
                 }
 
