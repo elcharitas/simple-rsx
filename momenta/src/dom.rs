@@ -343,7 +343,7 @@ macro_rules! derive_elements {
                     ///
                     /// This contains all nested elements, text nodes, and components
                     /// that should be rendered inside this element.
-                    pub children: Vec<Node>,
+                    pub children: Vec<$crate::nodes::Node>,
 
                     /// Sets the innerHTML of this element without sanitization
                     ///
@@ -761,7 +761,7 @@ macro_rules! derive_elements {
                     /// }}
                     /// ```
                     #[cfg(feature = "wasm")]
-                    pub on_click: EventCallback,
+                    pub on_click: $crate::nodes::EventCallback,
 
                     /// Key down event handler.
                     ///
@@ -774,7 +774,7 @@ macro_rules! derive_elements {
                     /// }}
                     /// ```
                     #[cfg(feature = "wasm")]
-                    pub on_keydown: EventCallback,
+                    pub on_keydown: $crate::nodes::EventCallback,
 
                     /// Key up event handler.
                     ///
@@ -787,13 +787,13 @@ macro_rules! derive_elements {
                     /// }}
                     /// ```
                     #[cfg(feature = "wasm")]
-                    pub on_keyup: EventCallback,
+                    pub on_keyup: $crate::nodes::EventCallback,
 
                     /// Key press event handler (deprecated).
                     ///
                     /// Note: This event is deprecated. Use `on_keydown` instead.
                     #[cfg(feature = "wasm")]
-                    pub on_keypress: EventCallback,
+                    pub on_keypress: $crate::nodes::EventCallback,
 
                     /// Focus event handler.
                     ///
@@ -806,7 +806,7 @@ macro_rules! derive_elements {
                     /// }}
                     /// ```
                     #[cfg(feature = "wasm")]
-                    pub on_focus: EventCallback,
+                    pub on_focus: $crate::nodes::EventCallback,
 
                     /// Blur event handler.
                     ///
@@ -819,7 +819,7 @@ macro_rules! derive_elements {
                     /// }}
                     /// ```
                     #[cfg(feature = "wasm")]
-                    pub on_blur: EventCallback,
+                    pub on_blur: $crate::nodes::EventCallback,
 
                     /// Change event handler.
                     ///
@@ -832,7 +832,7 @@ macro_rules! derive_elements {
                     /// }}
                     /// ```
                     #[cfg(feature = "wasm")]
-                    pub on_change: EventCallback,
+                    pub on_change: $crate::nodes::EventCallback,
 
                     /// Input event handler.
                     ///
@@ -845,7 +845,7 @@ macro_rules! derive_elements {
                     /// }}
                     /// ```
                     #[cfg(feature = "wasm")]
-                    pub on_input: EventCallback,
+                    pub on_input: $crate::nodes::EventCallback,
 
                     /// Form submit event handler.
                     ///
@@ -858,133 +858,133 @@ macro_rules! derive_elements {
                     /// }}
                     /// ```
                     #[cfg(feature = "wasm")]
-                    pub on_submit: EventCallback,
+                    pub on_submit: $crate::nodes::EventCallback,
 
                     /// Form reset event handler.
                     ///
                     /// Fired when a form is reset.
                     #[cfg(feature = "wasm")]
-                    pub on_reset: EventCallback,
+                    pub on_reset: $crate::nodes::EventCallback,
 
                     /// Mouse over event handler.
                     ///
                     /// Fired when the mouse pointer moves over the element.
                     #[cfg(feature = "wasm")]
-                    pub on_mouseover: EventCallback,
+                    pub on_mouseover: $crate::nodes::EventCallback,
 
                     /// Mouse out event handler.
                     ///
                     /// Fired when the mouse pointer moves out of the element.
                     #[cfg(feature = "wasm")]
-                    pub on_mouseout: EventCallback,
+                    pub on_mouseout: $crate::nodes::EventCallback,
 
                     /// Mouse down event handler.
                     ///
                     /// Fired when a mouse button is pressed down over the element.
                     #[cfg(feature = "wasm")]
-                    pub on_mousedown: EventCallback,
+                    pub on_mousedown: $crate::nodes::EventCallback,
 
                     /// Mouse up event handler.
                     ///
                     /// Fired when a mouse button is released over the element.
                     #[cfg(feature = "wasm")]
-                    pub on_mouseup: EventCallback,
+                    pub on_mouseup: $crate::nodes::EventCallback,
 
                     /// Mouse move event handler.
                     ///
                     /// Fired when the mouse pointer moves over the element.
                     #[cfg(feature = "wasm")]
-                    pub on_mousemove: EventCallback,
+                    pub on_mousemove: $crate::nodes::EventCallback,
 
                     /// Mouse enter event handler.
                     ///
                     /// Fired when the mouse pointer enters the element (doesn't bubble).
                     #[cfg(feature = "wasm")]
-                    pub on_mouseenter: EventCallback,
+                    pub on_mouseenter: $crate::nodes::EventCallback,
 
                     /// Mouse leave event handler.
                     ///
                     /// Fired when the mouse pointer leaves the element (doesn't bubble).
                     #[cfg(feature = "wasm")]
-                    pub on_mouseleave: EventCallback,
+                    pub on_mouseleave: $crate::nodes::EventCallback,
 
                     /// Mouse wheel event handler.
                     ///
                     /// Fired when the mouse wheel is scrolled over the element.
                     #[cfg(feature = "wasm")]
-                    pub on_mousewheel: EventCallback,
+                    pub on_mousewheel: $crate::nodes::EventCallback,
 
                     /// Scroll event handler.
                     ///
                     /// Fired when the element's scrollbar is being scrolled.
                     #[cfg(feature = "wasm")]
-                    pub on_scroll: EventCallback,
+                    pub on_scroll: $crate::nodes::EventCallback,
 
                     /// Load event handler.
                     ///
                     /// Fired when the element has finished loading.
                     #[cfg(feature = "wasm")]
-                    pub on_load: EventCallback,
+                    pub on_load: $crate::nodes::EventCallback,
 
                     /// Unload event handler.
                     ///
                     /// Fired when the element is being unloaded.
                     #[cfg(feature = "wasm")]
-                    pub on_unload: EventCallback,
+                    pub on_unload: $crate::nodes::EventCallback,
 
                     /// Abort event handler.
                     ///
                     /// Fired when the loading of an element is aborted.
                     #[cfg(feature = "wasm")]
-                    pub on_abort: EventCallback,
+                    pub on_abort: $crate::nodes::EventCallback,
 
                     /// Error event handler.
                     ///
                     /// Fired when an error occurs while loading an element.
                     #[cfg(feature = "wasm")]
-                    pub on_error: EventCallback,
+                    pub on_error: $crate::nodes::EventCallback,
 
                     /// Resize event handler.
                     ///
                     /// Fired when the element is resized.
                     #[cfg(feature = "wasm")]
-                    pub on_resize: EventCallback,
+                    pub on_resize: $crate::nodes::EventCallback,
 
                     /// Cut event handler.
                     ///
                     /// Fired when the user cuts content from the element.
                     #[cfg(feature = "wasm")]
-                    pub on_cut: EventCallback,
+                    pub on_cut: $crate::nodes::EventCallback,
 
                     /// Copy event handler.
                     ///
                     /// Fired when the user copies content from the element.
                     #[cfg(feature = "wasm")]
-                    pub on_copy: EventCallback,
+                    pub on_copy: $crate::nodes::EventCallback,
 
                     /// Paste event handler.
                     ///
                     /// Fired when the user pastes content into the element.
                     #[cfg(feature = "wasm")]
-                    pub on_paste: EventCallback,
+                    pub on_paste: $crate::nodes::EventCallback,
 
                     /// Context menu event handler.
                     ///
                     /// Fired when the user right-clicks on the element.
                     #[cfg(feature = "wasm")]
-                    pub on_contextmenu: EventCallback,
+                    pub on_contextmenu: $crate::nodes::EventCallback,
 
                     /// Double click event handler.
                     ///
                     /// Fired when the user double-clicks on the element.
                     #[cfg(feature = "wasm")]
-                    pub on_dblclick: EventCallback,
+                    pub on_dblclick: $crate::nodes::EventCallback,
 
                     /// Drop event handler.
                     ///
                     /// Fired when a dragged element is dropped on this element.
                     #[cfg(feature = "wasm")]
-                    pub on_drop: EventCallback,
+                    pub on_drop: $crate::nodes::EventCallback,
 
                     // ============================================================================
                     // ELEMENT-SPECIFIC ATTRIBUTES
@@ -997,9 +997,11 @@ macro_rules! derive_elements {
                 }
 
                 impl [<HTML $tag:camel Element Props>] {
-                    fn to_attributes(&self) -> BTreeMap<String, String> {
+                    fn to_attributes(&self) -> ::alloc::collections::BTreeMap<String, String> {
+                        #[allow(unused_imports)]
+                        use $crate::nodes::{Attribute, OptionAttribute};
                         #[allow(unused_mut)]
-                        let mut attributes = BTreeMap::new();
+                        let mut attributes = ::alloc::collections::BTreeMap::new();
                         $(
                             if !self.$attr_name.value().is_empty() {
                                 let mut key = stringify!($attr_name);
@@ -1098,8 +1100,8 @@ macro_rules! derive_elements {
                         attributes
                     }
                     #[cfg(feature = "wasm")]
-                    fn get_events(&self) -> BTreeMap<String, EventCallback> {
-                        let mut events = BTreeMap::new();
+                    fn get_events(&self) -> ::alloc::collections::BTreeMap<String, $crate::nodes::EventCallback> {
+                        let mut events = ::alloc::collections::BTreeMap::new();
                         if self.on_click.has_callback() {
                             events.insert("click".to_string(), self.on_click.clone());
                         }
@@ -1136,16 +1138,16 @@ macro_rules! derive_elements {
                         events
                     }
                     #[cfg(not(feature = "wasm"))]
-                    fn get_events(&self) -> BTreeMap<String, String> {
-                        BTreeMap::new()
+                    fn get_events(&self) -> ::alloc::collections::BTreeMap<String, String> {
+                        ::alloc::collections::BTreeMap::new()
                     }
                 }
 
-                impl Component for $tag {
+                impl $crate::nodes::Component for $tag {
                     type Props = [<HTML $tag:camel Element Props>];
 
-                    fn render(props: &Self::Props) -> Node {
-                        Element::parse_tag_with_attributes(
+                    fn render(props: &Self::Props) -> $crate::nodes::Node {
+                        $crate::nodes::Element::parse_tag_with_attributes(
                             &props.key,
                             stringify!($tag),
                             props.to_attributes(),
@@ -1161,9 +1163,7 @@ macro_rules! derive_elements {
 }
 
 pub mod elements {
-    use crate::nodes::*;
     use alloc::{
-        collections::BTreeMap,
         format,
         string::{String, ToString},
         vec::Vec,
