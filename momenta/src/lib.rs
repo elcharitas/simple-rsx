@@ -171,6 +171,8 @@ pub mod dom;
 pub mod nodes;
 pub mod signals;
 
+pub use paste::paste;
+
 pub mod prelude {
     #[cfg(feature = "wasm")]
     pub use crate::dom::render_root;

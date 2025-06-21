@@ -282,7 +282,7 @@ macro_rules! derive_elements {
             $(#[$tag_meta])*
             pub struct $tag;
 
-            paste::paste! {
+            $crate::paste! {
                 #[derive(Default)]
                 /// HTML Element Properties with comprehensive attributes and event handlers.
                 ///
