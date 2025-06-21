@@ -901,7 +901,7 @@ impl RsxNode {
                             }
                         });
                     quote_spanned! { *open_span=>
-                        r#data: {
+                        data_: {
                             let mut #ident = vec![];
                             {
                                 #[allow(unused)]

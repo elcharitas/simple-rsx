@@ -264,6 +264,7 @@ where
     )
 }
 
+#[macro_export]
 macro_rules! derive_elements {
     (
         $(
@@ -590,7 +591,7 @@ macro_rules! derive_elements {
                     /// All keys will be prefixed with "data-" when rendered to HTML.
                     ///
                     /// **MDN Reference**: [data-* attributes](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/data-*)
-                    pub r#data: Vec<(String, String)>,
+                    pub data_: Vec<(String, String)>,
 
                     // ============================================================================
                     // ARIA ACCESSIBILITY ATTRIBUTES
@@ -1086,7 +1087,7 @@ macro_rules! derive_elements {
                             attributes.insert("aria-role".to_string(), self.aria_role.value());
                         }
                         // Add data-* attributes
-                        for (key, value) in &self.r#data {
+                        for (key, value) in &self.data_ {
                             if key.starts_with("data_") {
                                 attributes.insert(key.replace("_", "-"), value.clone());
                             } else {
@@ -1766,6 +1767,41 @@ pub mod elements {
             /// The sandbox attribute restricts iframe capabilities for security
             /// Example: sandbox="allow-scripts" (only allows scripts to run)
             sandbox: String,
+        }
+
+        /// HTML `<embed>` element - Embeds external content in the document
+        ///
+        /// Example:
+        ///
+        /// ```<embed src="https://example.com" type="image/svg+xml" />```
+        embed {
+            /// The src attribute specifies URL/path of the external content
+            /// Example: src="images/logo.svg"
+            src: String,
+            /// The type attribute specifies the MIME type of the embedded content
+            /// Example: type="image/svg+xml" (SVG image)
+            type_: String,
+        }
+
+
+        /// HTML `<object>` element - Embeds browser plugins
+        ///
+        /// Example:
+        ///
+        /// ```<object data="snippet.html" type="image/svg+xml" />```
+        object {
+            /// The data attribute specifies URL/path
+            /// Example: data="images/logo.svg"
+            data: String,
+            /// The type attribute specifies the MIME type of the embedded content
+            /// Example: type="image/svg+xml" (SVG image)
+            type_: String,
+            /// Should type match
+            typemustmatch: bool,
+            /// The form attribute specifies the form to use for submission
+            form: String,
+            /// Client side image map
+            usemap: String,
         }
 
         /// HTML `<video>` element - Embeds video content in the document
