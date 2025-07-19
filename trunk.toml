@@ -18,4 +18,4 @@ cors = true
 cargo = true
 
 [tools]
-wasm_opt = ["--enable-bulk-memory"]
+wasm_opt = "--enable-bulk-memory"
