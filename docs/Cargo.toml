@@ -9,6 +9,7 @@ momenta = { path = "../momenta", features = ["wasm"] }
 wasm-bindgen = { version = "0.2" }
 
 # Build script for wasm-opt
+[package.metadata.wasm-pack]
 [package.metadata.wasm-pack.profile.release]
 wasm-opt = [
     "-Oz",                      # Aggressive size optimization
@@ -19,3 +20,6 @@ wasm-opt = [
     "--strip-debug",            # Remove debug info
     "--strip-producers",        # Remove producers section
 ]
+
+[package.metadata.wasm-pack.profile.dev]
+wasm-opt = ["-O", "--enable-bulk-memory"]
