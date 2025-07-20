@@ -3,6 +3,7 @@ target = "./docs/index.html"
 public_url = "/"
 release = true
 manifest-path = "./docs/Cargo.toml"
+minify = "never"
 
 [watch]
 watch = ["./docs/src", "./docs/static"]
