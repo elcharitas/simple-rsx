@@ -1,16 +1,3 @@
 [workspace]
 members = ["momenta-macros", "momenta", "tests", "docs"]
 resolver = "3"
-
-[profile.release]
-# Maximum size optimization
-opt-level = "z"         # Optimize for size
-lto = true              # Link-time optimization
-codegen-units = 1       # Single codegen unit for better optimization
-panic = "abort"         # Remove panic handling code
-strip = true            # Strip debug symbols
-overflow-checks = false # Remove overflow checks in release
-
-# Additional size optimizations
-[profile.release.package."*"]
-opt-level = "z"
