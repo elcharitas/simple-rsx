@@ -11,15 +11,4 @@ wasm-bindgen = { version = "0.2" }
 # Build script for wasm-opt
 [package.metadata.wasm-pack]
 [package.metadata.wasm-pack.profile.release]
-wasm-opt = [
-    "-Oz",                      # Aggressive size optimization
-    "--enable-bulk-memory",     # Enable bulk memory operations
-    "--enable-sign-ext",        # Enable sign extension
-    "--enable-mutable-globals",
-    "--zero-filled-memory",     # Zero-filled memory optimization
-    "--strip-debug",            # Remove debug info
-    "--strip-producers",        # Remove producers section
-]
-
-[package.metadata.wasm-pack.profile.dev]
-wasm-opt = ["-O", "--enable-bulk-memory"]
+wasm-opt = false
