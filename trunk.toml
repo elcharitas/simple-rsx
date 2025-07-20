@@ -1,6 +1,6 @@
 [build]
 target = "./docs/index.html"
-public_url = "/"
+public_url = "./"
 release = true
 manifest-path = "./docs/Cargo.toml"
 
