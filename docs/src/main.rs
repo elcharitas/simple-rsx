@@ -795,10 +795,10 @@ fn ResourcesPage() -> Node {
                     highlight=""
                     code={r#"use momenta::prelude::*;
 
-async fn fetch_user_data() -> User {
+async fn fetch_user_data() -> Result<User, Error> {
     // Simulate API call
-    let response = api_client.get("/user/profile").await.unwrap();
-    response.json().await.unwrap()
+    let response = api_client.get("/user/profile").await?;
+    Ok(response.json().await?)
 }
 
 #[component]
@@ -809,11 +809,14 @@ fn UserProfile() -> Node {
     rsx! {
         <div>
             {match user.get() {
-                Some(user_data) => rsx! {
+                Some(Ok(user_data)) => rsx! {
                     <div>
                         <h1>{user_data.name}</h1>
                         <p>{user_data.email}</p>
                     </div>
+                },
+                Some(Err(error)) => rsx! {
+                    <div class="error">Error: {error.to_string()}</div>
                 },
                 None => rsx! {
                     <div class="loading">Loading...</div>
@@ -826,8 +829,8 @@ fn UserProfile() -> Node {
 
                 <Note variant="info">
                     <p>
-                        <strong>"Simple async handling:"</strong> " Resources automatically handle the loading state
-                        and provide None while data is being fetched, then Some(data) when complete."
+                        <strong>"Result support:"</strong> " Resources work with any type, including Result types for proper error handling.
+                        The resource stores whatever your async function returns - None while loading, Some(value) when complete."
                     </p>
                 </Note>
 
@@ -839,7 +842,7 @@ fn UserProfile() -> Node {
                     filename="src/main.rs"
                     highlight=""
                     code={r#"// Basic resource - just pass an async function
-let data = create_resource(|| async { fetch_data().await });
+let data = create_resource(async || { fetch_data().await });
 
 // Resource with closure capturing variables
 let user_id = create_signal(1);
@@ -862,26 +865,31 @@ let results = create_resource(move || async move {
                     language="rust"
                     filename="src/main.rs"
                     highlight=""
-                    code={r#"let resource = create_resource(|| async { fetch_data().await });
+                    code={r#"// Resource returning Result type
+let resource = create_resource(async || { fetch_data().await });
 
-// Check resource state
+// Handle all possible states
 match resource.get() {
     None => {
         // Still loading initial data
         rsx! { <div>"Loading..."</div> }
     },
-    Some(data) => {
+    Some(Ok(data)) => {
         // Data loaded successfully
         rsx! { <div>{data}</div> }
+    },
+    Some(Err(error)) => {
+        // Error occurred during fetch
+        rsx! { <div class="error">"Error: {error}"</div> }
     }
 }
 
-// Check resource status
+// Check detailed resource status
 match resource.status().get() {
     ResourceStatus::Idle => { /* Not started yet */ },
     ResourceStatus::Pending => { /* Waiting to start */ },
     ResourceStatus::Loading => { /* Currently fetching */ },
-    ResourceStatus::Resolved => { /* Data is available */ },
+    ResourceStatus::Resolved => { /* Data is available (success or error) */ },
 }"#}
                 />
 
@@ -890,7 +898,7 @@ match resource.status().get() {
                     language="rust"
                     filename="src/main.rs"
                     highlight=""
-                    code={r#"let data = create_resource(|| async { fetch_data().await });
+                    code={r#"let data = create_resource(async || { fetch_data().await });
 
 // Manually retry the resource
 data.retry();
@@ -902,7 +910,8 @@ rsx! {
             "Retry"
         </button>
         {match data.get() {
-            Some(value) => rsx! { <div>{value}</div> },
+            Some(Ok(value)) => rsx! { <div>{value}</div> },
+            Some(Err(error)) => rsx! { <div class="error">Error: {error}</div> },
             None => rsx! { <div>"Loading..."</div> }
         }}
     </div>
@@ -933,12 +942,12 @@ let change_user = move |new_id| {
                     language="rust"
                     filename="src/main.rs"
                     highlight=""
-                    code={r#"let data = create_resource(|| async { fetch_data().await });
+                    code={r#"let data = create_resource(async || { fetch_data().await });
 let processed_data = create_signal(None);
 
 // Process data when it becomes available
 create_effect(move || {
-    if let Some(raw_data) = data.get() {
+    if let Some(Ok(raw_data)) = data.get() {
         let processed = process_data(raw_data);
         processed_data.set(Some(processed));
     }
@@ -949,6 +958,7 @@ create_effect(move || {
                 <ul>
                     <li>"Use resources for any asynchronous data fetching"</li>
                     <li>"Handle both loading (None) and loaded (Some) states"</li>
+                    <li>"Return Result types from async functions for proper error handling"</li>
                     <li>"Use signals within resource closures to create reactive dependencies"</li>
                     <li>"Call retry() to manually re-fetch data when needed"</li>
                     <li>"Check resource.status() for detailed loading state information"</li>
