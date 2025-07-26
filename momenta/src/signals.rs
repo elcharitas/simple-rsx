@@ -707,8 +707,6 @@ where
 
             #[cfg(feature = "wasm")]
             let fetcher = fetcher.clone();
-            #[cfg(feature = "wasm")]
-            let value = value.clone();
 
             #[cfg(feature = "wasm")]
             wasm_bindgen_futures::spawn_local(async move {

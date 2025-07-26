@@ -785,7 +785,7 @@ fn ResourcesPage() -> Node {
                 <h2 class="font-bold uppercase">Introduction</h2>
                 <p>
                     "Resources are reactive primitives for handling asynchronous operations like API calls.
-                    They automatically track loading states, handle errors, and update when their dependencies change."
+                    They automatically track loading states and provide a simple way to work with async data."
                 </p>
 
                 <h2 class="font-bold uppercase">Basic Example</h2>
@@ -795,26 +795,24 @@ fn ResourcesPage() -> Node {
                     highlight=""
                     code={r#"use momenta::prelude::*;
 
-async fn fetch_user(id: u32) -> Result<User, Error> {
+async fn fetch_user_data() -> Result<User, Error> {
     // Simulate API call
-    let response = api_client.get(&format!("/users/{}", id)).await?;
+    let response = api_client.get("/user/profile").await?;
     Ok(response.json().await?)
 }
 
 #[component]
 fn UserProfile() -> Node {
-    let user_id = create_signal(1);
-    
-    // Create a resource that depends on user_id
-    let user = create_resource(move || user_id.get(), fetch_user);
+    // Create a resource that fetches user data
+    let user = create_resource(fetch_user_data);
     
     rsx! {
         <div>
             {match user.get() {
-                Some(Ok(user)) => rsx! {
+                Some(Ok(user_data)) => rsx! {
                     <div>
-                        <h1>{user.name}</h1>
-                        <p>{user.email}</p>
+                        <h1>{user_data.name}</h1>
+                        <p>{user_data.email}</p>
                     </div>
                 },
                 Some(Err(error)) => rsx! {
@@ -831,8 +829,8 @@ fn UserProfile() -> Node {
 
                 <Note variant="info">
                     <p>
-                        <strong>"Automatic refetching:"</strong> " When user_id changes, the resource automatically
-                        refetches the data with the new ID."
+                        <strong>"Result support:"</strong> " Resources work with any type, including Result types for proper error handling.
+                        The resource stores whatever your async function returns - None while loading, Some(value) when complete."
                     </p>
                 </Note>
 
@@ -843,20 +841,23 @@ fn UserProfile() -> Node {
                     language="rust"
                     filename="src/main.rs"
                     highlight=""
-                    code={r#"// Basic resource
-let data = create_resource(|| (), |_| async { fetch_data().await });
+                    code={r#"// Basic resource - just pass an async function
+let data = create_resource(async || { fetch_data().await });
 
-// Resource with dependency
+// Resource with closure capturing variables
 let user_id = create_signal(1);
-let user = create_resource(move || user_id.get(), |id| fetch_user(id));
+let user = create_resource(move || async move {
+    fetch_user(user_id.get()).await
+});
 
-// Resource with multiple dependencies
+// Resource that depends on multiple signals
 let search_query = create_signal("".to_string());
 let page = create_signal(1);
-let results = create_resource(
-    move || (search_query.get(), page.get()),
-    |(query, page)| search_posts(query, page)
-);"#}
+let results = create_resource(move || async move {
+    let query = search_query.get();
+    let current_page = page.get();
+    search_posts(query, current_page).await
+});"#}
                 />
 
                 <h3>Resource States</h3>
@@ -864,9 +865,10 @@ let results = create_resource(
                     language="rust"
                     filename="src/main.rs"
                     highlight=""
-                    code={r#"let resource = create_resource(|| (), |_| fetch_data());
+                    code={r#"// Resource returning Result type
+let resource = create_resource(async || { fetch_data().await });
 
-// Check resource state
+// Handle all possible states
 match resource.get() {
     None => {
         // Still loading initial data
@@ -877,97 +879,90 @@ match resource.get() {
         rsx! { <div>{data}</div> }
     },
     Some(Err(error)) => {
-        // Error occurred
-        rsx! { <div>"Error: {error}"</div> }
+        // Error occurred during fetch
+        rsx! { <div class="error">"Error: {error}"</div> }
     }
 }
 
-// Check if resource is loading
-if resource.loading() {
-    // Show loading spinner
+// Check detailed resource status
+match resource.status().get() {
+    ResourceStatus::Idle => { /* Not started yet */ },
+    ResourceStatus::Pending => { /* Waiting to start */ },
+    ResourceStatus::Loading => { /* Currently fetching */ },
+    ResourceStatus::Resolved => { /* Data is available (success or error) */ },
 }"#}
                 />
 
-                <h3>Refetching Resources</h3>
+                <h3>Retrying Resources</h3>
                 <CodeBlock
                     language="rust"
                     filename="src/main.rs"
                     highlight=""
-                    code={r#"let data = create_resource(|| (), |_| fetch_data());
+                    code={r#"let data = create_resource(async || { fetch_data().await });
 
-// Manually refetch
-data.refetch();
+// Manually retry the resource
+data.retry();
 
-// Refetch when a button is clicked
+// Retry when a button is clicked
 rsx! {
     <div>
-        <button on:click={move |_| data.refetch()}>
-            "Refresh"
+        <button on:click={move |_| data.retry()}>
+            "Retry"
         </button>
-        {/* Display data */}
+        {match data.get() {
+            Some(Ok(value)) => rsx! { <div>{value}</div> },
+            Some(Err(error)) => rsx! { <div class="error">Error: {error}</div> },
+            None => rsx! { <div>"Loading..."</div> }
+        }}
     </div>
 }"#}
                 />
 
                 <h2 class="font-bold uppercase">Advanced Patterns</h2>
 
-                <h3>Optimistic Updates</h3>
+                <h3>Reactive Dependencies</h3>
                 <CodeBlock
                     language="rust"
                     filename="src/main.rs"
                     highlight=""
-                    code={r#"let todos = create_resource(|| (), |_| fetch_todos());
+                    code={r#"// Resources automatically re-run when signals they depend on change
+let user_id = create_signal(1);
+let user_data = create_resource(move || async move {
+    fetch_user(user_id.get()).await
+});
 
-let add_todo = move |text: String| {
-    // Optimistically add to local state
-    let mut current_todos = todos.get().unwrap_or_default();
-    current_todos.push(Todo { id: 0, text, completed: false });
-    todos.set_value(Ok(current_todos));
-    
-    // Then sync with server
-    spawn_local(async move {
-        match create_todo_on:server(text).await {
-            Ok(_) => todos.refetch(),
-            Err(_) => {
-                // Revert optimistic update
-                todos.refetch();
-            }
-        }
-    });
+// When user_id changes, the resource will automatically retry
+let change_user = move |new_id| {
+    user_id.set(new_id); // This triggers the resource to re-fetch
 };"#}
                 />
 
-                <h3>Infinite Loading</h3>
+                <h3>Combining with Effects</h3>
                 <CodeBlock
                     language="rust"
                     filename="src/main.rs"
                     highlight=""
-                    code={r#"let page = create_signal(1);
-let posts = create_signal(vec![]);
+                    code={r#"let data = create_resource(async || { fetch_data().await });
+let processed_data = create_signal(None);
 
-let load_more = create_resource(
-    move || page.get(),
-    |page_num| async move { fetch_posts(page_num).await }
-);
-
+// Process data when it becomes available
 create_effect(move || {
-    if let Some(Ok(new_posts)) = load_more.get() {
-        posts.extend(new_posts);
+    if let Some(Ok(raw_data)) = data.get() {
+        let processed = process_data(raw_data);
+        processed_data.set(Some(processed));
     }
-});
-
-let load_next_page = move |_| {
-    page += 1;
-};"#}
+});"#}
                 />
 
                 <h2 class="font-bold uppercase">Best Practices</h2>
                 <ul>
                     <li>"Use resources for any asynchronous data fetching"</li>
-                    <li>"Handle all three states: loading, success, and error"</li>
-                    <li>"Consider caching strategies for frequently accessed data"</li>
-                    <li>"Use optimistic updates for better UX in write operations"</li>
-                    <li>"Debounce search queries to avoid excessive API calls"</li>
+                    <li>"Handle both loading (None) and loaded (Some) states"</li>
+                    <li>"Return Result types from async functions for proper error handling"</li>
+                    <li>"Use signals within resource closures to create reactive dependencies"</li>
+                    <li>"Call retry() to manually re-fetch data when needed"</li>
+                    <li>"Check resource.status() for detailed loading state information"</li>
+                    <li>"Keep async functions simple and focused"</li>
                 </ul>
             </section>
         </article>
